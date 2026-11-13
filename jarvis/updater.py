@@ -32,4 +32,10 @@ def available_update(local: str) -> str:
 def download_installer(dest) -> None:
     import urllib.request
 
-    urllib.request.urlretrieve(INSTALLER_URL, dest)
+    request = urllib.request.Request(INSTALLER_URL, headers={"User-Agent": "FRIDAY"})
+    with urllib.request.urlopen(request, timeout=120) as response:
+        payload = response.read()
+    if len(payload) < 1_000_000 or not payload.startswith(b"MZ"):
+        raise RuntimeError("kurulum dosyasi olmadi")
+    with open(dest, "wb") as handle:
+        handle.write(payload)
