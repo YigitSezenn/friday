@@ -5,4 +5,14 @@ __pycache__/
 *.pyc
 data/
 *.log
+tools/gate-deploy-status.txt
 .idea/
+phone-android/local.properties
+phone-android/.gradle/
+phone-android/app/src/main/assets/gate_key.txt
+site/public/indir/*.exe
+site/public/indir/*.apk
+site/node_modules/
+site/.vercel/
+**/.env
+.gradle-dist/
