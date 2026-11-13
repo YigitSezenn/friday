@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <title>FRIDAY</title>
 <link rel="stylesheet" href="hud.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
 <body data-state="connecting" data-boot="1">
 <div id="bloom"></div>
@@ -75,7 +77,7 @@
       <p class="whisper" id="rem-text">Bekleyen anımsatıcı yok.</p>
     </section>
     <section class="mod" data-key="map" style="--i:3">
-      <div class="mapbox"><img id="map-img" alt=""></div>
+      <div class="mapbox"><img id="map-img" alt=""><div class="maptint"></div></div>
       <div class="kicker">HARİTA</div>
       <p class="whisper" id="map-cap"></p>
     </section>
@@ -92,7 +94,7 @@
   </div>
 </div>
 <div id="br">
-  <button id="quit"><span class="pw">⏻</span> KAPAT</button>
+  <button id="quit" type="button" title="Görev çubuğunda çalışmaya devam eder"><span class="pw">–</span> KÜÇÜLT</button>
 </div>
 <div class="overlay" id="ov-settings" hidden>
   <form class="sheet setsheet" id="settings-form">
@@ -176,35 +178,95 @@
       <div id="mem-list"></div>
     </section>
     <section class="pane" data-pane="telefon">
-      <p class="whisper">Telefon ve bu bilgisayar aynı Wi-Fi’da olmalı. QR bir şifredir; paylaşma. Yeni kod eskisini düşürür.</p>
-      <img id="phone-qr" alt="Telefon eşleştirme kodu" hidden>
-      <div class="row2"><div>BAĞLANTI<small id="phone-url">Kapalı</small></div>
-        <button type="button" class="btn" id="phone-go">TELEFONU BAĞLA</button></div>
-      <button type="button" class="btn ghost" id="phone-rotate">YENİ KOD</button>
-      <button type="button" class="btn ghost" id="phone-copy">ADRESİ KOPYALA</button>
+      <div class="row2"><div>KAPI ANAHTARI<small>QR kodu yalnız FRIDAY Android uygulaması okur. Telefon kamerası ve tarayıcı eşleştirme yolu değildir. Yanındaki rakam uygulamada tutmalıdır. Tek anahtar.</small></div></div>
+      <div class="pair">
+        <img id="gate-qr" alt="Kapı anahtarı kodu" hidden>
+        <b id="pair-code">------</b>
+      </div>
       <div class="row2"><div>AÇILIŞTA BAĞLA<small>Uygulama açılınca aynı Wi-Fi sunucusunu başlatır.</small></div>
         <button type="button" class="switch" id="set-phone-auto" aria-checked="false"></button></div>
     </section>
     <section class="pane" data-pane="hakkinda">
       <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
       <button type="button" class="btn ghost" id="open-data">KAYIT KLASÖRÜNÜ AÇ</button>
+      <button type="button" class="btn ghost" id="uninstall">FRIDAY'İ KALDIR</button>
+      <p class="whisper">Uygulamayı kaldırır. Yalnız FRIDAY klasörü ve içindeki kayıtlar silinir, %LOCALAPPDATA%\FRIDAY dahil. Başka klasörlere dokunulmaz.</p>
     </section>
     <div class="setfoot"><button type="submit" class="btn">KAYDET</button></div>
   </form>
 </div>
-<div class="overlay welcome" id="ov-welcome" hidden>
-  <div class="sheet greet">
-    <div class="greet-ring" aria-hidden="true"></div>
-    <h2>Merhaba, ben FRIDAY.</h2>
-    <p class="whisper">Başlamadan önce Gemini anahtarın gerekiyor. Anahtar yalnızca bu bilgisayarda kalır. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">aistudio.google.com/apikey</a></p>
-    <div class="field"><input id="welcome-key" type="password" autocomplete="off" placeholder="Gemini API anahtarı"></div>
-    <div class="row"><button type="button" class="btn" id="welcome-go">BAŞLAT</button></div>
-    <ol id="welcome-steps" hidden>
-      <li data-step="key">Anahtar kaydedildi</li>
-      <li data-step="link">Bağlantı kuruluyor</li>
-      <li data-step="mic">Mikrofon ve telefon hazırlanıyor</li>
-    </ol>
-    <p id="welcome-ready" hidden>Her şey çalıştı. FRIDAY ayakta.</p>
+<div class="overlay" id="ov-weather" hidden>
+  <div class="sheet wxsheet">
+    <div id="wx-body"></div>
+  </div>
+</div>
+<div class="overlay" id="ov-map" hidden>
+  <div class="sheet mapsheet">
+    <h2 id="map-title">KONUM</h2>
+    <div class="mapframe">
+      <div id="bigmap"></div>
+      <img id="bigmap-img" alt="Harita" hidden>
+      <div class="maptint"></div>
+    </div>
+    <p class="whisper">Harita: OpenFreeMap · © OpenStreetMap katkıcıları. Küçük kart: © Esri.</p>
+    <div class="row"><button type="button" id="map-close">KAPAT</button></div>
+  </div>
+</div>
+<div id="onboard" hidden>
+  <p class="ob-sub" id="ob-sub">Seninle konuşabilmem için beni Google’ın Gemini sunucusuna bağlaman gerekiyor. Bunun için ücretsiz bir anahtar yeterli.</p>
+  <div class="ob-body">
+    <section class="ob-step on" data-step="key">
+      <h2>GEMINI API ANAHTARI</h2>
+      <p class="lead">Ücretsizdir, kredi kartı gerekmez. Anahtar yalnızca bu bilgisayarda kalır.</p>
+      <ol class="ob-howto">
+        <li>Aşağıdaki <b>ANAHTARI AL</b> düğmesine bas. Google AI Studio tarayıcıda açılır. Google hesabınla gir.</li>
+        <li><b>Create API key</b> düğmesine bas.</li>
+        <li>Oluşan anahtarın yanındaki kopyala simgesine bas.</li>
+        <li>Buraya dön ve anahtarı kutuya yapıştır (Ctrl+V). Kendiliğinden kontrol edilir.</li>
+      </ol>
+      <div class="ob-video"><button class="btn ghost" id="ob-video" type="button">VİDEOLU ANLATIM</button>
+        <small>Anahtarın nasıl alındığını adım adım gösteren kısa video.</small></div>
+      <div class="field">
+        <input type="password" id="ob-key" placeholder="Anahtarı yapıştır" autocomplete="off" spellcheck="false">
+        <button class="btn ghost" id="ob-get" type="button">ANAHTARI AL</button>
+      </div>
+      <p class="note" id="ob-key-note"></p>
+      <button class="khelp" id="ob-khelp" type="button"><i aria-hidden="true">?</i>ANAHTAR ALAMADIM</button>
+    </section>
+  </div>
+  <div class="ob-foot"><button class="btn" id="ob-next" type="button">DEVAM</button></div>
+</div>
+<div id="keyhelp" hidden>
+  <div class="sheet khsheet" role="dialog" aria-modal="true" aria-labelledby="kh-title">
+    <button class="close" id="kh-close" type="button" aria-label="Kapat">✕</button>
+    <h2 id="kh-title">ANAHTAR YARDIMI</h2>
+    <p class="lead">Anahtar alırken sorun mu var? Çoğu sorun bir dakikada çözülür.</p>
+    <div class="kh-list">
+      <div class="kh-row">
+        <button class="kh-q" type="button">Neden bir anahtar gerekiyor?</button>
+        <div class="kh-a"><p>Düşünebilmem için bir beyne ihtiyacım var. O beyni Google’ın Gemini’si sağlıyor. Anahtar beni ona bağlıyor. Ücretsizdir, kart gerekmez ve anahtar yalnızca bu bilgisayarda kalır.</p></div>
+      </div>
+      <div class="kh-row">
+        <button class="kh-q" type="button">Google AI Studio açılmıyor</button>
+        <div class="kh-a"><p>Okul ya da iş hesaplarında AI Studio kapalı olabilir. Kişisel bir Gmail hesabıyla dene. Tarayıcıda birden çok hesap açıksa sağ üstten onu seç.</p></div>
+      </div>
+      <div class="kh-row">
+        <button class="kh-q" type="button">Create API key düğmesini bulamıyorum</button>
+        <div class="kh-a"><p>aistudio.google.com/apikey adresini aç. İlk girişte Welcome to AI Studio ekranını onayla. Sağ üstte Create API key, sonra Default Gemini Project seçili kalsın, Create key, çıkan anahtarı kopyala.</p></div>
+      </div>
+      <div class="kh-row">
+        <button class="kh-q" type="button">Yapıştırdım ama geçersiz diyor</button>
+        <div class="kh-a"><p>Anahtarın tamamını kopyala. Başında ve sonunda boşluk olmasın. Yeni aldıysan bir iki dakika bekleyip tekrar dene.</p></div>
+      </div>
+      <div class="kh-row">
+        <button class="kh-q" type="button">Ücretsiz kullanım kapalı ya da kredi bitti diyor</button>
+        <div class="kh-a"><p>Google bu hesapta ücretsiz Gemini’yi kapatmış olabilir. Başka bir Google hesabıyla aldığın anahtarı dene. Ücretli bir projenin kredisi bittiyse faturalandırma bağlı olmayan bir projeden yeni anahtar al.</p></div>
+      </div>
+    </div>
+    <div class="kh-btns">
+      <button class="btn ghost" id="kh-video" type="button">VİDEOYU İZLE</button>
+      <button class="btn ghost" id="kh-studio" type="button">AI STUDIO’YU AÇ</button>
+    </div>
   </div>
 </div>
 <div class="overlay" id="ov-models" hidden>
