@@ -416,7 +416,7 @@ class JarvisUI:
             found = requests.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={"q": city, "format": "json", "limit": 1},
-                headers={"User-Agent": "FRIDAY/3.8 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/3.9 (desktop assistant)"},
                 timeout=12,
             )
             found.raise_for_status()
@@ -431,7 +431,7 @@ class JarvisUI:
             y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
             tile = requests.get(
                 f"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{zoom}/{y}/{x}",
-                headers={"User-Agent": "FRIDAY/3.8 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/3.9 (desktop assistant)"},
                 timeout=12,
             )
             tile.raise_for_status()
@@ -618,18 +618,21 @@ class JarvisUI:
 
     def install_update(self) -> None:
         import os
-        import subprocess
         import tempfile
 
         from jarvis.updater import download_installer
 
         self.write_log("SYS: Güncelleme indiriliyor.")
-        dest = os.path.join(tempfile.gettempdir(), "FRIDAY-Kurulum.exe")
+        dest = os.path.join(tempfile.gettempdir(), "FRIDAY-Kurulum-yeni.exe")
         try:
             download_installer(dest)
-            subprocess.Popen([dest], close_fds=True)
         except Exception:
             self.write_log("ERR: Güncelleme indirilemedi.")
+            return
+        try:
+            os.startfile(dest)  # type: ignore[attr-defined]
+        except Exception:
+            self.write_log("ERR: Kurulum açılamadı.")
             return
         self.write_log("SYS: Kurulum açıldı.")
 
