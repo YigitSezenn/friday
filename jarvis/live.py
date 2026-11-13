@@ -8,7 +8,7 @@ import traceback
 
 from tools.actions.webcam import WebcamStreamer
 from jarvis.config import get_app_config_value
-from jarvis.language import speech_codes, speech_language
+from jarvis.language import live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
 from jarvis.textfix import repair_text
@@ -84,7 +84,7 @@ class JarvisLive:
             status = self.webcam.start()
             self.ui.set_webcam_active(status in {"ok", "already_active"})
             if status == "missing":
-                self.ui.write_log("ERR: Kamera acilamadi.")
+                self.ui.write_log("ERR: Kamera açılamadı.")
         else:
             self.webcam.stop()
             self.ui.set_webcam_active(False)
@@ -100,7 +100,7 @@ class JarvisLive:
         # çalıştırır; numara gibi bir metin o scripti düşürüp süreci çökertiyordu.
         self._typed = text
         if not self._loop or not self.session:
-            self.ui.write_log("ERR: JARVIS baglantisi henuz hazir degil.")
+            self.ui.write_log("ERR: JARVIS bağlantısı henüz hazır değil.")
             return
         asyncio.run_coroutine_threadsafe(self._send_text(text), self._loop)
 
@@ -122,20 +122,28 @@ class JarvisLive:
             parts.append(memory + "\n\n")
         parts.append(load_system_prompt())
         voice = str(get_app_config_value("voice", "Charon") or "Charon")
-        heard = types.AudioTranscriptionConfig(language_codes=speech_codes())
-        spoken = types.AudioTranscriptionConfig(language_codes=speech_codes())
+        model = current_live_model()
+        code = live_speech_code(model)
+        if code is None:
+            heard = types.AudioTranscriptionConfig()
+            spoken = types.AudioTranscriptionConfig()
+        else:
+            heard = types.AudioTranscriptionConfig(language_codes=speech_codes())
+            spoken = types.AudioTranscriptionConfig(language_codes=speech_codes())
+        speech = types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
+            )
+        )
+        if code:
+            speech.language_code = code
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             output_audio_transcription=spoken,
             input_audio_transcription=heard,
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
-            speech_config=types.SpeechConfig(
-                language_code=speech_language(),
-                voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
-                )
-            ),
+            speech_config=speech,
         )
 
     async def _execute(self, function_call):
@@ -211,7 +219,7 @@ class JarvisLive:
                 )
             except Exception as exc:
                 self._text_only = True
-                self.ui.write_log(f"ERR: Mikrofon acilamadi, yazi ile devam edebilirsin. ({exc})")
+                self.ui.write_log(f"ERR: Mikrofon açılamadı, yazı ile devam edebilirsin. ({exc})")
                 audio.terminate()
                 while True:
                     await asyncio.sleep(0.2)
@@ -300,7 +308,7 @@ class JarvisLive:
         try:
             stream = audio.open(format=pyaudio.paInt16, channels=1, rate=RECV_RATE, output=True)
         except Exception as exc:
-            self.ui.write_log(f"ERR: Hoparlor acilamadi. ({exc})")
+                self.ui.write_log(f"ERR: Hoparlör açılamadı. ({exc})")
             audio.terminate()
             while True:
                 await self.audio_in_queue.get()
@@ -378,7 +386,7 @@ class JarvisLive:
             if not key:
                 self.ui.set_state("ERROR")
                 if not getattr(self, "_missing_key_logged", False):
-                    self.ui.write_log("ERR: Gemini API anahtari yok. Ayarlardan kaydet.")
+                    self.ui.write_log("ERR: Gemini API anahtarı yok. Ayarlardan kaydet.")
                     self._missing_key_logged = True
                 await asyncio.sleep(2)
                 continue
@@ -458,7 +466,7 @@ def _public_connect_error(exc: BaseException, key: str) -> str:
     detail = " ".join(detail.split())
     if len(detail) > 160:
         detail = detail[:160] + "…"
-    return f"ERR: Baglanti koptu — API anahtarini ve interneti kontrol et. ({detail})"
+    return f"ERR: Bağlantı koptu. API anahtarını ve interneti kontrol et. ({detail})"
 
 
 def _reconnect_error(exc: BaseException) -> bool:

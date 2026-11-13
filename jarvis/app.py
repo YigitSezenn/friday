@@ -68,10 +68,53 @@ def smoke_ui() -> int:
     return 0
 
 
+def _show_event():
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateEventW.argtypes = [ctypes.c_void_p, ctypes.c_bool, ctypes.c_bool, ctypes.c_wchar_p]
+    kernel.CreateEventW.restype = ctypes.c_void_p
+    kernel.SetEvent.argtypes = [ctypes.c_void_p]
+    kernel.SetEvent.restype = ctypes.c_bool
+    kernel.ResetEvent.argtypes = [ctypes.c_void_p]
+    kernel.ResetEvent.restype = ctypes.c_bool
+    kernel.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    kernel.WaitForSingleObject.restype = ctypes.c_uint32
+    handle = kernel.CreateEventW(None, True, False, "Local\\FRIDAY.Rebuild.Show")
+    globals()["_kernel"] = kernel
+    globals()["_show_event"] = handle
+    return kernel, handle
+
+
+def _signal_show() -> None:
+    kernel = globals().get("_kernel")
+    handle = globals().get("_show_event")
+    if kernel is not None and handle:
+        kernel.SetEvent(handle)
+
+
+def _watch_show(ui) -> None:
+    kernel = globals().get("_kernel")
+    handle = globals().get("_show_event")
+    if kernel is None or not handle:
+        return
+
+    def watch() -> None:
+        import time
+
+        while not ui._closed and not ui._quitting:
+            if kernel.WaitForSingleObject(handle, 400) == 0:
+                if ui.restore_from_taskbar():
+                    kernel.ResetEvent(handle)
+                else:
+                    time.sleep(0.3)
+
+    threading.Thread(target=watch, name="friday-show", daemon=True).start()
+
+
 def _acquire_single_instance() -> bool:
     kernel = ctypes.WinDLL("kernel32", use_last_error=True)
     handle = kernel.CreateMutexW(None, False, "Local\\JarvisRebuildSingleInstance")
     if ctypes.get_last_error() == 183:
+        _signal_show()
         return False
     globals()["_mutex"] = handle
     return True
@@ -121,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
     if "--smoke-ui" in argv:
         return smoke_ui()
     _note_launch()
+    _show_event()
     if not _acquire_single_instance():
         print("JARVIS zaten calisiyor.")
         return 0
@@ -138,12 +182,12 @@ def main(argv: list[str] | None = None) -> int:
             if command:
                 command(text)
             else:
-                ui.write_log("ERR: Telefon komutu icin baglanti henuz hazir degil.")
+                ui.write_log("ERR: Telefon komutu için bağlantı henüz hazır değil.")
 
         try:
             url = start_phone_server(send, lan=True)
         except OSError as exc:
-            ui.write_log(f"ERR: Telefon sunucusu acilamadi. ({exc})")
+            ui.write_log(f"ERR: Telefon sunucusu açılamadı. ({exc})")
             return ""
         ui.write_debug("Telefon ayni Wi-Fi icin hazir. QR Ayarlar icinde, paylasma.")
         try:
@@ -160,6 +204,17 @@ def main(argv: list[str] | None = None) -> int:
     if has_gemini_api_key() or load_app_config().get("phone_autostart"):
         threading.Thread(target=open_phone, name="jarvis-phone", daemon=True).start()
 
+    from jarvis.gate_client import run_gate
+
+    def gate_send(text: str) -> None:
+        command = live_box.get("command")
+        if command:
+            command(text)
+        else:
+            ui.write_log("ERR: Kapı komutu için bağlantı henüz hazır değil.")
+
+    threading.Thread(target=lambda: run_gate(gate_send), name="jarvis-gate", daemon=True).start()
+
     def runner() -> None:
         live = JarvisLive(ui)
         live_box["live"] = live
@@ -171,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
 
     threading.Thread(target=runner, name="jarvis-live", daemon=True).start()
     threading.Thread(target=lambda: _proactive_loop(ui, live_box), name="jarvis-proactive", daemon=True).start()
+    _watch_show(ui)
     ui.root.mainloop()
     return 0
 
