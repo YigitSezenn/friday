@@ -149,6 +149,48 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("Istanbul", text)
         self.assertIn("18 derece", text)
         self.assertIn("nem", text)
+        from jarvis.actions.weather import weather_card
+
+        card = weather_card(
+            {
+                "nearest_area": [{"areaName": [{"value": "Kepez"}], "region": [{"value": "Antalya"}]}],
+                "current_condition": [{
+                    "temp_C": "22",
+                    "FeelsLikeC": "21",
+                    "humidity": "55",
+                    "windspeedKmph": "14",
+                    "winddir16Point": "N",
+                    "winddirDegree": "10",
+                    "pressure": "1016",
+                    "visibility": "10",
+                    "uvIndex": "5",
+                    "cloudcover": "20",
+                    "precipMM": "0.0",
+                    "weatherDesc": [{"value": "Sunny"}],
+                }],
+                "weather": [{"date": "2026-11-13", "maxtempC": "24", "mintempC": "16", "hourly": [{"weatherDesc": [{"value": "Sunny"}], "chanceofrain": "0"}], "astronomy": [{"sunrise": "07:12 AM", "sunset": "05:48 PM"}]}],
+            },
+            target="Antalya",
+        )
+        self.assertEqual(card["place"], "Antalya")
+        self.assertEqual(card["wind"], "14")
+        self.assertEqual(card["high"], "24")
+        self.assertEqual(card["sunrise"], "07:12 AM")
+        self.assertEqual(card["windFrom"], "kuzey yönünden")
+        self.assertEqual(card["uvLabel"], "orta")
+        self.assertEqual(len(card["hours"]), 1)
+
+    def test_gate_rejects_a_wrong_key_and_queues_a_command(self):
+        from gate.logic import CommandQueue, key_matches
+
+        self.assertFalse(key_matches("", "abc"))
+        self.assertFalse(key_matches("dogru-anahtar", "yanlis"))
+        self.assertTrue(key_matches("dogru-anahtar", "dogru-anahtar"))
+        queue = CommandQueue()
+        item = queue.push("bilgisayarda ac not defteri", "site")
+        self.assertEqual(item["text"], "bilgisayarda ac not defteri")
+        self.assertEqual(queue.take()[0]["source"], "site")
+        self.assertEqual(queue.take(), [])
 
     def test_app_alias_without_launching(self):
         from jarvis.actions.apps import resolve_alias
@@ -247,6 +289,19 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(saved["live_model"], LIVE_MODELS[0])
         self.assertEqual(saved["language"], "auto")
         self.assertNotIn("KONUŞMA DİLİ", load_system_prompt())
+        from jarvis.language import speech_codes, ui_language
+        from jarvis.textfix import repair_text
+
+        self.assertEqual(speech_codes({"language": "tr"}), ["tr-TR"])
+        self.assertEqual(speech_codes({"language": "en"}), ["en-US"])
+        self.assertEqual(ui_language({"language": "fr"}), "fr")
+        self.assertEqual(ui_language({"language": "auto"}), "tr")
+        garbled = "spotify a" + "ç".encode("utf-8").decode("latin-1")
+        self.assertEqual(repair_text(garbled), "spotify aç")
+        self.assertEqual(repair_text("spotify aç"), "spotify aç")
+        hud = (Path(__file__).resolve().parents[1] / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        self.assertIn("applyLanguage", hud)
+        self.assertIn("send(\"settings\", {values: {language: value}})", hud)
 
     def test_story_search_files_and_vision_code(self):
         from pathlib import Path
@@ -310,7 +365,27 @@ class JarvisTestCase(unittest.TestCase):
         self.assertLess(len(dropped), 4)
         plain = chunks_for_model(loud, speaking=True, echo_cancelled=False, filt=CaptureFilter(), now=now)
         self.assertEqual(plain, [])
+        heard = chunks_for_model(loud, speaking=False, echo_cancelled=False, filt=CaptureFilter(), now=now)
+        self.assertEqual(heard, [loud])
         self.assertEqual(chunks_for_model(quiet, speaking=False, echo_cancelled=True, filt=filt, now=now + 8), [quiet])
+
+    def test_first_run_screen_closes_and_uses_hud_type(self):
+        root = Path(__file__).resolve().parents[1]
+        html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
+        css = (root / "ui" / "hud" / "hud.css").read_text(encoding="utf-8")
+        script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        self.assertIn('id="onboard"', html)
+        self.assertNotIn("ov-welcome", html)
+        self.assertNotIn("greet-ring", html)
+        self.assertIn("font-family:var(--sans)", css)
+        self.assertIn("background:transparent", css)
+        self.assertIn("@keyframes obLift", css)
+        self.assertIn("closeOnboard", script)
+        self.assertIn("FRIDAY ayakta", script)
+        self.assertNotIn("#ff4fd8", script)
+        self.assertNotIn("sepia", css)
+        self.assertNotIn("rgba(230,201,138", css)
+        self.assertIn("mix-blend-mode:color", css)
 
     def test_welcome_waits_for_key_then_shows_ready(self):
         from jarvis.onboarding import READY_TEXT, onboarding_view
@@ -361,7 +436,130 @@ class JarvisTestCase(unittest.TestCase):
         denied, _, _ = handle_phone_request("POST", "/mic?token=yanlis", pcm, seen.append)
         self.assertEqual(denied, 403)
         self.assertEqual(seen, ["not defteri"])
+        page_status, page, _ = handle_phone_request("GET", f"/?token={token}", b"", None)
+        self.assertEqual(page_status, 200)
+        self.assertIn(b'id="copy-key"', page)
+        self.assertNotIn(b"<!--gate-->", page)
+        join_status, join_page, _ = handle_phone_request("GET", f"/join?token={token}", b"", None)
+        self.assertEqual(join_status, 200)
+        self.assertIn(b'id="copy-key"', join_page)
 
+    def test_close_and_minimize_stay_on_the_taskbar(self):
+        from jarvis.taskbar import installer_is_running, keep_on_taskbar
+
+        self.assertTrue(keep_on_taskbar(False))
+        self.assertTrue(keep_on_taskbar(False, installer_running=False))
+        self.assertFalse(keep_on_taskbar(True))
+        self.assertFalse(keep_on_taskbar(False, installer_running=True))
+        self.assertFalse(installer_is_running(["chrome.exe", "python.exe"]))
+        self.assertTrue(installer_is_running(["FRIDAY-Kurulum.exe"]))
+        self.assertTrue(installer_is_running(["unins000.exe"]))
+        root = Path(__file__).resolve().parents[1]
+        bridge = (root / "ui" / "bridge.py").read_text(encoding="utf-8")
+        html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
+        script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        self.assertIn("events.closing", bridge)
+        self.assertIn("minimize_to_taskbar", bridge)
+        self.assertIn("KÜÇÜLT", html)
+        self.assertIn('send("minimize")', script)
+        self.assertNotIn('send("quit")', script)
+
+    def test_uninstall_deletes_only_friday_folders(self):
+        import contextlib
+        import io
+
+        from jarvis.uninstall import delete_friday_dir, delete_friday_dirs, friday_data_dirs, launch_uninstaller
+
+        root = Path(self._tmp.name)
+        local = root / "Local"
+        roaming = root / "Roaming"
+        secret = "secret-value-should-not-print"
+        keep = [
+            local / "Jarvis",
+            local / "JARVIS V4",
+            roaming / "JARVIS V4",
+            roaming / "JARVIS V4 yedek",
+            root / "JarvisV4",
+            root / "dist" / "FRIDAY",
+        ]
+        for folder in keep:
+            folder.mkdir(parents=True)
+            (folder / "note.txt").write_text("kalir", encoding="utf-8")
+        targets = list(friday_data_dirs(local, roaming))
+        self.assertEqual(targets, [local / "FRIDAY", roaming / "FRIDAY"])
+        for folder in targets:
+            data = folder / "data" / "config"
+            data.mkdir(parents=True)
+            (data / "api_keys.json").write_text('{"gemini_api_key":"%s"}' % secret, encoding="utf-8")
+        captured = io.StringIO()
+        with contextlib.redirect_stdout(captured):
+            removed = delete_friday_dirs(targets)
+        self.assertEqual(len(removed), 2)
+        self.assertNotIn(secret, captured.getvalue())
+        self.assertNotIn(secret, " ".join(removed))
+        for folder in targets:
+            self.assertFalse(folder.exists())
+        for folder in keep:
+            self.assertTrue((folder / "note.txt").read_text(encoding="utf-8") == "kalir")
+        self.assertFalse(delete_friday_dir(root / "dist" / "FRIDAY"))
+        self.assertFalse(delete_friday_dir(local / "Jarvis"))
+        self.assertFalse(delete_friday_dir(roaming / "JARVIS V4"))
+        self.assertFalse(delete_friday_dir(root / "JarvisV4"))
+        seen = []
+
+        def popen(args, **kwargs):
+            seen.append((args, kwargs))
+            return object()
+
+        setup = local / "FRIDAY" / "unins000.exe"
+        setup.parent.mkdir()
+        setup.write_bytes(b"")
+        self.assertTrue(launch_uninstaller(setup, popen))
+        self.assertEqual(seen[0][0][1], "/SILENT")
+        self.assertFalse(launch_uninstaller(root / "JarvisV4" / "unins000.exe", popen))
+        self.assertFalse(launch_uninstaller(root / "dist" / "FRIDAY" / "missing.exe", popen))
+        iss = (Path(__file__).resolve().parents[1] / "packaging" / "friday.iss").read_text(encoding="utf-8")
+        self.assertIn("{localappdata}\\FRIDAY", iss)
+        self.assertIn("{userappdata}\\FRIDAY", iss)
+        self.assertIn("DeleteFridayDir", iss)
+        self.assertIn("CompareText(Parent, 'Local')", iss)
+        self.assertIn("CompareText(Parent, 'Roaming')", iss)
+        self.assertIn("taskkill.exe", iss)
+        self.assertNotIn("JarvisV4", iss)
+        self.assertNotIn("JARVIS V4", iss)
+        self.assertNotIn("pywebview", iss)
+        self.assertNotIn(secret, iss)
+        hud = (Path(__file__).resolve().parents[1] / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="uninstall"', hud)
+
+
+    def test_missing_gate_key_is_created_once_and_qr_matches(self):
+        import base64
+        import io
+
+        import cv2
+        import numpy as np
+        from PIL import Image
+
+        from jarvis.gate_client import ensure_gate_key, gate_key
+        from jarvis.paths import data_path
+        from jarvis.phone_server import phone_qr_data_url
+
+        path = data_path("config", "gate_key.txt")
+        if path.exists():
+            path.unlink()
+        first = ensure_gate_key()
+        self.assertTrue(bool(first))
+        self.assertTrue(gate_key() == first and ensure_gate_key() == first)
+        from jarvis.gate_client import gate_join_url, pair_code
+
+        encoded = phone_qr_data_url(gate_join_url(first)).split(",", 1)[1]
+        image = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
+        value, _points, _straight = cv2.QRCodeDetector().detectAndDecode(np.array(image))
+        code = pair_code(first)
+        self.assertTrue(value.startswith("https://site-seven-bay-75.vercel.app/#k="))
+        self.assertTrue(first in value)
+        self.assertTrue(len(code) == 6 and code.isdigit() and pair_code(first) == code)
 
 if __name__ == "__main__":
     unittest.main()

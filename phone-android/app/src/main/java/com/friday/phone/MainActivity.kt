@@ -2,8 +2,12 @@ package com.friday.phone
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
@@ -11,36 +15,42 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.URLDecoder
 
 class MainActivity : ComponentActivity() {
     private lateinit var page: WebView
+    private lateinit var speech: SpeechBridge
+    private var pendingKey: String = ""
     private val scan = registerForActivityResult(ScanContract()) { result ->
         val text = result.contents?.trim().orEmpty()
         if (text.isEmpty() || !::page.isInitialized) return@registerForActivityResult
-        if (text.startsWith("https://site-seven-bay-75.vercel.app/")) {
-            page.loadUrl(text)
-            return@registerForActivityResult
-        }
+        if (!text.startsWith(SITE)) return@registerForActivityResult
+        val key = keyFrom(text)
+        if (key.isEmpty()) return@registerForActivityResult
+        storeKey(key)
+        deliverKey(key)
     }
     private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) openScanner()
+    }
+    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && ::speech.isInitialized) speech.start()
+        else runJs("window.__fridayVoiceError&&window.__fridayVoiceError()")
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
-        }
         val view = WebView(this)
         page = view
+        speech = SpeechBridge(this)
         view.settings.javaScriptEnabled = true
         view.settings.mediaPlaybackRequiresUserGesture = false
         view.settings.domStorageEnabled = true
@@ -48,7 +58,13 @@ class MainActivity : ComponentActivity() {
         view.settings.userAgentString = "$agent FRIDAYAndroid"
         view.addJavascriptInterface(WakeBridge(), "FridayWake")
         view.addJavascriptInterface(KeyBridge(this), "FridayKey")
-        view.webViewClient = WebViewClient()
+        view.addJavascriptInterface(speech, "FridaySpeech")
+        view.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                val key = pendingKey.ifEmpty { storedKey() }
+                if (key.isNotEmpty()) deliverKey(key)
+            }
+        }
         view.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
@@ -56,12 +72,21 @@ class MainActivity : ComponentActivity() {
         }
         setContentView(view)
         val incoming = intent?.dataString
-        val start = if (incoming.isNullOrBlank()) "https://site-seven-bay-75.vercel.app/#yaz" else incoming
-        view.loadUrl(start)
+        val start = if (incoming.isNullOrBlank()) "$SITE/#yaz" else incoming
+        val carried = if (incoming.isNullOrBlank()) "" else keyFrom(incoming)
+        if (carried.isNotEmpty()) {
+            storeKey(carried)
+            pendingKey = carried
+        }
+        view.loadUrl(start.substringBefore('#'))
     }
 
     fun requestCamera() {
         cameraPermission.launch(Manifest.permission.CAMERA)
+    }
+
+    fun requestMic() {
+        micPermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     fun openScanner() {
@@ -76,9 +101,40 @@ class MainActivity : ComponentActivity() {
         return getSharedPreferences(PREFS, MODE_PRIVATE).getString(GATE, "") ?: ""
     }
 
+    fun storeKey(value: String) {
+        val text = value.trim()
+        if (text.isEmpty()) return
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(GATE, text).apply()
+    }
+
+    fun deliverKey(key: String) {
+        val text = key.trim()
+        if (text.isEmpty() || !::page.isInitialized) return
+        pendingKey = text
+        val quoted = JSONObject.quote(text)
+        runJs("window.__fridayApplyKey&&window.__fridayApplyKey($quoted)")
+    }
+
+    fun runJs(script: String) {
+        if (!::page.isInitialized) return
+        page.post { page.evaluateJavascript(script, null) }
+    }
+
     companion object {
         private const val PREFS = "friday"
         private const val GATE = "gate"
+        private const val SITE = "https://site-seven-bay-75.vercel.app"
+    }
+}
+
+private fun keyFrom(url: String): String {
+    val hash = url.substringAfter('#', "")
+    val raw = hash.substringAfter("k=", "").substringBefore('&').trim()
+    if (raw.isEmpty()) return ""
+    return try {
+        URLDecoder.decode(raw, Charsets.UTF_8.name()).trim()
+    } catch (_: Exception) {
+        raw
     }
 }
 
@@ -88,12 +144,7 @@ private class KeyBridge(private val activity: MainActivity) {
 
     @JavascriptInterface
     fun store(value: String?) {
-        val text = value?.trim().orEmpty()
-        if (text.isEmpty()) return
-        activity.getSharedPreferences("friday", android.content.Context.MODE_PRIVATE)
-            .edit()
-            .putString("gate", text)
-            .apply()
+        activity.storeKey(value.orEmpty())
     }
 
     @JavascriptInterface
@@ -105,6 +156,54 @@ private class KeyBridge(private val activity: MainActivity) {
                 activity.requestCamera()
             }
         }
+    }
+}
+
+private class SpeechBridge(private val activity: MainActivity) {
+    private var recognizer: SpeechRecognizer? = null
+
+    @JavascriptInterface
+    fun listen() {
+        activity.runOnUiThread {
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                start()
+            } else {
+                activity.requestMic()
+            }
+        }
+    }
+
+    fun start() {
+        if (!SpeechRecognizer.isRecognitionAvailable(activity)) {
+            activity.runJs("window.__fridayHeard&&window.__fridayHeard('')")
+            return
+        }
+        recognizer?.destroy()
+        val engine = SpeechRecognizer.createSpeechRecognizer(activity)
+        recognizer = engine
+        engine.setRecognitionListener(object : RecognitionListener {
+            override fun onResults(results: Bundle?) {
+                val said = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                activity.runJs("window.__fridayHeard&&window.__fridayHeard(${JSONObject.quote(said)})")
+            }
+
+            override fun onError(error: Int) {
+                activity.runJs("window.__fridayHeard&&window.__fridayHeard('')")
+            }
+
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {}
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+        engine.startListening(intent)
     }
 }
 

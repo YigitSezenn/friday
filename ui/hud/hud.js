@@ -5,6 +5,34 @@ const NS = "http://www.w3.org/2000/svg";
 const DAYS = ["PAZARTESİ", "SALI", "ÇARŞAMBA", "PERŞEMBE", "CUMA", "CUMARTESİ", "PAZAR"];
 const MONTHS = ["", "OCAK", "ŞUBAT", "MART", "NİSAN", "MAYIS", "HAZİRAN", "TEMMUZ", "AĞUSTOS", "EYLÜL", "EKİM", "KASIM", "ARALIK"];
 const LABEL = {connecting: "BAĞLANIYOR", listening: "DİNLİYOR", thinking: "DÜŞÜNÜYOR", speaking: "KONUŞUYOR", idle: "BEKLEMEDE", paused: "SESSİZ", error: "HATA"};
+let uiPack = (window.FRIDAY_I18N && window.FRIDAY_I18N.tr) || {};
+
+function applyLanguage(code) {
+  const table = window.FRIDAY_I18N || {};
+  uiPack = table[code] || table.tr || uiPack;
+  if (!uiPack) return;
+  document.documentElement.lang = uiPack.htmlLang || "tr";
+  Object.assign(LABEL, uiPack.states || {});
+  if (uiPack.days) DAYS.splice(0, DAYS.length, ...uiPack.days);
+  if (uiPack.months) MONTHS.splice(0, MONTHS.length, ...uiPack.months);
+  if (typeof PANEL_LABELS !== "undefined" && uiPack.panels) Object.assign(PANEL_LABELS, uiPack.panels);
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const value = uiPack[node.dataset.i18n];
+    if (typeof value !== "string") return;
+    const text = [...node.childNodes].find((child) => child.nodeType === 3 && child.textContent.trim());
+    if (text && node.childElementCount) text.textContent = value;
+    else node.textContent = value;
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach((node) => {
+    const value = uiPack[node.dataset.i18nPh];
+    if (typeof value === "string") node.placeholder = value;
+  });
+  const state = document.body.dataset.state;
+  if ($("t-state") && LABEL[state]) $("t-state").textContent = LABEL[state];
+  if ($("t-mic-state")) $("t-mic-state").textContent = $("t-mic").dataset.on === "0" ? uiPack.micOff : uiPack.micOn;
+  if ($("t-cam-state")) $("t-cam-state").textContent = $("t-cam").dataset.on === "1" ? uiPack.camOn : uiPack.camOff;
+  if ($("hint")) $("hint").textContent = $("t-mic").dataset.on === "0" ? uiPack.hintOff : uiPack.hintOn;
+}
 
 function send(kind, data) {
   const payload = data || {};
@@ -148,7 +176,7 @@ setTimeout(() => { document.body.dataset.boot = "0"; }, 1600);
 function dial(host, size) {
   host.replaceChildren();
   const node = svg("svg", {viewBox: "0 0 100 100"});
-  node.appendChild(svg("circle", {cx: 50, cy: 50, r: 42, fill: "none", stroke: "rgba(230,201,138,.28)", "stroke-width": 1.4}));
+  node.appendChild(svg("circle", {cx: 50, cy: 50, r: 42, fill: "none", stroke: "rgba(var(--rgb),.28)", "stroke-width": 1.4}));
   const arc = svg("path", {id: "arc", fill: "none", stroke: "var(--accent)", "stroke-width": 2.2, "stroke-linecap": "round"});
   const label = svg("text", {x: 50, y: 50, "text-anchor": "middle", "dominant-baseline": "middle", fill: "#fff", "font-size": size, "font-family": "Segoe UI"});
   const sub = svg("text", {x: 50, y: 66, "text-anchor": "middle", fill: "var(--dim)", "font-size": 8, "font-family": "Segoe UI"});
@@ -232,7 +260,7 @@ function paintPalette(palette) {
 }
 function renderNotes() {
   $("note-count").textContent = String(notes.length);
-  $("note-hint").textContent = notes.length ? notes.slice(-2).join("\n") : "Henüz not yok. “Not al: …” de ya da aşağıya yaz.";
+  $("note-hint").textContent = notes.length ? notes.slice(-2).join("\n") : (uiPack.noteEmpty || "");
 }
 
 function addLine(text, kind) {
@@ -251,24 +279,32 @@ window.hud = {
   },
   muted(on) {
     $("t-mic").dataset.on = on ? "0" : "1";
-    $("t-mic-state").textContent = on ? "KAPALI" : "AÇIK";
-    $("hint").textContent = on ? "Mikrofon kapalı: seni duymak için MİKROFON düğmesine ya da F4'e bas." : "Mikrofon açık. Kapatmak için F4.";
+    $("t-mic-state").textContent = on ? uiPack.micOff : uiPack.micOn;
+    $("hint").textContent = on ? uiPack.hintOff : uiPack.hintOn;
     if (on && document.body.dataset.state === "listening") document.body.dataset.state = "paused";
   },
   camera(on) {
     $("t-cam").dataset.on = on ? "1" : "0";
-    $("t-cam-state").textContent = on ? "AÇIK" : "KAPALI";
+    $("t-cam-state").textContent = on ? uiPack.camOn : uiPack.camOff;
   },
   log(text) {
     text = String(text == null ? "" : text);
     if (text.startsWith("JARVIS:")) addLine(text.slice(7).trim(), "");
     else if (text.startsWith("Siz:")) addLine(text.slice(4).trim(), "you");
-    else if (text.startsWith("ERR:")) addLine(text.slice(4).trim(), "err");
+    else if (text.startsWith("ERR:")) {
+      addLine(text.slice(4).trim(), "err");
+      if (document.body.classList.contains("onboard") && !/anahtari yok|anahtar yok/i.test(text) && /anahtar|baglanti|bağlantı|api|internet/i.test(text)) {
+        keyBusy = false;
+        const input = $("ob-key");
+        if (input) input.disabled = false;
+        onboardNote(text.slice(4).trim(), "bad");
+        const help = $("ob-khelp");
+        if (help) help.classList.add("loud");
+      }
+    }
     else if (text.includes("FRIDAY ayakta")) {
-      const ready = $("welcome-ready");
-      const steps = $("welcome-steps");
-      if (ready) ready.hidden = false;
-      if (steps) steps.querySelectorAll("li").forEach(node => node.dataset.done = "1");
+      addLine("Her şey çalıştı. FRIDAY ayakta.", "");
+      closeOnboard();
     }
   },
   stats(data) {
@@ -276,11 +312,15 @@ window.hud = {
     $("sys-rows").textContent = `CPU  %${Math.round(cpu)}\nRAM  %${Math.round(data.ram || 0)}\nDİSK %${Math.round(data.disk || 0)} dolu`;
   },
   weather(data) {
+    window.__weather = data || {};
     $("wx-temp").textContent = data.temp || "--°";
     $("wx-city").textContent = data.city || "KONUM";
     $("wx-desc").textContent = data.desc || "";
     $("wx-detail").textContent = data.detail || "";
-    $("map-cap").textContent = data.city ? `${data.city} · TÜRKİYE` : "";
+    $("map-cap").textContent = data.city ? `${data.city} · SABİT KONUM · küçük görüntü © Esri` : "";
+  },
+  place(spot) {
+    window.__spot = spot || null;
   },
   agenda(data) {
     $("cal-count").textContent = String(data.calendarCount || 0);
@@ -304,6 +344,9 @@ window.hud = {
   },
   settings(data) {
     const form = $("settings-form");
+    const shown = data.config && data.config.language && data.config.language !== "auto" ? data.config.language : (data.uiLanguage || "tr");
+    window.__uiLanguage = shown;
+    applyLanguage(shown);
     const voice = form.voice;
     voice.replaceChildren();
     for (const name of data.voices || []) {
@@ -317,7 +360,7 @@ window.hud = {
     for (const item of data.colors || []) {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = item.label;
+      button.textContent = (uiPack.colors && uiPack.colors[item.id]) || item.label;
       button.dataset.color = item.id;
       button.setAttribute("aria-checked", item.id === (data.config.ui_color || "gold") ? "true" : "false");
       button.addEventListener("click", () => {
@@ -334,7 +377,13 @@ window.hud = {
       list.appendChild(option);
     }
     paintChoice($("model-seg"), data.models || [], data.config.live_model, value => { form.live_model.value = value; });
-    paintChoice($("lang-seg"), (data.languages || []).map(item => item.key), data.config.language || "auto", value => { form.language.value = value; }, (data.languages || []).reduce((map, item) => { map[item.key] = item.name; return map; }, {}));
+    paintChoice($("lang-seg"), (data.languages || []).map(item => item.key), data.config.language || "auto", value => {
+      form.language.value = value;
+      const next = value === "auto" ? "tr" : value;
+      window.__uiLanguage = next;
+      applyLanguage(next);
+      send("settings", {values: {language: value}});
+    }, uiPack.langNames || {});
     for (const key of ["gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes"]) {
       if (form[key]) form[key].value = data.config[key] || "";
     }
@@ -357,12 +406,13 @@ window.hud = {
     window.__appVersion = data.version || "";
     paintStory(data.story);
     showPhone(data.phone);
+    paintGate(data.gateKeyQr, data.pairCode);
     $("set-mic").setAttribute("aria-checked", $("t-mic").dataset.on === "1" ? "true" : "false");
     paintPanels(data.panels);
     paintMemory(data.memories);
     paintIdentity(data.name);
     paintPalette(data.palette);
-    if (data.needKey) $("ov-welcome").hidden = false;
+    if (data.needKey) openOnboard();
   },
   phone(data) {
     showPhone(data);
@@ -393,19 +443,21 @@ function paintChoice(host, values, current, onPick, labels) {
     host.appendChild(button);
   }
 }
-function showPhone(data) {
-  const url = data && data.url ? data.url : "";
-  $("phone-url").textContent = url ? url.split("?")[0] : "Kapalı";
-  $("phone-url").dataset.full = url;
-  const image = $("phone-qr");
-  if (data && data.qr) {
-    image.hidden = false;
-    image.src = data.qr;
-  } else if (image) {
-    image.hidden = true;
-    image.removeAttribute("src");
+function paintGate(qr, code) {
+  const image = $("gate-qr");
+  const digits = $("pair-code");
+  if (image) {
+    if (qr) {
+      image.hidden = false;
+      image.src = qr;
+    } else {
+      image.hidden = true;
+      image.removeAttribute("src");
+    }
   }
+  if (digits) digits.textContent = /^\d{6}$/.test(String(code || "")) ? String(code) : "------";
 }
+function showPhone(_data) {}
 function paintStory(story) {
   const note = $("story-note");
   const list = $("story-list");
@@ -487,13 +539,6 @@ function openPhone() {
   send("phone");
 }
 $("t-phone").addEventListener("click", openPhone);
-$("phone-go").addEventListener("click", () => send("phone"));
-$("phone-copy").addEventListener("click", async () => {
-  const text = $("phone-url").dataset.full || "";
-  if (!text) return;
-  try { await navigator.clipboard.writeText(text); } catch (err) { console.error(err); }
-});
-$("phone-rotate").addEventListener("click", () => send("phone_rotate"));
 for (const id of ["set-story", "set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-aec", "set-windows"]) {
   $(id).addEventListener("click", () => $(id).setAttribute("aria-checked", $(id).getAttribute("aria-checked") === "true" ? "false" : "true"));
 }
@@ -519,15 +564,270 @@ $("t-settings").addEventListener("click", () => { $("ov-settings").hidden = fals
 $("t-persona").addEventListener("click", () => { $("ov-models").hidden = false; });
 $("set-close").addEventListener("click", () => { $("ov-settings").hidden = true; });
 $("mod-close").addEventListener("click", () => { $("ov-models").hidden = true; });
-$("welcome-go").addEventListener("click", () => {
-  const key = $("welcome-key").value.trim();
-  if (!key) return;
+const AI_STUDIO = "https://aistudio.google.com/apikey";
+const KEY_VIDEO = "https://youtu.be/VZl5uBT4a60";
+let keyBusy = false;
+let keyTimer = 0;
+function openOnboard() {
+  const board = $("onboard");
+  if (!board || document.body.classList.contains("onboard")) return;
+  document.body.classList.add("onboard");
+  document.body.dataset.ob = "step";
+  board.hidden = false;
+  setTimeout(() => { const input = $("ob-key"); if (input && !input.disabled) input.focus(); }, 400);
+}
+function closeOnboard() {
+  keyBusy = false;
+  clearTimeout(keyTimer);
+  document.body.classList.remove("onboard");
+  delete document.body.dataset.ob;
+  const board = $("onboard");
+  if (board) board.hidden = true;
+  const help = $("keyhelp");
+  if (help) help.hidden = true;
+  const input = $("ob-key");
+  if (input) { input.value = ""; input.disabled = false; }
+}
+function onboardNote(text, kind) {
+  const note = $("ob-key-note");
+  if (!note) return;
+  note.textContent = text || "";
+  note.classList.toggle("good", kind === "good");
+  note.classList.toggle("bad", kind === "bad");
+}
+function submitKey() {
+  if (keyBusy) return;
+  const input = $("ob-key");
+  if (!input) return;
+  const key = input.value.trim();
+  if (key.length < 30) {
+    onboardNote(key ? "Bu anahtar çok kısa görünüyor; tamamını kopyaladığından emin ol." : "Anahtar girilmedi.", "bad");
+    $("ob-khelp").classList.add("loud");
+    return;
+  }
+  keyBusy = true;
+  input.value = "";
+  input.disabled = true;
+  $("ob-khelp").classList.remove("loud");
+  onboardNote("Anahtar kaydedildi. Bağlantı kuruluyor.", "good");
+  $("ob-sub").textContent = "Bağlantı kuruluyor.";
   send("settings", {values: {gemini_api_key: key}});
-  $("welcome-key").value = "";
-  $("welcome-steps").hidden = false;
-  $("welcome-steps").querySelector("[data-step=key]").dataset.done = "1";
+}
+$("ob-get").addEventListener("click", () => send("open", {url: AI_STUDIO}));
+$("ob-video").addEventListener("click", () => send("open", {url: KEY_VIDEO}));
+$("kh-studio").addEventListener("click", () => send("open", {url: AI_STUDIO}));
+$("kh-video").addEventListener("click", () => send("open", {url: KEY_VIDEO}));
+$("ob-key").addEventListener("input", () => {
+  onboardNote("", "");
+  $("ob-khelp").classList.remove("loud");
+  clearTimeout(keyTimer);
+  if ($("ob-key").value.trim().length >= 30) keyTimer = setTimeout(submitKey, 400);
 });
-$("quit").addEventListener("click", () => send("quit"));
+$("ob-key").addEventListener("keydown", event => { if (event.key === "Enter") submitKey(); });
+$("ob-next").addEventListener("click", submitKey);
+$("ob-khelp").addEventListener("click", () => { $("keyhelp").hidden = false; });
+$("kh-close").addEventListener("click", () => { $("keyhelp").hidden = true; });
+$("keyhelp").addEventListener("click", event => { if (event.target.id === "keyhelp") $("keyhelp").hidden = true; });
+document.querySelectorAll(".kh-q").forEach(button => {
+  button.addEventListener("click", () => button.parentElement.classList.toggle("open"));
+});
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+function clockMinutes(text) {
+  const match = String(text || "").trim().match(/^(\d{1,2}):(\d{2})\s*([AP]M)?$/i);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const mark = (match[3] || "").toUpperCase();
+  if (mark === "PM" && hour < 12) hour += 12;
+  if (mark === "AM" && hour === 12) hour = 0;
+  return hour * 60 + minute;
+}
+function dayName(date, index) {
+  if (index === 0) return "BUGÜN";
+  if (index === 1) return "YARIN";
+  const parsed = new Date(`${date}T12:00:00`);
+  const names = ["PAZAR", "PAZARTESİ", "SALI", "ÇARŞAMBA", "PERŞEMBE", "CUMA", "CUMARTESİ"];
+  return Number.isNaN(parsed.getTime()) ? "" : names[parsed.getDay()];
+}
+function dayLabel(date) {
+  const parsed = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date || "";
+  const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+  return `${parsed.getDate()} ${months[parsed.getMonth()]}`;
+}
+function wet(desc) {
+  return /yağ|çis|kar|sağanak/i.test(desc || "");
+}
+function openWeather() {
+  const card = (window.__weather && window.__weather.card) || {};
+  if (!card.temp && !card.place) return;
+  const host = $("wx-body");
+  host.replaceChildren();
+  const head = el("div", "wxhead");
+  const titles = el("div");
+  titles.append(el("h2", "", "HAVA DURUMU"), el("p", "", [card.place, card.country, card.observed ? `GÜNCELLENDİ ${card.observed}` : ""].filter(Boolean).join(" · ").toUpperCase()));
+  head.append(titles, el("button", "", "×"));
+  head.lastChild.id = "wx-close";
+  head.lastChild.type = "button";
+  host.appendChild(head);
+
+  const hero = el("div", "wxhero");
+  const main = el("div", "wxmain");
+  main.append(el("b", "", card.temp ? `${card.temp}°` : "—"), el("div", "wxcopy"));
+  main.lastChild.append(el("strong", "", card.desc || "—"), el("span", "", `Hissedilen ${card.feels || "—"}°`), el("span", "", `En yüksek ${card.high || "—"}° · En düşük ${card.low || "—"}°`));
+  hero.append(main, sunCard(card), moonCard(card));
+  host.appendChild(hero);
+
+  const stats = el("div", "wxstats");
+  const items = [
+    ["NEM", card.humidity ? `%${card.humidity}` : "—", ""],
+    ["RÜZGÂR", card.wind ? `${card.wind} km/s` : "—", card.windFrom || ""],
+    ["BASINÇ", card.pressure ? `${card.pressure} hPa` : "—", "yüksek basınç"],
+    ["GÖRÜŞ", card.visibility ? `${card.visibility} km` : "—", Number(card.visibility) >= 10 ? "açık" : ""],
+    ["UV", card.uv || "—", card.uvLabel || ""],
+    ["BULUT", card.cloud ? `%${card.cloud}` : "—", card.precip ? `${card.precip} mm yağış` : ""],
+  ];
+  for (const [name, value, note] of items) {
+    const box = el("div", "wxstat");
+    box.append(el("i", "", name), el("b", "", value));
+    if (note) box.append(el("small", "", note));
+    stats.appendChild(box);
+  }
+  host.appendChild(stats);
+  host.appendChild(hourCard(card.hours || []));
+  const days = el("div", "wxdays");
+  (card.days || []).slice(0, 3).forEach((day, index) => {
+    const box = el("div", "wxday");
+    box.append(el("i", "", dayName(day.date, index)), el("small", "", dayLabel(day.date)), el("b", "", `${day.hi || "—"}°`), el("span", "", `${day.lo || "—"}°`), el("p", "", day.desc || ""), el("small", "", `↑ %${day.rain || "0"}`));
+    days.appendChild(box);
+  });
+  host.appendChild(days);
+  $("ov-weather").hidden = false;
+}
+function sunCard(card) {
+  const box = el("div", "wxsun");
+  const rise = clockMinutes(card.sunrise);
+  const set = clockMinutes(card.sunset);
+  const now = clockMinutes(card.observed);
+  let progress = 0.35;
+  if (rise != null && set != null && set > rise && now != null) progress = Math.min(1, Math.max(0, (now - rise) / (set - rise)));
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 160 86");
+  const arc = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  arc.setAttribute("d", "M12 72 Q80 4 148 72");
+  arc.setAttribute("fill", "none");
+  arc.setAttribute("stroke", "var(--accent)");
+  arc.setAttribute("stroke-width", "3");
+  svg.appendChild(arc);
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const t = progress;
+  const x = (1 - t) * (1 - t) * 12 + 2 * (1 - t) * t * 80 + t * t * 148;
+  const y = (1 - t) * (1 - t) * 72 + 2 * (1 - t) * t * 4 + t * t * 72;
+  dot.setAttribute("cx", String(x));
+  dot.setAttribute("cy", String(y));
+  dot.setAttribute("r", "5");
+  dot.setAttribute("fill", "var(--accent)");
+  svg.appendChild(dot);
+  box.appendChild(svg);
+  box.append(el("p", "", `${card.sunrise || "—"}  GÜNEŞ  ${card.sunset || "—"}`));
+  return box;
+}
+function moonCard(card) {
+  const box = el("div", "wxmoon");
+  box.append(el("i", "", "AY"), el("b", "", card.moon || "—"), el("small", "", card.moonLight ? `%${card.moonLight} aydınlık` : ""));
+  return box;
+}
+function hourCard(hours) {
+  const box = el("div", "wxhours");
+  box.appendChild(el("p", "", "ÖNÜMÜZDEKİ 24 SAAT"));
+  if (!hours.length) return box;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 800 150");
+  const temps = hours.map(hour => Number(hour.temp) || 0);
+  const low = Math.min(...temps) - 1;
+  const high = Math.max(...temps) + 1;
+  const span = Math.max(1, high - low);
+  const points = temps.map((temp, index) => {
+    const x = 36 + index * (728 / Math.max(1, hours.length - 1));
+    const y = 28 + (1 - (temp - low) / span) * 70;
+    return [x, y];
+  });
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  line.setAttribute("points", points.map(point => point.join(",")).join(" "));
+  line.setAttribute("fill", "none");
+  line.setAttribute("stroke", "currentColor");
+  line.setAttribute("stroke-width", "3");
+  svg.appendChild(line);
+  points.forEach((point, index) => {
+    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("cx", String(point[0]));
+    dot.setAttribute("cy", String(point[1]));
+    dot.setAttribute("r", "4");
+    dot.setAttribute("fill", "#fff");
+    svg.appendChild(dot);
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", String(point[0]));
+    label.setAttribute("y", String(point[1] - 10));
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("fill", "var(--ink)");
+    label.setAttribute("font-size", "14");
+    label.textContent = `${temps[index]}°`;
+    svg.appendChild(label);
+  });
+  box.appendChild(svg);
+  const row = el("div", "wxhourrow");
+  hours.forEach((hour, index) => {
+    const cell = el("div");
+    cell.append(el("b", "", index === 0 ? "ŞİMDİ" : hour.time), el("small", "", `%${hour.rain || "0"}`));
+    row.appendChild(cell);
+  });
+  box.appendChild(row);
+  return box;
+}
+let bigMap = null;
+function openMap() {
+  const spot = window.__spot;
+  $("map-title").textContent = (spot && spot.label) || $("wx-city").textContent || "KONUM";
+  $("ov-map").hidden = false;
+  const frame = $("bigmap");
+  const img = $("bigmap-img");
+  if (window.maplibregl && spot && spot.lat != null) {
+    img.hidden = true;
+    frame.hidden = false;
+    if (!bigMap) {
+      bigMap = new maplibregl.Map({
+        container: frame,
+        style: "https://tiles.openfreemap.org/styles/dark",
+        center: [Number(spot.lon), Number(spot.lat)],
+        zoom: 11,
+        attributionControl: true,
+      });
+      bigMap.addControl(new maplibregl.NavigationControl(), "top-left");
+    }
+    setTimeout(() => {
+      bigMap.resize();
+      bigMap.jumpTo({center: [Number(spot.lon), Number(spot.lat)], zoom: 11});
+    }, 40);
+    return;
+  }
+  frame.hidden = true;
+  img.hidden = false;
+  img.src = $("map-img").src || "";
+}
+document.querySelector('[data-key="weather"]').addEventListener("click", openWeather);
+document.querySelector('[data-key="map"]').addEventListener("click", openMap);
+$("ov-weather").addEventListener("click", event => { if (event.target.id === "wx-close") $("ov-weather").hidden = true; });
+$("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
+$("quit").addEventListener("click", () => send("minimize"));
+$("uninstall").addEventListener("click", () => {
+  const ok = confirm("FRIDAY kaldırılsın mı? Uygulama ve FRIDAY kayıt klasörü silinir. Başka klasörler silinmez.");
+  if (ok) send("uninstall");
+});
 $("open-data").addEventListener("click", () => send("open_data"));
 $("settings-form").addEventListener("submit", event => {
   event.preventDefault();

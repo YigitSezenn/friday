@@ -104,14 +104,14 @@
     <section id="yaz">
       <p class="kicker">İletişim</p>
       <h2>Komutu bilgisayara gönderin.</h2>
-      <p class="lead">QR okutunca site açılır ve kapı anahtarı kutuya yazılır. Anahtarı elle yazmayın. Bilgisayardaki altı haneli kod eşleşince bağlantı kurulur. Okuma yalnız FRIDAY Android uygulamasında yapılır.</p>
+      <p class="lead">QR okutunca altı haneli kod kutuya yazılır. Bilgisayardaki rakamla aynıysa komut gider. Okuma yalnız FRIDAY Android uygulamasında yapılır.</p>
       <p id="note" class="note" role="status"></p>
       <form id="komut-form" method="post" action="/komut">
-        <label>FRIDAY anahtarı<input name="key" type="password" autocomplete="off"></label>
-        <label class="pair-only">Bilgisayardaki kod<input name="pair" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+        <label>Bilgisayardaki kod<input name="pair" inputmode="numeric" maxlength="6" autocomplete="off"></label>
         <label>Komut<textarea name="text" rows="3" placeholder="Bilgisayarda not defterini aç"></textarea></label>
         <button class="btn" type="submit">Bilgisayara gönder</button>
         <button class="btn apk-only" id="apk-scan" type="button">QR oku</button>
+        <button class="btn apk-only" id="apk-mic" type="button">Konuş</button>
         <p id="apk-scan-note" class="note apk-only" role="status"></p>
       </form>
       <form id="wake-form" class="apk-only">
@@ -130,6 +130,13 @@
     <a href="https://discord.com/oauth2/authorize?client_id=1570766952446689401&amp;permissions=68608&amp;scope=bot" target="_blank" rel="noreferrer">Discord’a ekle</a>
     <a href="https://github.com/MiddleSugar7000/lumen-saas-landing-page-template">Sahne düzeni: Lumen</a>
   </footer>
+  <script>
+    window.__fridayKey = "";
+    window.__fridayApplyKey = function (key) {
+      window.__fridayKey = key || "";
+      if (window.__fridayTakeKey) window.__fridayTakeKey(window.__fridayKey);
+    };
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
