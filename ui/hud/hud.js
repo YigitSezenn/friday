@@ -829,6 +829,7 @@ document.querySelector('[data-key="weather"]').addEventListener("click", openWea
 document.querySelector('[data-key="map"]').addEventListener("click", openMap);
 $("ov-weather").addEventListener("click", event => { if (event.target.id === "wx-close") $("ov-weather").hidden = true; });
 $("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
+$("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 $("app-update")?.addEventListener("click", () => send("update"));
 $("uninstall").addEventListener("click", () => {
