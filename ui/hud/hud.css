@@ -103,13 +103,16 @@ body[data-state="paused"]{--breath:6s;--spin:70s}
 body[data-state="speaking"] #vu i,body[data-state="listening"] #vu i{animation:vu .6s ease-in-out infinite}
 #vu i:nth-child(2){animation-delay:.1s}#vu i:nth-child(3){animation-delay:.2s}#vu i:nth-child(4){animation-delay:.05s}
 @keyframes vu{0%,100%{height:4px;opacity:.35}50%{height:15px;opacity:1}}
-#br{position:fixed;right:22px;bottom:16px;z-index:70}
-#quit{background:#c43838;border:0;border-radius:8px;color:#fff;letter-spacing:.16em;padding:8px 14px;cursor:pointer;font-size:16px}
+#br{position:fixed;right:22px;bottom:16px;z-index:70;display:flex;gap:8px}
+#min,#quit{border:0;border-radius:8px;color:#fff;letter-spacing:.16em;padding:8px 14px;cursor:pointer;font-size:16px}
+#min{background:rgba(255,255,255,.12)}
+#min:hover{background:rgba(255,255,255,.22)}
+#quit{background:#c43838}
 #quit:hover{background:#a82828}
 #uninstall{display:block;margin-top:12px}
 .overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:grid;place-items:center}
 .overlay[hidden]{display:none}
-body.onboard #topbar,body.onboard #tiles,body.onboard #dock,body.onboard #quit{opacity:0;visibility:hidden;pointer-events:none}
+body.onboard #topbar,body.onboard #tiles,body.onboard #dock,body.onboard #br{opacity:0;visibility:hidden;pointer-events:none}
 body.onboard #core{animation:obLift 1.25s var(--ease) both}
 @keyframes obLift{from{transform:translateY(-4vh) scale(1)}to{transform:translateY(-37vh) scale(.24)}}
 #onboard{position:fixed;inset:0;z-index:80;background:transparent;pointer-events:none}
