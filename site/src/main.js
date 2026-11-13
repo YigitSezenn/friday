@@ -20,11 +20,22 @@ function pairCode(key) {
 }
 
 const keyInput = document.querySelector("#komut-form [name=key]");
-const hashKey = location.hash.startsWith("#k=") ? decodeURIComponent(location.hash.slice(3)) : "";
+function keyFromHash() {
+  const body = location.hash.replace(/^#/, "");
+  if (!body) return "";
+  return new URLSearchParams(body).get("k") || "";
+}
+const hashKey = keyFromHash();
 if (hashKey && keyInput) {
   keyInput.value = hashKey;
   document.documentElement.dataset.pair = "1";
   history.replaceState(null, "", `${location.pathname}${location.search}#yaz`);
+} else if (fromApk && keyInput && window.FridayKey && typeof window.FridayKey.current === "function") {
+  const saved = window.FridayKey.current();
+  if (saved) {
+    keyInput.value = saved;
+    document.documentElement.dataset.pair = "1";
+  }
 }
 
 const note = document.querySelector("#note");
@@ -114,32 +125,41 @@ if (form && note) {
     event.preventDefault();
     const key = (keyInput && keyInput.value.trim()) || "";
     const pairInput = form.querySelector("[name=pair]");
-    if (document.documentElement.dataset.pair === "1") {
+    const needsPair = document.documentElement.dataset.pair === "1" || document.documentElement.dataset.app === "apk";
+    if (needsPair) {
       const entered = pairInput ? pairInput.value.trim() : "";
-      if (pairCode(key) !== entered) {
+      if (!key || pairCode(key) !== entered) {
         note.textContent = "Kod tutmadı.";
         return;
       }
+      const bridge = window.FridayKey;
+      if (bridge && typeof bridge.store === "function") bridge.store(key);
+      const command = (form.querySelector("textarea")?.value || "").trim();
+      if (!command) {
+        note.textContent = "Bağlandı.";
+        return;
+      }
     }
-    const button = form.querySelector("button");
+    const button = form.querySelector("button[type=submit]");
     button.disabled = true;
     note.textContent = "Gönderiliyor.";
     try {
-      const response = await fetch("/komut", { method: "POST", body: new FormData(form) });
+      const body = new FormData();
+      body.set("key", key);
+      body.set("text", form.querySelector("textarea")?.value || "");
+      const response = await fetch("/komut", { method: "POST", body });
       const page = await response.text();
       const landed = response.url || "";
       if (landed.includes("iletildi=1")) {
-        note.textContent = "Komut bilgisayara iletildi.";
+        note.textContent = "Bağlandı. Komut bilgisayara iletildi.";
         form.querySelector("textarea").value = "";
-      } else if (page.includes("Anahtar olmadı")) {
-        note.textContent = "Anahtar olmadı. Bu, Gemini anahtarı değil.";
       } else if (page.includes("Komut boş")) {
-        note.textContent = "Komut boş.";
+        note.textContent = "Bağlandı.";
       } else {
-        note.textContent = "Gönderilemedi. FRIDAY o bilgisayarda açık olsun.";
+        note.textContent = "Bağlandı. Komut iletilemedi.";
       }
     } catch {
-      note.textContent = "Gönderilemedi. Bağlantı kurulamadı.";
+      note.textContent = "Bağlandı. Bağlantı kurulamadı.";
     } finally {
       button.disabled = false;
     }
@@ -165,30 +185,37 @@ const wakeNote = document.querySelector("#wake-note");
 if (wakeForm && wakeNote) {
   const macInput = wakeForm.querySelector("[name=mac]");
   const ipInput = wakeForm.querySelector("[name=ip]");
+  const portInput = wakeForm.querySelector("[name=port]");
   try {
     macInput.value = localStorage.getItem("friday-wake-mac") || "";
     ipInput.value = localStorage.getItem("friday-wake-ip") || "";
+    portInput.value = localStorage.getItem("friday-wake-port") || "9";
   } catch { /* kayıt yok */ }
+  if (!portInput.value) portInput.value = "9";
   wakeForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const mac = macInput.value.trim();
     const ip = ipInput.value.trim();
+    const port = portInput.value.trim() || "9";
     const bridge = window.FridayWake;
     if (!bridge || typeof bridge.wake !== "function") {
       wakeNote.textContent = "Bilgisayarımı aç yalnız FRIDAY uygulamasında çalışır.";
       return;
     }
-    const result = bridge.wake(mac, ip);
+    const result = bridge.wake(mac, ip, port);
     if (result === "ok") {
       try {
         localStorage.setItem("friday-wake-mac", mac);
         localStorage.setItem("friday-wake-ip", ip);
+        localStorage.setItem("friday-wake-port", port);
       } catch { /* kayıt kapalı */ }
       wakeNote.textContent = "Uyandırma paketi gönderildi.";
     } else if (result === "mac") {
       wakeNote.textContent = "MAC adresi olmadı.";
     } else if (result === "ip") {
       wakeNote.textContent = "IP adresi olmadı.";
+    } else if (result === "port") {
+      wakeNote.textContent = "Port olmadı.";
     } else {
       wakeNote.textContent = "Paket gönderilemedi.";
     }
