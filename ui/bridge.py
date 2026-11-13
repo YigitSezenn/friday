@@ -39,15 +39,17 @@ def script_for(name: str, *args) -> str:
 
 
 def _js_literal(value) -> str:
-    text = json.dumps(value, ensure_ascii=False)
+    text = json.dumps(value, ensure_ascii=True)
     return text.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
 
 
 def _dispatch(self, kind: str, payload: dict) -> dict:
         ui = self.ui
         if kind == "command":
+            from jarvis.textfix import repair_text
+
             text = payload.get("text")
-            text = str(text).strip() if text is not None else ""
+            text = repair_text(str(text)).strip() if text is not None else ""
             if text and ui.on_text_command:
                 ui.on_text_command(text)
         elif kind == "mute":
@@ -103,14 +105,20 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
             data_path("memory", "notes.txt").write_text("\n".join(lines), encoding="utf-8")
         elif kind == "beep":
             ui.play_success_sfx()
+        elif kind == "minimize":
+            ui.minimize_to_taskbar()
         elif kind == "quit":
             ui.close()
+        elif kind == "uninstall":
+            ui.request_uninstall()
         elif kind == "open_data":
             import os
 
             os.startfile(data_root())  # type: ignore[attr-defined]
         elif kind == "copy":
             _copy_text(str(payload.get("text") or ""))
+        elif kind == "open":
+            _open_allowed(str(payload.get("url") or ""))
         elif kind == "reminder":
             action = str(payload.get("action") or "")
             title = str(payload.get("title") or "")
@@ -126,6 +134,18 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
 
 
 HudBridge._dispatch = _dispatch
+
+
+def _open_allowed(url: str) -> None:
+    import webbrowser
+
+    allowed = {
+        "https://aistudio.google.com/apikey",
+        "https://youtu.be/VZl5uBT4a60",
+        "https://ai.studio/projects",
+    }
+    if url in allowed or url.startswith("https://aistudio.google.com/apikey"):
+        webbrowser.open(url)
 
 
 def _copy_text(text: str) -> None:
@@ -216,6 +236,7 @@ class JarvisUI:
         self._smoke = False
         self._ready = False
         self._closed = False
+        self._quitting = False
         self._queue: list[str] = []
         self._window = None
         self._bridge = HudBridge(self)
@@ -249,6 +270,7 @@ class JarvisUI:
             background_color="#000000",
         )
         self._window.events.loaded += self._on_loaded
+        self._window.events.closing += self._stay_on_taskbar
         webview.start()
 
     def _on_loaded(self) -> None:
@@ -269,8 +291,9 @@ class JarvisUI:
 
     def push_settings(self) -> None:
         from jarvis.config import ADDRESS_PRESETS, LIVE_MODELS, PANEL_KEYS, UI_COLORS, address_phrase, persona_palette
-        from jarvis.language import choices
+        from jarvis.language import choices, ui_language
         from jarvis.memory_store import load_memory
+        from jarvis.gate_client import ensure_gate_key, gate_join_url, pair_code
         from jarvis.phone_server import phone_qr_data_url, phone_status
         from jarvis.story import view
 
@@ -301,7 +324,10 @@ class JarvisUI:
                 "address": address_phrase(config),
                 "memories": memories[:40],
                 "phone": _settings_phone(phone_status(), phone_qr_data_url),
+                "gateKeyQr": phone_qr_data_url(gate_join_url(ensure_gate_key())),
+                "pairCode": pair_code(ensure_gate_key()),
                 "languages": choices(),
+                "uiLanguage": ui_language(config),
                 "models": list(LIVE_MODELS),
                 "story": view(),
             },
@@ -356,21 +382,23 @@ class JarvisUI:
 
     def _load_remote(self) -> None:
         try:
-            from tools.actions.weather import get_weather_summary
+            from tools.actions.weather import get_weather_report
 
-            summary = get_weather_summary(None)
-            city = summary.split(" için")[0] if " için" in summary else "Konum"
-            temp = "--"
-            for token in summary.replace("°", " ").split():
-                if token.isdigit():
-                    temp = token
-                    break
-            detail = summary.split(": ", 1)[-1].rstrip(".")
-            self._call("weather", {"temp": f"{temp}°", "city": city.upper(), "desc": detail.split(",")[0][:32], "detail": detail})
+            card = get_weather_report(None)
+            city = str(card.get("place") or "Konum")
+            wind = str(card.get("wind") or "")
+            detail = f"Hissedilen {card.get('feels') or '—'}° · Nem %{card.get('humidity') or '—'} · Rüzgar {wind or '—'} km/s"
+            self._call("weather", {
+                "temp": f"{card.get('temp') or '--'}°",
+                "city": city.upper(),
+                "desc": str(card.get("desc") or "")[:40],
+                "detail": detail,
+                "card": card,
+            })
             self._map_city = city
             self._load_map(city)
         except Exception as exc:
-            self._call("weather", {"temp": "--°", "city": "KONUM", "desc": "", "detail": f"Hava alınamadı: {exc}"})
+            self._call("weather", {"temp": "--°", "city": "KONUM", "desc": "", "detail": f"Hava alınamadı: {exc}", "card": {}})
 
     def _load_map(self, city: str) -> None:
         try:
@@ -382,7 +410,7 @@ class JarvisUI:
             found = requests.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={"q": city, "format": "json", "limit": 1},
-                headers={"User-Agent": "jarvis-rebuild-hud"},
+                headers={"User-Agent": "FRIDAY/3.4 (desktop assistant)"},
                 timeout=12,
             )
             found.raise_for_status()
@@ -390,11 +418,16 @@ class JarvisUI:
             if not rows:
                 return
             lat, lon = float(rows[0]["lat"]), float(rows[0]["lon"])
+            self._call("place", {"lat": lat, "lon": lon, "label": city})
             zoom = 11
             n = 2 ** zoom
             x = int((lon + 180) / 360 * n)
             y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
-            tile = requests.get(f"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png", headers={"User-Agent": "jarvis-rebuild-hud"}, timeout=12)
+            tile = requests.get(
+                f"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{zoom}/{y}/{x}",
+                headers={"User-Agent": "FRIDAY/3.4 (desktop assistant)"},
+                timeout=12,
+            )
             tile.raise_for_status()
             gray = Image.open(io.BytesIO(tile.content)).convert("L").resize((496, 264))
             gray.save(data_path("cache", "map-gray.png"))
@@ -438,7 +471,9 @@ class JarvisUI:
             return []
 
     def write_log(self, text: str) -> None:
-        self._call("log", text)
+        from jarvis.textfix import repair_text
+
+        self._call("log", repair_text(str(text)))
 
     def write_debug(self, text: str, level: str = "INFO") -> None:
         self.write_log(f"{level}: {text}")
@@ -490,7 +525,49 @@ class JarvisUI:
     def wait_for_api_key(self) -> None:
         return
 
+    def _stay_on_taskbar(self) -> bool:
+        from jarvis.taskbar import installer_is_running, keep_on_taskbar
+
+        if keep_on_taskbar(self._quitting, installer_is_running()):
+            threading.Thread(target=self._minimize_after_close, name="friday-taskbar", daemon=True).start()
+            return False
+        return True
+
+    def _minimize_after_close(self) -> None:
+        time.sleep(0.12)
+        self.minimize_to_taskbar()
+
+    def minimize_to_taskbar(self) -> None:
+        window = self._window
+        if window is None or self._quitting or self._closed:
+            return
+        try:
+            window.minimize()
+        except Exception:
+            pass
+
+    def restore_from_taskbar(self) -> bool:
+        window = self._window
+        if window is None or self._quitting or self._closed or self._smoke:
+            return False
+        try:
+            window.restore()
+            window.show()
+            return True
+        except Exception:
+            return False
+
+    def request_uninstall(self) -> None:
+        from jarvis.uninstall import installed_uninstaller, launch_uninstaller
+
+        if not launch_uninstaller(installed_uninstaller()):
+            self.write_log("ERR: Kaldırma yalnız kurulmuş FRIDAY için. Kaynak klasörü ve başka klasörler silinmedi.")
+            return
+        self._quitting = True
+        self.close()
+
     def close(self) -> None:
+        self._quitting = True
         self._closed = True
         window = self._window
         if window is not None:

@@ -8,8 +8,10 @@ import traceback
 
 from tools.actions.webcam import WebcamStreamer
 from jarvis.config import get_app_config_value
+from jarvis.language import speech_codes, speech_language
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
+from jarvis.textfix import repair_text
 from tools.dispatch import TOOL_DECLARATIONS, execute_tool, looks_like_error
 
 def current_live_model() -> str:
@@ -58,6 +60,7 @@ class JarvisLive:
         self._speaking_lock = threading.Lock()
         self._paused = False
         self._typed = None
+        self._said_result = False
         self._text_only = False
         self._reconnect = None
         self.webcam = WebcamStreamer()
@@ -89,7 +92,7 @@ class JarvisLive:
     def _on_text_command(self, text: str) -> None:
         if self._paused:
             return
-        text = str(text or "").strip()
+        text = repair_text(str(text or "")).strip()
         if not text:
             return
         # Sayfa bu satırı kendisi çizer. Buradan tekrar "Siz:" basmak hem
@@ -119,13 +122,16 @@ class JarvisLive:
             parts.append(memory + "\n\n")
         parts.append(load_system_prompt())
         voice = str(get_app_config_value("voice", "Charon") or "Charon")
+        heard = types.AudioTranscriptionConfig(language_codes=speech_codes())
+        spoken = types.AudioTranscriptionConfig(language_codes=speech_codes())
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
-            output_audio_transcription={},
-            input_audio_transcription={},
+            output_audio_transcription=spoken,
+            input_audio_transcription=heard,
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
             speech_config=types.SpeechConfig(
+                language_code=speech_language(),
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
                 )
@@ -146,10 +152,14 @@ class JarvisLive:
             traceback.print_exc()
         if looks_like_error(result):
             self.ui.set_state("ERROR")
-            text = str(result)
+            text = repair_text(str(result))
             shown = text if len(text) <= 240 else text[:70] + " … " + text[-140:]
             self.ui.write_log(f"ERR: {name} — {shown}")
         else:
+            shown = repair_text(str(result or "")).strip()
+            if shown:
+                self.ui.write_log(f"JARVIS: {shown}")
+                self._said_result = True
             if name in {"open_app", "add_calendar_event", "add_reminder", "delete_calendar_event"}:
                 self.ui.play_success_sfx()
             if not self.ui.muted:
@@ -264,18 +274,19 @@ class JarvisLive:
                             self.ui.last_heard = __import__("time").time()
                     if content.turn_complete:
                         self.set_speaking(False)
-                        heard = " ".join(in_buf).strip()
+                        heard = repair_text(" ".join(in_buf).strip())
                         if heard and not repeated_typed_line(getattr(self, "_typed", None), heard):
                             self.ui.write_log(f"Siz: {heard}")
                         if repeated_typed_line(getattr(self, "_typed", None), heard):
                             self._typed = None
-                        spoken = " ".join(out_buf).strip()
-                        if spoken:
+                        spoken = repair_text(" ".join(out_buf).strip())
+                        if spoken and not self._said_result:
                             self.ui.write_log(f"JARVIS: {spoken}")
-                        elif output_noise:
+                        elif output_noise and not self._said_result:
                             self.ui.write_log("ERR: JARVIS sesli yanitini cozumlerken bir hata olustu.")
                             self.ui.set_state("ERROR")
                         in_buf, out_buf, output_noise = [], [], False
+                        self._said_result = False
                 if response.tool_call:
                     responses = []
                     for function_call in response.tool_call.function_calls:
@@ -305,6 +316,8 @@ class JarvisLive:
 
                 publish_speaker(heard)
                 await asyncio.to_thread(stream.write, heard)
+                if self.audio_in_queue.empty():
+                    self.set_speaking(False)
         finally:
             self.set_speaking(False)
             stream.close()
@@ -412,7 +425,7 @@ class JarvisLive:
                     self.ui.set_webcam_active(False)
                 attempts += 1
                 self.ui.set_state("ERROR")
-                message = f"ERR: Baglanti koptu — API anahtarini ve interneti kontrol et. ({exc})"
+                message = _public_connect_error(exc, key)
                 if message != getattr(self, "_last_connect_error", ""):
                     self._last_connect_error = message
                     self.ui.write_log(message)
@@ -435,6 +448,17 @@ class JarvisLive:
     async def _watch_reconnect(self) -> None:
         await self._reconnect.wait()
         raise Reconnect()
+
+
+def _public_connect_error(exc: BaseException, key: str) -> str:
+    detail = str(exc)
+    secret = str(key or "").strip()
+    if secret:
+        detail = detail.replace(secret, "")
+    detail = " ".join(detail.split())
+    if len(detail) > 160:
+        detail = detail[:160] + "…"
+    return f"ERR: Baglanti koptu — API anahtarini ve interneti kontrol et. ({detail})"
 
 
 def _reconnect_error(exc: BaseException) -> bool:

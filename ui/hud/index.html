@@ -14,11 +14,11 @@
   <button class="mark" id="mark">FRIDAY</button>
   <span class="st" id="t-state">BAĞLANIYOR</span>
   <span class="sp"></span>
-  <button class="ctl" id="t-mic" data-on="1"><i class="dot"></i>MİKROFON <b id="t-mic-state">AÇIK</b></button>
-  <button class="ctl cam" id="t-cam" data-on="0"><i class="dot"></i>KAMERA <b id="t-cam-state">KAPALI</b></button>
-  <button class="ctl" id="t-phone"><i class="dot"></i>TELEFON <b>HAZIR</b></button>
-  <button class="ctl" id="t-persona">AI MODELLERİ</button>
-  <button class="ctl" id="t-settings">AYARLAR</button>
+  <button class="ctl" id="t-mic" data-on="1"><i class="dot"></i><span data-i18n="mic">MİKROFON</span> <b id="t-mic-state">AÇIK</b></button>
+  <button class="ctl cam" id="t-cam" data-on="0"><i class="dot"></i><span data-i18n="cam">KAMERA</span> <b id="t-cam-state">KAPALI</b></button>
+  <button class="ctl" id="t-phone"><i class="dot"></i><span data-i18n="phone">TELEFON</span> <b id="t-phone-state" data-i18n="phoneReady">HAZIR</b></button>
+  <button class="ctl" id="t-persona" data-i18n="models">AI MODELLERİ</button>
+  <button class="ctl" id="t-settings" data-i18n="settings">AYARLAR</button>
   <span class="clock" id="t-clock">--:--</span>
 </div>
 <div id="stage"><div id="core"></div></div>
@@ -26,21 +26,21 @@
   <div id="colL">
     <section class="mod" data-key="time" style="--i:0">
       <div class="dial" id="clock-dial"></div>
-      <div class="kicker">ZAMAN</div>
+      <div class="kicker" data-i18n="time">ZAMAN</div>
       <div class="when" id="when">CUMA · 13 KASIM</div>
     </section>
     <section class="mod sys" data-key="system" style="--i:1">
       <div class="dial sm" id="sys-dial"></div>
       <div>
-        <div class="kicker">SİSTEM</div>
+        <div class="kicker" data-i18n="system">SİSTEM</div>
         <div class="rows" id="sys-rows"></div>
       </div>
     </section>
     <section class="mod" data-key="timer" style="--i:2">
       <div class="dial sm" id="timer-dial"></div>
       <div>
-        <div class="kicker">ZAMANLAYICI</div>
-        <p class="whisper">“On dakikalık zamanlayıcı kur” de</p>
+        <div class="kicker" data-i18n="timer">ZAMANLAYICI</div>
+        <p class="whisper" data-i18n="timerHint">“On dakikalık zamanlayıcı kur” de</p>
         <div class="tbtns">
           <button class="tbtn" data-min="1">1 DK</button>
           <button class="tbtn" data-min="5">5 DK</button>
@@ -51,10 +51,10 @@
       </div>
     </section>
     <section class="mod" data-key="notes" style="--i:3">
-      <div class="kicker">NOTLAR</div>
-      <div class="hero"><b id="note-count">0</b><span>NOT</span></div>
-      <p class="whisper" id="note-hint">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
-      <input class="note-in" id="note-in" placeholder="Not ekle...">
+      <div class="kicker" data-i18n="notes">NOTLAR</div>
+      <div class="hero"><b id="note-count">0</b><span data-i18n="noteWord">NOT</span></div>
+      <p class="whisper" id="note-hint" data-i18n="noteEmpty">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
+      <input class="note-in" id="note-in" data-i18n-ph="notePh" placeholder="Not ekle...">
     </section>
   </div>
   <div id="colR">
@@ -63,54 +63,54 @@
         <b id="wx-temp">--°</b>
         <div><strong id="wx-city">KONUM</strong><span id="wx-desc"></span></div>
       </div>
-      <div class="kicker">HAVA</div>
+      <div class="kicker" data-i18n="weather">HAVA</div>
       <p class="whisper" id="wx-detail"></p>
     </section>
     <section class="mod" data-key="calendar" style="--i:1">
-      <div class="kicker">TAKVİM</div>
-      <div class="hero"><b id="cal-count">0</b><span>BUGÜN</span></div>
-      <p class="whisper" id="cal-text">Bugün takviminde etkinlik yok.</p>
+      <div class="kicker" data-i18n="calendar">TAKVİM</div>
+      <div class="hero"><b id="cal-count">0</b><span data-i18n="today">BUGÜN</span></div>
+      <p class="whisper" id="cal-text" data-i18n="calEmpty">Bugün takviminde etkinlik yok.</p>
     </section>
     <section class="mod" data-key="reminders" style="--i:2">
-      <div class="kicker">ANIMSATICILAR</div>
-      <div class="hero"><b id="rem-count">0</b><span>AÇIK</span></div>
-      <p class="whisper" id="rem-text">Bekleyen anımsatıcı yok.</p>
+      <div class="kicker" data-i18n="reminders">ANIMSATICILAR</div>
+      <div class="hero"><b id="rem-count">0</b><span data-i18n="openWord">AÇIK</span></div>
+      <p class="whisper" id="rem-text" data-i18n="remEmpty">Bekleyen anımsatıcı yok.</p>
     </section>
     <section class="mod" data-key="map" style="--i:3">
       <div class="mapbox"><img id="map-img" alt=""><div class="maptint"></div></div>
-      <div class="kicker">HARİTA</div>
+      <div class="kicker" data-i18n="map">HARİTA</div>
       <p class="whisper" id="map-cap"></p>
     </section>
   </div>
 </div>
 <div id="dock">
-  <p class="hint" id="hint">Mikrofon açık. Kapatmak için MİKROFON düğmesine ya da F4'e bas.</p>
+  <p class="hint" id="hint" data-i18n="hintOn">Mikrofon açık. Kapatmak için F4.</p>
   <div id="chat"><div id="chat-log"></div></div>
   <div id="bar">
     <span class="chev">›</span>
-    <input id="cmd" placeholder="KONUŞ YA DA YAZ" autocomplete="off" spellcheck="false">
+    <input id="cmd" data-i18n-ph="cmdPh" placeholder="KONUŞ YA DA YAZ" autocomplete="off" spellcheck="false">
     <div id="vu"><i></i><i></i><i></i><i></i><i></i></div>
-    <span class="hint-side">/ YAZ</span>
+    <span class="hint-side" data-i18n="typeHint">/ YAZ</span>
   </div>
 </div>
 <div id="br">
-  <button id="quit" type="button" title="Görev çubuğunda çalışmaya devam eder"><span class="pw">–</span> KÜÇÜLT</button>
+  <button id="quit" type="button" title="Görev çubuğunda çalışmaya devam eder"><span class="pw">–</span> <span data-i18n="minimize">KÜÇÜLT</span></button>
 </div>
 <div class="overlay" id="ov-settings" hidden>
   <form class="sheet setsheet" id="settings-form">
-    <div class="sethead"><h2>AYARLAR</h2><button type="button" class="setx" id="set-close" aria-label="Kapat">✕</button></div>
+    <div class="sethead"><h2 data-i18n="settingsTitle">AYARLAR</h2><button type="button" class="setx" id="set-close" aria-label="Kapat">✕</button></div>
     <div class="stabs">
-      <button type="button" class="stab" data-tab="genel" aria-selected="true">GENEL</button>
-      <button type="button" class="stab" data-tab="paneller">PANELLER</button>
-      <button type="button" class="stab" data-tab="ses">SES</button>
-      <button type="button" class="stab" data-tab="konusma">KONUŞMA</button>
-      <button type="button" class="stab" data-tab="hikaye">HİKÂYE</button>
-      <button type="button" class="stab" data-tab="hafiza">HAFIZA</button>
-      <button type="button" class="stab" data-tab="telefon">TELEFON</button>
-      <button type="button" class="stab" data-tab="hakkinda">HAKKINDA</button>
+      <button type="button" class="stab" data-tab="genel" data-i18n="tabGeneral" aria-selected="true">GENEL</button>
+      <button type="button" class="stab" data-tab="paneller" data-i18n="tabPanels">PANELLER</button>
+      <button type="button" class="stab" data-tab="ses" data-i18n="tabSound">SES</button>
+      <button type="button" class="stab" data-tab="konusma" data-i18n="tabTalk">KONUŞMA</button>
+      <button type="button" class="stab" data-tab="hikaye" data-i18n="tabStory">HİKÂYE</button>
+      <button type="button" class="stab" data-tab="hafiza" data-i18n="tabMemory">HAFIZA</button>
+      <button type="button" class="stab" data-tab="telefon" data-i18n="tabPhone">TELEFON</button>
+      <button type="button" class="stab" data-tab="hakkinda" data-i18n="tabAbout">HAKKINDA</button>
     </div>
     <section class="pane on" data-pane="genel">
-      <div class="row2"><div>İSİM<small>Asistan kendini bu adla tanıtır.</small></div></div>
+      <div class="row2"><div data-i18n="nameTitle">İSİM<small data-i18n="nameHelp">Asistan kendini bu adla tanıtır.</small></div></div>
       <div class="field"><input name="assistant_name" maxlength="24" autocomplete="off"></div>
       <div class="row2"><div>HİTAP<small>Asistana nasıl seslendiğin. “adınla” seçilirse hitap, isim olur.</small></div></div>
       <div class="field"><input name="address_as" list="address-list" maxlength="32" autocomplete="off"></div>
@@ -121,7 +121,7 @@
       <div class="row2"><div>CANLI MODEL<small>Sesli oturumun modeli. Kayıt, seçilene yeniden bağlar.</small></div></div>
       <input type="hidden" name="live_model" value="models/gemini-2.5-flash-native-audio-latest">
       <div class="seg" id="model-seg"></div>
-      <div class="row2"><div>DİL<small>Otomatik: Türkçe ağırlıklı, başka dilde konuşursan o dile geçer. Sabit dil her yanıtı o dilde tutar.</small></div></div>
+      <div class="row2"><div data-i18n="langTitle">DİL<small data-i18n="langHelp">Seçtiğin dil arayüzü ve yanıtları değiştirir.</small></div></div>
       <input type="hidden" name="language" value="auto">
       <div class="seg" id="lang-seg"></div>
       <div class="row2"><div>GEMINI API ANAHTARI<small>Ses bununla bağlanır. Anahtar yalnızca bu bilgisayardaki kayıt klasöründe durur.</small></div></div>
@@ -192,7 +192,7 @@
       <button type="button" class="btn ghost" id="uninstall">FRIDAY'İ KALDIR</button>
       <p class="whisper">Uygulamayı kaldırır. Yalnız FRIDAY klasörü ve içindeki kayıtlar silinir, %LOCALAPPDATA%\FRIDAY dahil. Başka klasörlere dokunulmaz.</p>
     </section>
-    <div class="setfoot"><button type="submit" class="btn">KAYDET</button></div>
+    <div class="setfoot"><button type="submit" class="btn" data-i18n="save">KAYDET</button></div>
   </form>
 </div>
 <div class="overlay" id="ov-weather" hidden>
@@ -271,11 +271,12 @@
 </div>
 <div class="overlay" id="ov-models" hidden>
   <div class="sheet">
-    <h2>AI MODELLERİ</h2>
+    <h2 data-i18n="models">AI MODELLERİ</h2>
     <p class="whisper" id="model-blurb">FRIDAY arayüzü açık. Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
-    <div class="row"><button type="button" id="mod-close">KAPAT</button></div>
+    <div class="row"><button type="button" id="mod-close" data-i18n="close">KAPAT</button></div>
   </div>
 </div>
+<script src="i18n.js"></script>
 <script src="hud.js"></script>
 </body>
 </html>
