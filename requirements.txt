@@ -1,0 +1,11 @@
+google-genai
+opencv-python
+pyaudio
+psutil
+Pillow
+requests
+pywin32
+mss
+pyttsx3
+pywebview
+qrcode

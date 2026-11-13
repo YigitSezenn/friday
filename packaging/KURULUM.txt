@@ -1,0 +1,13 @@
+FRIDAY
+
+Bu klasörü başka bir Windows bilgisayara olduğu gibi kopyala.
+Python kurmana veya bir depo indirmen gerekmez.
+
+Başlatmak için FRIDAY.exe dosyasına ya da yanındaki FRIDAY kısayoluna çift tıkla.
+
+Ayarlar, API anahtarı, hafıza ve takvim bu klasörün içindeki data dizininde durur.
+Klasörü taşırken data klasörünü de birlikte götür. Bu kopya, paketin alındığı bilgisayarın kayıtlarını içerir; yalnızca güvendiğin bir bilgisayara kopyala.
+
+Telefon: telefon ve bilgisayar aynı Wi-Fi ağında olmalı. Ayarlar, Telefon sekmesindeki kare kodu okut. Kodu paylaşma.
+
+Pencere boş açılırsa Microsoft Edge WebView2 gerekir. Windows 11'de genellikle yüklüdür.

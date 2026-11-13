@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>FRIDAY</title>
+<link rel="stylesheet" href="hud.css">
+</head>
+<body data-state="connecting" data-boot="1">
+<div id="bloom"></div>
+<div id="grid"></div>
+<div id="topbar">
+  <button class="mark" id="mark">FRIDAY</button>
+  <span class="st" id="t-state">BAĞLANIYOR</span>
+  <span class="sp"></span>
+  <button class="ctl" id="t-mic" data-on="1"><i class="dot"></i>MİKROFON <b id="t-mic-state">AÇIK</b></button>
+  <button class="ctl cam" id="t-cam" data-on="0"><i class="dot"></i>KAMERA <b id="t-cam-state">KAPALI</b></button>
+  <button class="ctl" id="t-phone"><i class="dot"></i>TELEFON <b>HAZIR</b></button>
+  <button class="ctl" id="t-persona">AI MODELLERİ</button>
+  <button class="ctl" id="t-settings">AYARLAR</button>
+  <span class="clock" id="t-clock">--:--</span>
+</div>
+<div id="stage"><div id="core"></div></div>
+<div id="tiles">
+  <div id="colL">
+    <section class="mod" data-key="time" style="--i:0">
+      <div class="dial" id="clock-dial"></div>
+      <div class="kicker">ZAMAN</div>
+      <div class="when" id="when">CUMA · 13 KASIM</div>
+    </section>
+    <section class="mod sys" data-key="system" style="--i:1">
+      <div class="dial sm" id="sys-dial"></div>
+      <div>
+        <div class="kicker">SİSTEM</div>
+        <div class="rows" id="sys-rows"></div>
+      </div>
+    </section>
+    <section class="mod" data-key="timer" style="--i:2">
+      <div class="dial sm" id="timer-dial"></div>
+      <div>
+        <div class="kicker">ZAMANLAYICI</div>
+        <p class="whisper">“On dakikalık zamanlayıcı kur” de</p>
+        <div class="tbtns">
+          <button class="tbtn" data-min="1">1 DK</button>
+          <button class="tbtn" data-min="5">5 DK</button>
+          <button class="tbtn" data-min="10">10 DK</button>
+          <button class="tbtn" data-min="25">25 DK</button>
+          <button class="tbtn wide" id="t-stop">⏱ KRONOMETRE</button>
+        </div>
+      </div>
+    </section>
+    <section class="mod" data-key="notes" style="--i:3">
+      <div class="kicker">NOTLAR</div>
+      <div class="hero"><b id="note-count">0</b><span>NOT</span></div>
+      <p class="whisper" id="note-hint">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
+      <input class="note-in" id="note-in" placeholder="Not ekle...">
+    </section>
+  </div>
+  <div id="colR">
+    <section class="mod wx" data-key="weather" style="--i:0">
+      <div class="wxcard">
+        <b id="wx-temp">--°</b>
+        <div><strong id="wx-city">KONUM</strong><span id="wx-desc"></span></div>
+      </div>
+      <div class="kicker">HAVA</div>
+      <p class="whisper" id="wx-detail"></p>
+    </section>
+    <section class="mod" data-key="calendar" style="--i:1">
+      <div class="kicker">TAKVİM</div>
+      <div class="hero"><b id="cal-count">0</b><span>BUGÜN</span></div>
+      <p class="whisper" id="cal-text">Bugün takviminde etkinlik yok.</p>
+    </section>
+    <section class="mod" data-key="reminders" style="--i:2">
+      <div class="kicker">ANIMSATICILAR</div>
+      <div class="hero"><b id="rem-count">0</b><span>AÇIK</span></div>
+      <p class="whisper" id="rem-text">Bekleyen anımsatıcı yok.</p>
+    </section>
+    <section class="mod" data-key="map" style="--i:3">
+      <div class="mapbox"><img id="map-img" alt=""></div>
+      <div class="kicker">HARİTA</div>
+      <p class="whisper" id="map-cap"></p>
+    </section>
+  </div>
+</div>
+<div id="dock">
+  <p class="hint" id="hint">Mikrofon açık. Kapatmak için MİKROFON düğmesine ya da F4'e bas.</p>
+  <div id="chat"><div id="chat-log"></div></div>
+  <div id="bar">
+    <span class="chev">›</span>
+    <input id="cmd" placeholder="KONUŞ YA DA YAZ" autocomplete="off" spellcheck="false">
+    <div id="vu"><i></i><i></i><i></i><i></i><i></i></div>
+    <span class="hint-side">/ YAZ</span>
+  </div>
+</div>
+<div id="br">
+  <button id="quit"><span class="pw">⏻</span> KAPAT</button>
+</div>
+<div class="overlay" id="ov-settings" hidden>
+  <form class="sheet setsheet" id="settings-form">
+    <div class="sethead"><h2>AYARLAR</h2><button type="button" class="setx" id="set-close" aria-label="Kapat">✕</button></div>
+    <div class="stabs">
+      <button type="button" class="stab" data-tab="genel" aria-selected="true">GENEL</button>
+      <button type="button" class="stab" data-tab="paneller">PANELLER</button>
+      <button type="button" class="stab" data-tab="ses">SES</button>
+      <button type="button" class="stab" data-tab="konusma">KONUŞMA</button>
+      <button type="button" class="stab" data-tab="hikaye">HİKÂYE</button>
+      <button type="button" class="stab" data-tab="hafiza">HAFIZA</button>
+      <button type="button" class="stab" data-tab="telefon">TELEFON</button>
+      <button type="button" class="stab" data-tab="hakkinda">HAKKINDA</button>
+    </div>
+    <section class="pane on" data-pane="genel">
+      <div class="row2"><div>İSİM<small>Asistan kendini bu adla tanıtır.</small></div></div>
+      <div class="field"><input name="assistant_name" maxlength="24" autocomplete="off"></div>
+      <div class="row2"><div>HİTAP<small>Asistana nasıl seslendiğin. “adınla” seçilirse hitap, isim olur.</small></div></div>
+      <div class="field"><input name="address_as" list="address-list" maxlength="32" autocomplete="off"></div>
+      <datalist id="address-list"></datalist>
+      <div class="row2"><div>RENK<small>Halkanın, yazıların ve haritanın rengi.</small></div></div>
+      <input type="hidden" name="ui_color" value="gold">
+      <div class="seg" id="color-seg"></div>
+      <div class="row2"><div>CANLI MODEL<small>Sesli oturumun modeli. Kayıt, seçilene yeniden bağlar.</small></div></div>
+      <input type="hidden" name="live_model" value="models/gemini-2.5-flash-native-audio-latest">
+      <div class="seg" id="model-seg"></div>
+      <div class="row2"><div>DİL<small>Otomatik: Türkçe ağırlıklı, başka dilde konuşursan o dile geçer. Sabit dil her yanıtı o dilde tutar.</small></div></div>
+      <input type="hidden" name="language" value="auto">
+      <div class="seg" id="lang-seg"></div>
+      <div class="row2"><div>GEMINI API ANAHTARI<small>Ses bununla bağlanır. Anahtar yalnızca bu bilgisayardaki kayıt klasöründe durur.</small></div></div>
+      <div class="field"><input name="gemini_api_key" type="password" autocomplete="off" placeholder="Yeni anahtar yapıştır"></div>
+      <div class="row2"><div>YOUTUBE</div></div>
+      <div class="field"><input name="youtube_api_key" type="password" autocomplete="off" placeholder="API anahtarı"><input name="youtube_channel_handle" autocomplete="off" placeholder="Kanal"></div>
+      <div class="row2"><div>KONUM<small>Hava ve harita. İlçe yazarsan daha doğru olur. Boşsa yaklaşık bulunur.</small></div></div>
+      <div class="field"><input name="weather_location" placeholder="Örnek: Kepez, Antalya" autocomplete="off"></div>
+      <div class="row2"><div>MİKROFON<small>Kapalıyken yalnızca yazarak konuşursun. F4 de açıp kapatır.</small></div>
+        <button type="button" class="switch" id="set-mic" aria-checked="true"></button></div>
+      <div class="row2"><div>KISAYOLLAR<small>/ yaz · F4 mikrofon · F6 kamera · Esc kapat · ortaya basınca uyku</small></div></div>
+      <div class="row2"><div>HİKÂYE MODU<small>İpuçları ve başarımlar. Kapalıyken hiçbiri olmaz; ilerlemen saklanır.</small></div>
+        <button type="button" class="switch" id="set-story" aria-checked="false"></button></div>
+      <div class="row2"><div>WINDOWS İLE BAŞLA<small>Kapalı gelir. Açınca oturum açılınca FRIDAY kendiliğinden başlar. Kaldırınca bu kayıt da silinir.</small></div>
+        <button type="button" class="switch" id="set-windows" aria-checked="false"></button></div>
+    </section>
+    <section class="pane" data-pane="konusma">
+      <p class="whisper">Sessizlikte bir kez söz alabilir, su ve mola hatırlatabilir. Mikrofon kapalıyken ve uykudayken susar.</p>
+      <div class="row2"><div>SESSİZLİKTE KONUŞSUN</div><button type="button" class="switch" id="set-proactive" aria-checked="false"></button></div>
+      <div class="row2"><div>SESSİZLİK SÜRESİ</div>
+        <div class="seg" id="quiet-seg">
+          <button type="button" data-min="10">10 DK</button>
+          <button type="button" data-min="20" aria-checked="true">20 DK</button>
+          <button type="button" data-min="40">40 DK</button>
+        </div></div>
+      <input type="hidden" name="quiet_minutes" value="20">
+      <div class="row2"><div>YAKLAŞAN ETKİNLİK</div><button type="button" class="switch" id="set-events" aria-checked="false"></button></div>
+      <div class="row2"><div>SU HATIRLATMASI</div><button type="button" class="switch" id="set-water" aria-checked="false"></button></div>
+      <div class="row2"><div>MOLA HATIRLATMASI</div><button type="button" class="switch" id="set-break" aria-checked="false"></button></div>
+    </section>
+    <section class="pane" data-pane="hikaye">
+      <p class="whisper" id="story-note">Hikâye kapalı.</p>
+      <div id="story-list"></div>
+      <div class="row2"><div>SON KARAR<small>İlerleme silinmez.</small></div>
+        <button type="button" class="btn ghost" id="story-keep">SÜRDÜR</button>
+        <button type="button" class="btn ghost" id="story-end">KAPAT</button></div>
+    </section>
+    <section class="pane" data-pane="paneller">
+      <p class="whisper">Ekranın iki yanında hangi paneller görünsün.</p>
+      <div id="set-panels"></div>
+    </section>
+    <section class="pane" data-pane="ses">
+      <div class="row2"><div>SES KARAKTERİ<small>Kayıt, aynı modele bu sesle yeniden bağlar.</small></div>
+        <select class="sel" name="voice"></select></div>
+      <div class="row2 vol"><div>ASİSTANIN SESİ<small id="vol-label">%100</small></div>
+        <input name="voice_volume" type="range" min="0" max="150" step="5" value="100"></div>
+      <div class="row2"><div>YANKI ENGELLEME<small>Açıkken hoparlör yankısı ve konuşma sırasındaki ortam gürültüsü mikrofona karışmadan önce silinir. Mikrofon düzgün çalışmıyorsa kapat.</small></div>
+        <button type="button" class="switch" id="set-aec" role="switch" aria-checked="true"></button></div>
+      <div class="row2"><div>SES EFEKTLERİ<small>Onay sesi.</small></div>
+        <button type="button" class="switch" id="set-sfx" aria-checked="true"></button></div>
+    </section>
+    <section class="pane" data-pane="hafiza">
+      <p class="whisper">Bu bilgisayarda tutulan kayıtlar. Bir satırı silmek yalnızca onu unutturur.</p>
+      <div id="mem-list"></div>
+    </section>
+    <section class="pane" data-pane="telefon">
+      <p class="whisper">Telefon ve bu bilgisayar aynı Wi-Fi’da olmalı. QR bir şifredir; paylaşma. Yeni kod eskisini düşürür.</p>
+      <img id="phone-qr" alt="Telefon eşleştirme kodu" hidden>
+      <div class="row2"><div>BAĞLANTI<small id="phone-url">Kapalı</small></div>
+        <button type="button" class="btn" id="phone-go">TELEFONU BAĞLA</button></div>
+      <button type="button" class="btn ghost" id="phone-rotate">YENİ KOD</button>
+      <button type="button" class="btn ghost" id="phone-copy">ADRESİ KOPYALA</button>
+      <div class="row2"><div>AÇILIŞTA BAĞLA<small>Uygulama açılınca aynı Wi-Fi sunucusunu başlatır.</small></div>
+        <button type="button" class="switch" id="set-phone-auto" aria-checked="false"></button></div>
+    </section>
+    <section class="pane" data-pane="hakkinda">
+      <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
+      <button type="button" class="btn ghost" id="open-data">KAYIT KLASÖRÜNÜ AÇ</button>
+    </section>
+    <div class="setfoot"><button type="submit" class="btn">KAYDET</button></div>
+  </form>
+</div>
+<div class="overlay welcome" id="ov-welcome" hidden>
+  <div class="sheet greet">
+    <div class="greet-ring" aria-hidden="true"></div>
+    <h2>Merhaba, ben FRIDAY.</h2>
+    <p class="whisper">Başlamadan önce Gemini anahtarın gerekiyor. Anahtar yalnızca bu bilgisayarda kalır. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">aistudio.google.com/apikey</a></p>
+    <div class="field"><input id="welcome-key" type="password" autocomplete="off" placeholder="Gemini API anahtarı"></div>
+    <div class="row"><button type="button" class="btn" id="welcome-go">BAŞLAT</button></div>
+    <ol id="welcome-steps" hidden>
+      <li data-step="key">Anahtar kaydedildi</li>
+      <li data-step="link">Bağlantı kuruluyor</li>
+      <li data-step="mic">Mikrofon ve telefon hazırlanıyor</li>
+    </ol>
+    <p id="welcome-ready" hidden>Her şey çalıştı. FRIDAY ayakta.</p>
+  </div>
+</div>
+<div class="overlay" id="ov-models" hidden>
+  <div class="sheet">
+    <h2>AI MODELLERİ</h2>
+    <p class="whisper" id="model-blurb">FRIDAY arayüzü açık. Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
+    <div class="row"><button type="button" id="mod-close">KAPAT</button></div>
+  </div>
+</div>
+<script src="hud.js"></script>
+</body>
+</html>
