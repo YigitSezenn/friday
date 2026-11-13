@@ -107,8 +107,10 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
             ui.play_success_sfx()
         elif kind == "minimize":
             ui.minimize_to_taskbar()
+        elif kind == "update":
+            ui.install_update()
         elif kind == "quit":
-            ui.close()
+            ui.quit_app()
         elif kind == "uninstall":
             ui.request_uninstall()
         elif kind == "open_data":
@@ -268,14 +270,18 @@ class JarvisUI:
             height=860,
             min_size=(1100, 720),
             background_color="#000000",
+            fullscreen=True,
         )
         self._window.events.loaded += self._on_loaded
-        self._window.events.closing += self._stay_on_taskbar
+        self._window.events.closing += self._on_closing
+        self._window.events.minimized += self.minimize_to_taskbar
         webview.start()
 
     def _on_loaded(self) -> None:
         self._ready = True
+        self._ensure_tray()
         threading.Thread(target=self._boot, name="jarvis-boot", daemon=True).start()
+        threading.Thread(target=self._check_update, name="friday-update", daemon=True).start()
 
     def _boot(self) -> None:
         time.sleep(0.05)
@@ -410,7 +416,7 @@ class JarvisUI:
             found = requests.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={"q": city, "format": "json", "limit": 1},
-                headers={"User-Agent": "FRIDAY/3.5 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/3.6 (desktop assistant)"},
                 timeout=12,
             )
             found.raise_for_status()
@@ -425,7 +431,7 @@ class JarvisUI:
             y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
             tile = requests.get(
                 f"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{zoom}/{y}/{x}",
-                headers={"User-Agent": "FRIDAY/3.5 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/3.6 (desktop assistant)"},
                 timeout=12,
             )
             tile.raise_for_status()
@@ -512,6 +518,15 @@ class JarvisUI:
         except RuntimeError:
             pass
 
+    def play_close_sfx(self) -> None:
+        try:
+            import winsound
+
+            winsound.Beep(523, 70)
+            winsound.Beep(349, 160)
+        except RuntimeError:
+            pass
+
     def mark_user_activity(self, _active: bool = True) -> None:
         return
 
@@ -525,37 +540,93 @@ class JarvisUI:
     def wait_for_api_key(self) -> None:
         return
 
-    def _stay_on_taskbar(self) -> bool:
-        from jarvis.taskbar import installer_is_running, keep_on_taskbar
+    def _on_closing(self) -> bool:
+        from jarvis.taskbar import installer_is_running
 
-        if keep_on_taskbar(self._quitting, installer_is_running()):
-            threading.Thread(target=self._minimize_after_close, name="friday-taskbar", daemon=True).start()
-            return False
+        if self._quitting or installer_is_running():
+            return True
+        self.play_close_sfx()
+        self._quitting = True
+        self._closed = True
+        tray = getattr(self, "_tray", None)
+        if tray is not None:
+            tray.stop()
         return True
 
     def _minimize_after_close(self) -> None:
         time.sleep(0.12)
         self.minimize_to_taskbar()
 
+    def _ensure_tray(self) -> None:
+        if getattr(self, "_tray", None) is not None or self._smoke:
+            return
+        from jarvis.tray import FridayTray
+
+        self._tray = FridayTray(self.restore_from_taskbar, self.close)
+        self._tray.start()
+
+    def quit_app(self) -> None:
+        if self._quitting:
+            return
+        self.play_close_sfx()
+        self.close()
+
     def minimize_to_taskbar(self) -> None:
         window = self._window
-        if window is None or self._quitting or self._closed:
+        if window is None or self._quitting or self._closed or getattr(self, "_hiding", False):
             return
+        self._hiding = True
+        self._ensure_tray()
         try:
-            window.minimize()
+            window.hide()
         except Exception:
-            pass
+            try:
+                window.minimize()
+            except Exception:
+                pass
+        self._hiding = False
 
     def restore_from_taskbar(self) -> bool:
         window = self._window
         if window is None or self._quitting or self._closed or self._smoke:
             return False
         try:
-            window.restore()
             window.show()
+            window.restore()
+            if not getattr(window, "fullscreen", False):
+                window.toggle_fullscreen()
             return True
         except Exception:
             return False
+
+    def _check_update(self) -> None:
+        from jarvis import __version__
+        from jarvis.updater import available_update
+
+        try:
+            newer = available_update(__version__)
+        except Exception:
+            return
+        if newer:
+            self._update_version = newer
+            self._call("updateOffer", newer)
+
+    def install_update(self) -> None:
+        import os
+        import subprocess
+        import tempfile
+
+        from jarvis.updater import download_installer
+
+        self.write_log("SYS: Güncelleme indiriliyor.")
+        dest = os.path.join(tempfile.gettempdir(), "FRIDAY-Kurulum.exe")
+        try:
+            download_installer(dest)
+            subprocess.Popen([dest], close_fds=True)
+        except Exception:
+            self.write_log("ERR: Güncelleme indirilemedi.")
+            return
+        self.write_log("SYS: Kurulum açıldı.")
 
     def request_uninstall(self) -> None:
         from jarvis.uninstall import installed_uninstaller, launch_uninstaller
@@ -569,6 +640,9 @@ class JarvisUI:
     def close(self) -> None:
         self._quitting = True
         self._closed = True
+        tray = getattr(self, "_tray", None)
+        if tray is not None:
+            tray.stop()
         window = self._window
         if window is not None:
             try:

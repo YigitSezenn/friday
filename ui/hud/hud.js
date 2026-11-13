@@ -338,6 +338,12 @@ window.hud = {
     notes = lines || [];
     renderNotes();
   },
+  updateOffer(version) {
+    const button = $("app-update");
+    if (!button || !version) return;
+    button.hidden = false;
+    button.textContent = "Güncelle " + version;
+  },
   focus(name) {
     document.querySelectorAll(".mod").forEach(node => node.classList.toggle("lit", node.dataset.key === name));
     setTimeout(() => document.querySelectorAll(".mod.lit").forEach(node => node.classList.remove("lit")), 5000);
@@ -823,7 +829,8 @@ document.querySelector('[data-key="weather"]').addEventListener("click", openWea
 document.querySelector('[data-key="map"]').addEventListener("click", openMap);
 $("ov-weather").addEventListener("click", event => { if (event.target.id === "wx-close") $("ov-weather").hidden = true; });
 $("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
-$("quit").addEventListener("click", () => send("minimize"));
+$("quit").addEventListener("click", () => send("quit"));
+$("app-update")?.addEventListener("click", () => send("update"));
 $("uninstall").addEventListener("click", () => {
   const ok = confirm("FRIDAY kaldırılsın mı? Uygulama ve FRIDAY kayıt klasörü silinir. Başka klasörler silinmez.");
   if (ok) send("uninstall");
