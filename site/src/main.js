@@ -19,23 +19,36 @@ function pairCode(key) {
   return String(total).padStart(6, "0");
 }
 
-const keyInput = document.querySelector("#komut-form [name=key]");
+let gateKey = "";
 function keyFromHash() {
   const body = location.hash.replace(/^#/, "");
-  if (!body) return "";
-  return new URLSearchParams(body).get("k") || "";
+  const match = body.match(/(?:^|&)k=([^&]*)/);
+  if (!match) return "";
+  try { return decodeURIComponent(match[1].replace(/\+/g, "%2B")); }
+  catch { return ""; }
 }
-const hashKey = keyFromHash();
-if (hashKey && keyInput) {
-  keyInput.value = hashKey;
+function applyKey(key) {
+  const text = String(key || "").trim();
+  if (!text) return;
+  gateKey = text;
+  const pairInput = document.querySelector("#komut-form [name=pair]");
+  if (pairInput) pairInput.value = pairCode(gateKey);
   document.documentElement.dataset.pair = "1";
+  const bridge = window.FridayKey;
+  if (bridge && typeof bridge.store === "function") bridge.store(gateKey);
+  const scanNote = document.querySelector("#apk-scan-note");
+  if (scanNote) scanNote.textContent = "QR okundu.";
+}
+window.__fridayTakeKey = applyKey;
+const hashKey = keyFromHash();
+if (hashKey) {
+  applyKey(hashKey);
   history.replaceState(null, "", `${location.pathname}${location.search}#yaz`);
-} else if (fromApk && keyInput && window.FridayKey && typeof window.FridayKey.current === "function") {
+} else if (window.__fridayKey) {
+  applyKey(window.__fridayKey);
+} else if (fromApk && window.FridayKey && typeof window.FridayKey.current === "function") {
   const saved = window.FridayKey.current();
-  if (saved) {
-    keyInput.value = saved;
-    document.documentElement.dataset.pair = "1";
-  }
+  if (saved) applyKey(saved);
 }
 
 const note = document.querySelector("#note");
@@ -123,30 +136,28 @@ const form = document.querySelector("#komut-form");
 if (form && note) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const key = (keyInput && keyInput.value.trim()) || "";
     const pairInput = form.querySelector("[name=pair]");
-    const needsPair = document.documentElement.dataset.pair === "1" || document.documentElement.dataset.app === "apk";
-    if (needsPair) {
-      const entered = pairInput ? pairInput.value.trim() : "";
-      if (!key || pairCode(key) !== entered) {
-        note.textContent = "Kod tutmadı.";
-        return;
-      }
-      const bridge = window.FridayKey;
-      if (bridge && typeof bridge.store === "function") bridge.store(key);
-      const command = (form.querySelector("textarea")?.value || "").trim();
-      if (!command) {
-        note.textContent = "Bağlandı.";
-        return;
-      }
+    const entered = pairInput ? pairInput.value.trim() : "";
+    if (!gateKey) {
+      note.textContent = "Önce QR okutun.";
+      return;
+    }
+    if (pairCode(gateKey) !== entered) {
+      note.textContent = "Kod tutmadı.";
+      return;
+    }
+    const command = (form.querySelector("textarea")?.value || "").trim();
+    if (!command) {
+      note.textContent = "Bağlandı.";
+      return;
     }
     const button = form.querySelector("button[type=submit]");
     button.disabled = true;
     note.textContent = "Gönderiliyor.";
     try {
       const body = new FormData();
-      body.set("key", key);
-      body.set("text", form.querySelector("textarea")?.value || "");
+      body.set("key", gateKey);
+      body.set("text", command);
       const response = await fetch("/komut", { method: "POST", body });
       const page = await response.text();
       const landed = response.url || "";
@@ -168,7 +179,7 @@ if (form && note) {
 
 const scanNote = document.querySelector("#apk-scan-note");
 window.__fridayKeyReady = () => {
-  if (scanNote) scanNote.textContent = "Sayfa açıldı. Bilgisayardaki altı haneyi girin.";
+  if (scanNote && !gateKey) scanNote.textContent = "QR okutunca kod kutuya yazılır.";
 };
 document.querySelector("#apk-scan")?.addEventListener("click", () => {
   const bridge = window.FridayKey;
@@ -179,6 +190,29 @@ document.querySelector("#apk-scan")?.addEventListener("click", () => {
   bridge.scan();
 });
 if (fromApk) window.__fridayKeyReady();
+window.__fridayHeard = (text) => {
+  const said = String(text || "").trim();
+  const box = form ? form.querySelector("textarea") : null;
+  if (!said || !box) {
+    if (note) note.textContent = "Ses alınamadı.";
+    return;
+  }
+  box.value = said;
+  if (form.requestSubmit) form.requestSubmit();
+  else form.dispatchEvent(new Event("submit", {cancelable: true}));
+};
+window.__fridayVoiceError = () => {
+  if (note) note.textContent = "Mikrofon izni gerekli.";
+};
+document.querySelector("#apk-mic")?.addEventListener("click", () => {
+  const bridge = window.FridaySpeech;
+  if (!bridge || typeof bridge.listen !== "function") {
+    if (note) note.textContent = "Konuş yalnız FRIDAY uygulamasında çalışır.";
+    return;
+  }
+  if (note) note.textContent = "Dinleniyor.";
+  bridge.listen();
+});
 
 const wakeForm = document.querySelector("#wake-form");
 const wakeNote = document.querySelector("#wake-note");
