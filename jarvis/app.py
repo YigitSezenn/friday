@@ -145,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             ui.write_log(f"ERR: Telefon sunucusu acilamadi. ({exc})")
             return ""
-        ui.write_log("SYS: Telefon ayni Wi-Fi icin hazir. QR Ayarlar icinde, paylasma.")
+        ui.write_debug("Telefon ayni Wi-Fi icin hazir. QR Ayarlar icinde, paylasma.")
         try:
             from jarvis.story import note_phone
 

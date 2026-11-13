@@ -265,12 +265,11 @@ window.hud = {
     else if (text.startsWith("Siz:")) addLine(text.slice(4).trim(), "you");
     else if (text.startsWith("ERR:")) addLine(text.slice(4).trim(), "err");
     else if (text.includes("FRIDAY ayakta")) {
-      addLine("Her şey çalıştı. FRIDAY ayakta.", "");
       const ready = $("welcome-ready");
       const steps = $("welcome-steps");
       if (ready) ready.hidden = false;
       if (steps) steps.querySelectorAll("li").forEach(node => node.dataset.done = "1");
-    } else if (/haz[ıi]r/i.test(text)) addLine(`Buradayım. ${assistantName} burada, her şey kontrolüm altında!`, "");
+    }
   },
   stats(data) {
     cpu = Number(data.cpu) || 0;

@@ -384,7 +384,9 @@ class JarvisLive:
                     self.out_queue = asyncio.Queue(maxsize=8)
                     attempts = 0
                     self.ui.set_state("LISTENING")
-                    self.ui.write_log("SYS: Her şey çalıştı. FRIDAY ayakta.")
+                    if not getattr(self, "_ready_announced", False):
+                        self._ready_announced = True
+                        self.ui.write_log("SYS: Her şey çalıştı. FRIDAY ayakta.")
                     group.create_task(self._send_realtime())
                     group.create_task(self._listen_audio())
                     group.create_task(self._receive_audio())
