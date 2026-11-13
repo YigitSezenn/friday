@@ -4,7 +4,7 @@ Windows için Türkçe sesli asistan. Gemini Live ile konuşur; takvim, anımsat
 
 Kurulum dosyası `dist/FRIDAY-Kurulum.exe` dosyasıdır. Bu depoda yoktur; kaynak koddan Inno Setup ile üretilir. Anahtar, telefon jetonu ve kişisel kayıtlar depoya girmez.
 
-![Karşılama](docs/karsilama.png)
+![FRIDAY sitesi](docs/karsilama.png)
 
 ## Kurulum
 
@@ -27,9 +27,9 @@ Kayıttan sonra bağlantı, mikrofon ve aynı Wi-Fi telefon köprüsü ayağa ka
 
 Anahtar zaten duruyorsa karşılama atlanır.
 
-![Ana ekran](docs/ana-ekran.png)
+![Kurulum](docs/ana-ekran.png)
 
-![Hazır](docs/friday-ayakta.png)
+![İletişim](docs/friday-ayakta.png)
 
 ## Kısayollar
 
@@ -47,7 +47,7 @@ Bilgisayar ve telefon aynı Wi-Fi’da olmalıdır. İnternete tünel açılmaz.
 3. Telefondaki mikrofon bilgisayara PCM olarak gider. Asistanın sesi telefonda duyulur.
 4. “Bilgisayarda aç” veya “bilgisayara ilet” dersen komut bilgisayarda çalışır.
 
-`phone-android` bir WebView projesidir (`com.friday.phone`). Android SDK bu makinede yoksa APK üretilmez; tarayıcı sayfası aynı işi görür. SDK varsa `gradlew assembleDebug` çıktısını `phone-android/FRIDAY.apk` olarak koy. Sunucu bu dosyayı `/friday.apk` adresinden verir.
+`phone-android` bir WebView projesidir (`com.friday.phone`). Aynı Wi-Fi dışında `gate` klasöründeki kapı kullanılır. Bilgisayar sunucuya kendisi bağlanır. Site ve sıfırdan yazılmış Discord botu (`!f komut`) aynı kuyruğa yazar. Kurulum dosyası sitedeki indirme bağlantısındadır. Kapı anahtarı ve Discord tokeni depoya girmez. Atrium botuna dokunulmaz.
 
 QR ve sayfa adresi bir eşleştirme jetonu taşır. Paylaşma. Ayarlar’dan yeni kod üretmek eskisini düşürür.
 
