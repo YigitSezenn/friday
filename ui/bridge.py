@@ -416,7 +416,7 @@ class JarvisUI:
             found = requests.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={"q": city, "format": "json", "limit": 1},
-                headers={"User-Agent": "FRIDAY/3.7 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/3.8 (desktop assistant)"},
                 timeout=12,
             )
             found.raise_for_status()
@@ -431,7 +431,7 @@ class JarvisUI:
             y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
             tile = requests.get(
                 f"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{zoom}/{y}/{x}",
-                headers={"User-Agent": "FRIDAY/3.7 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/3.8 (desktop assistant)"},
                 timeout=12,
             )
             tile.raise_for_status()
@@ -562,7 +562,7 @@ class JarvisUI:
             return
         from jarvis.tray import FridayTray
 
-        self._tray = FridayTray(self.restore_from_taskbar, self.close)
+        self._tray = FridayTray(self.restore_from_taskbar, self.quit_app)
         self._tray.start()
 
     def quit_app(self) -> None:
@@ -577,6 +577,11 @@ class JarvisUI:
             return
         self._hiding = True
         self._ensure_tray()
+        ready = self._tray.wait_ready() if getattr(self, "_tray", None) is not None else False
+        if not ready:
+            self._hiding = False
+            self.write_log("ERR: Tepsi simgesi açılamadı.")
+            return
         try:
             window.hide()
         except Exception:
