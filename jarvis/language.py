@@ -31,6 +31,13 @@ def speech_language(config: dict | None = None) -> str:
     return LANGUAGES[ui_language(config)][2] or "tr"
 
 
+def live_speech_code(model: str, config: dict | None = None) -> str | None:
+    """Yerel ses modeli 'tr' kodunu reddedip oturumu düşürüyor. O modele kod gönderilmez."""
+    if "native-audio" in str(model or ""):
+        return None
+    return speech_language(config)
+
+
 def speech_codes(config: dict | None = None) -> list[str]:
     key = current(config)
     if key == "auto":
