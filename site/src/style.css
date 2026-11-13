@@ -84,6 +84,7 @@ h2 { font-size: clamp(34px, 4vw, 58px); line-height: 1.02; margin: 0 0 18px; max
 .btn svg { width: 18px; height: 18px; }
 .btn svg path { fill: currentColor; }
 .btn.ghost { background: var(--ghost); color: var(--ink); border: 0; outline: none; box-shadow: none; }
+.btn.discord { background: #5865f2; color: #fff; }
 .btn.small { padding: 10px 14px; font-size: 13px; }
 .theme {
   display: inline-flex;
@@ -156,7 +157,7 @@ footer {
 }
 footer p { margin: 0; }
 footer a { color: var(--blue); }
-[data-theme="light"] .btn:not(.ghost) {
+[data-theme="light"] .btn:not(.ghost):not(.discord) {
   background: linear-gradient(180deg, #e7b07a, #9a4d12);
   color: #fffaf4;
   box-shadow: 0 12px 36px rgba(154, 77, 18, 0.28);
