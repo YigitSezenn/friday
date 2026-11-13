@@ -104,7 +104,7 @@
     <section id="yaz">
       <p class="kicker">İletişim</p>
       <h2>Komutu bilgisayara gönderin.</h2>
-      <p class="lead">FRIDAY’in bilgisayarda açık olması gerekir. Kapı anahtarı, Ayarlar › Telefon bölümündeki QR kod ile alınır. Okuma yalnız FRIDAY Android uygulamasında yapılır. Telefon kamerası ve tarayıcı eşleştirme yolu değildir. Bu anahtar, Gemini anahtarı değildir.</p>
+      <p class="lead">QR okutunca site açılır ve kapı anahtarı kutuya yazılır. Anahtarı elle yazmayın. Bilgisayardaki altı haneli kod eşleşince bağlantı kurulur. Okuma yalnız FRIDAY Android uygulamasında yapılır.</p>
       <p id="note" class="note" role="status"></p>
       <form id="komut-form" method="post" action="/komut">
         <label>FRIDAY anahtarı<input name="key" type="password" autocomplete="off"></label>
@@ -119,6 +119,7 @@
         <h2>Bilgisayarımı aç</h2>
         <label>MAC<input name="mac" autocomplete="off" spellcheck="false"></label>
         <label>IP<input name="ip" autocomplete="off" inputmode="decimal"></label>
+        <label>Port<input name="port" inputmode="numeric" value="9" autocomplete="off"></label>
         <button class="btn" type="submit">Bilgisayarımı aç</button>
         <p id="wake-note" class="note" role="status"></p>
       </form>

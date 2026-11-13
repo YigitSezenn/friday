@@ -197,7 +197,8 @@ html[data-app="apk"] .btn {
   min-height: 48px;
 }
 .pair-only { display: none; }
-html[data-pair="1"] .pair-only { display: grid; }
+html[data-pair="1"] .pair-only,
+html[data-app="apk"] .pair-only { display: grid; }
 .apk-only { display: none; }
 html[data-app="apk"] .apk-only { display: block; }
 html[data-app="apk"] #wake-form { display: grid; }
