@@ -299,6 +299,13 @@ class JarvisTestCase(unittest.TestCase):
         garbled = "spotify a" + "ç".encode("utf-8").decode("latin-1")
         self.assertEqual(repair_text(garbled), "spotify aç")
         self.assertEqual(repair_text("spotify aç"), "spotify aç")
+        from jarvis.language import live_speech_code
+        from jarvis.updater import is_newer
+
+        self.assertIsNone(live_speech_code("models/gemini-2.5-flash-native-audio-latest"))
+        self.assertEqual(live_speech_code("models/gemini-3.8-live", {"language": "en"}), "en")
+        self.assertTrue(is_newer("3.6", "3.5"))
+        self.assertFalse(is_newer("3.5", "3.6"))
         hud = (Path(__file__).resolve().parents[1] / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
         self.assertIn("applyLanguage", hud)
         self.assertIn("send(\"settings\", {values: {language: value}})", hud)
@@ -460,9 +467,9 @@ class JarvisTestCase(unittest.TestCase):
         script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
         self.assertIn("events.closing", bridge)
         self.assertIn("minimize_to_taskbar", bridge)
-        self.assertIn("KÜÇÜLT", html)
-        self.assertIn('send("minimize")', script)
-        self.assertNotIn('send("quit")', script)
+        self.assertIn("play_close_sfx", bridge)
+        self.assertIn('id="quit"', html)
+        self.assertIn('send("quit")', script)
 
     def test_uninstall_deletes_only_friday_folders(self):
         import contextlib
