@@ -308,7 +308,7 @@ class JarvisLive:
         try:
             stream = audio.open(format=pyaudio.paInt16, channels=1, rate=RECV_RATE, output=True)
         except Exception as exc:
-                self.ui.write_log(f"ERR: Hoparlör açılamadı. ({exc})")
+            self.ui.write_log(f"ERR: Hoparlör açılamadı. ({exc})")
             audio.terminate()
             while True:
                 await self.audio_in_queue.get()
