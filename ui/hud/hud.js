@@ -339,10 +339,13 @@ window.hud = {
     renderNotes();
   },
   updateOffer(version) {
-    const button = $("app-update");
-    if (!button || !version) return;
-    button.hidden = false;
-    button.textContent = "Güncelle " + version;
+    if (!version) return;
+    for (const id of ["home-update", "app-update"]) {
+      const button = $(id);
+      if (!button) continue;
+      button.hidden = false;
+      button.textContent = "Güncelle " + version;
+    }
   },
   focus(name) {
     document.querySelectorAll(".mod").forEach(node => node.classList.toggle("lit", node.dataset.key === name));
@@ -831,6 +834,7 @@ $("ov-weather").addEventListener("click", event => { if (event.target.id === "wx
 $("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
+$("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));
 $("uninstall").addEventListener("click", () => {
   const ok = confirm("FRIDAY kaldırılsın mı? Uygulama ve FRIDAY kayıt klasörü silinir. Başka klasörler silinmez.");
