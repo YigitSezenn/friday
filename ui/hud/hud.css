@@ -29,6 +29,7 @@ body[data-state="paused"] #bloom,body[data-state="idle"] #bloom{opacity:.55}
 #topbar .ctl:hover{color:var(--c);border-color:rgba(var(--rgb),.34);background:rgba(var(--rgb),.07)}
 #topbar .ctl .dot{width:6px;height:6px;border-radius:50%;background:var(--faint)}
 #topbar .ctl[data-on="1"] .dot{background:var(--c);box-shadow:0 0 9px var(--c);animation:pulse 2.4s ease-in-out infinite}
+#t-ver{letter-spacing:.14em;color:var(--c);font-size:11px}
 #topbar .ctl[data-on="0"]{color:#ff5c7a}
 #topbar .ctl[data-on="0"] .dot{background:#ff5c7a;box-shadow:0 0 9px #ff5c7a;animation:pulse 1.1s ease-in-out infinite}
 #topbar .ctl.cam[data-on="0"]{color:var(--dim)}
@@ -103,14 +104,12 @@ body[data-state="paused"]{--breath:6s;--spin:70s}
 body[data-state="speaking"] #vu i,body[data-state="listening"] #vu i{animation:vu .6s ease-in-out infinite}
 #vu i:nth-child(2){animation-delay:.1s}#vu i:nth-child(3){animation-delay:.2s}#vu i:nth-child(4){animation-delay:.05s}
 @keyframes vu{0%,100%{height:4px;opacity:.35}50%{height:15px;opacity:1}}
-#home-update{display:inline-flex;margin:8px 0 0;padding:8px 14px;border:0;border-radius:8px;background:#2f6bff;color:#fff;cursor:pointer;letter-spacing:.08em}
+#home-update{display:inline-flex;margin:8px 0 0;padding:8px 14px;border:1px solid rgba(var(--rgb),.45);border-radius:8px;background:rgba(var(--rgb),.14);color:var(--c);cursor:pointer;letter-spacing:.12em}
+#home-update:hover{background:var(--c);color:#1a1408}
 #home-update[hidden]{display:none}
 #br{position:fixed;right:22px;bottom:16px;z-index:70;display:flex;gap:8px}
-#min,#quit{border:0;border-radius:8px;color:#fff;letter-spacing:.16em;padding:8px 14px;cursor:pointer;font-size:16px}
-#min{background:rgba(255,255,255,.12)}
-#min:hover{background:rgba(255,255,255,.22)}
-#quit{background:#c43838}
-#quit:hover{background:#a82828}
+#min,#quit{border:1px solid rgba(var(--rgb),.4);border-radius:8px;background:rgba(var(--rgb),.12);color:var(--c);letter-spacing:.16em;padding:8px 14px;cursor:pointer;font-size:16px}
+#min:hover,#quit:hover{background:var(--c);color:#1a1408}
 #uninstall{display:block;margin-top:12px}
 .overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:grid;place-items:center}
 .overlay[hidden]{display:none}
