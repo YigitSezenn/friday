@@ -207,6 +207,45 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(text, "Merhaba dünya")
         self.assertTrue(noisy)
 
+    def test_turn_closes_after_silence(self):
+        from jarvis.audio.turn import TurnGate
+
+        gate = TurnGate(speech=0.02, silence_s=0.7)
+        loud = b"\xff\x0f" * 160
+        quiet = b"\x00\x00" * 160
+        before, after = gate.feed(loud, 0.0)
+        self.assertEqual(before, ["start"])
+        self.assertEqual(after, [])
+        before, after = gate.feed(quiet, 0.3)
+        self.assertEqual((before, after), ([], []))
+        before, after = gate.feed(quiet, 1.1)
+        self.assertEqual(after, ["end"])
+        self.assertFalse(gate.open)
+
+    def test_command_body_is_urlencoded_and_refresh_stays_quiet(self):
+        from urllib.parse import parse_qs, urlencode
+        from pathlib import Path
+
+        from jarvis.gate_client import ensure_gate_key, pair_code, rotate_gate_key
+
+        body = urlencode({"key": "ornek", "text": "spotify aç"}).encode()
+        parsed = {key: values[0] for key, values in parse_qs(body.decode("utf-8")).items()}
+        self.assertEqual(parsed["text"], "spotify aç")
+        self.assertNotIn("text", parse_qs(b'--bound\r\nContent-Disposition: form-data; name="text"\r\n\r\nspotify ac'.decode("utf-8")))
+        root = Path(__file__).resolve().parents[1]
+        script = (root / "site" / "src" / "main.js").read_text(encoding="utf-8")
+        phone = (root / "phone-android" / "app" / "src" / "main" / "java" / "com" / "friday" / "phone" / "MainActivity.kt").read_text(encoding="utf-8")
+        hud = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("URLSearchParams", script)
+        self.assertNotIn("new FormData()", script)
+        self.assertIn("ACTION_RECOGNIZE_SPEECH", phone)
+        self.assertIn('id="pair-refresh"', hud)
+        first = ensure_gate_key()
+        second = rotate_gate_key()
+        self.assertFalse(first == second)
+        self.assertEqual(len(pair_code(second)), 6)
+        self.assertTrue(pair_code(second).isdigit())
+
     def test_phone_number_chat_does_not_crash_or_duplicate(self):
         from jarvis.live import JarvisLive, repeated_typed_line
         from ui.bridge import HudBridge, script_for

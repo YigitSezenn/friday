@@ -836,6 +836,7 @@ $("ov-weather").addEventListener("click", event => { if (event.target.id === "wx
 $("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
+$("pair-refresh")?.addEventListener("click", () => send("gate_refresh"));
 $("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));
 $("uninstall").addEventListener("click", () => {

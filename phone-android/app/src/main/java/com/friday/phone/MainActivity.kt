@@ -4,10 +4,9 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.ActivityNotFoundException
 import android.os.Bundle
-import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
@@ -43,6 +42,10 @@ class MainActivity : ComponentActivity() {
     private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && ::speech.isInitialized) speech.start()
         else runJs("window.__fridayVoiceError&&window.__fridayVoiceError()")
+    }
+    private val hear = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val said = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
+        runJs("window.__fridayHeard&&window.__fridayHeard(${JSONObject.quote(said)})")
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -87,6 +90,10 @@ class MainActivity : ComponentActivity() {
 
     fun requestMic() {
         micPermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    fun openSpeech(intent: Intent) {
+        hear.launch(intent)
     }
 
     fun openScanner() {
@@ -160,8 +167,6 @@ private class KeyBridge(private val activity: MainActivity) {
 }
 
 private class SpeechBridge(private val activity: MainActivity) {
-    private var recognizer: SpeechRecognizer? = null
-
     @JavascriptInterface
     fun listen() {
         activity.runOnUiThread {
@@ -174,36 +179,17 @@ private class SpeechBridge(private val activity: MainActivity) {
     }
 
     fun start() {
-        if (!SpeechRecognizer.isRecognitionAvailable(activity)) {
-            activity.runJs("window.__fridayHeard&&window.__fridayHeard('')")
-            return
-        }
-        recognizer?.destroy()
-        val engine = SpeechRecognizer.createSpeechRecognizer(activity)
-        recognizer = engine
-        engine.setRecognitionListener(object : RecognitionListener {
-            override fun onResults(results: Bundle?) {
-                val said = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
-                activity.runJs("window.__fridayHeard&&window.__fridayHeard(${JSONObject.quote(said)})")
-            }
-
-            override fun onError(error: Int) {
-                activity.runJs("window.__fridayHeard&&window.__fridayHeard('')")
-            }
-
-            override fun onReadyForSpeech(params: Bundle?) {}
-            override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {}
-            override fun onPartialResults(partialResults: Bundle?) {}
-            override fun onEvent(eventType: Int, params: Bundle?) {}
-        })
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
-        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-        engine.startListening(intent)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "tr-TR")
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Dinliyorum")
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        try {
+            activity.openSpeech(intent)
+        } catch (_: ActivityNotFoundException) {
+            activity.runJs("window.__fridayHeard&&window.__fridayHeard('')")
+        }
     }
 }
 

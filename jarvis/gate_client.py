@@ -33,6 +33,14 @@ def ensure_gate_key() -> str:
     current = gate_key()
     if current:
         return current
+    return _write_gate_key()
+
+
+def rotate_gate_key() -> str:
+    return _write_gate_key()
+
+
+def _write_gate_key() -> str:
     import secrets
 
     created = secrets.token_urlsafe(24)

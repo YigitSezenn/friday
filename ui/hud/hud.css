@@ -238,6 +238,7 @@ body[data-sleep="1"] #bloom{opacity:.1}
 .btn{cursor:pointer;padding:10px 14px;border-radius:9px;border:1px solid rgba(var(--rgb),.45);background:rgba(var(--rgb),.1);color:var(--c);letter-spacing:.12em}
 .pair{display:flex;align-items:center;gap:18px;margin:8px 0 12px}
 #gate-qr{display:block;width:180px;height:180px;background:#fff;border-radius:12px}
+.pair-side{display:grid;gap:10px;justify-items:start}
 #pair-code{font-size:32px;letter-spacing:.18em;color:var(--c)}
 .keyrow{display:flex;gap:8px;align-items:center;margin:8px 0 4px}
 .keyrow code{flex:1;min-width:0;padding:10px 12px;border-radius:9px;background:rgba(0,0,0,.35);color:var(--ink);font-family:Consolas,ui-monospace,monospace;font-size:13px;letter-spacing:0;word-break:break-all}
