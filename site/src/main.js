@@ -1,12 +1,8 @@
 import Lenis from "lenis";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import "lenis/dist/lenis.css";
 import "./style.css";
-import { SCENE_ID, startScene } from "./scene.js";
 
-gsap.registerPlugin(ScrollTrigger);
-document.documentElement.dataset.scene = SCENE_ID;
+window.__fridayUp = true;
 
 const fromApk = navigator.userAgent.includes("FRIDAYAndroid");
 if (fromApk) document.documentElement.dataset.app = "apk";
@@ -57,12 +53,23 @@ if (note && new URLSearchParams(location.search).get("iletildi") === "1") {
 }
 
 const canvas = document.querySelector("#gl");
-const scene = canvas && !fromApk ? startScene(canvas) : null;
+let scene = null;
+if (canvas && !fromApk) {
+  // three.js yalnız sahne gösterilecekse iner; telefon sayfası onu hiç yüklemez.
+  import("./scene.js").then((module) => {
+    document.documentElement.dataset.scene = module.SCENE_ID;
+    scene = module.startScene(canvas);
+    scene.setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+    update();
+  }).catch(() => {});
+}
 const themeMedia = window.matchMedia("(prefers-color-scheme: light)");
 const themeButtons = document.querySelectorAll("#theme button");
 const paintTheme = (mode, persist) => {
   if (mode === "light") document.documentElement.dataset.theme = "light";
   else delete document.documentElement.dataset.theme;
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", mode === "light" ? "#f6f1e8" : "#04070c");
   themeButtons.forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.side === mode));
   });
@@ -81,23 +88,74 @@ themeMedia.addEventListener("change", () => {
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let lenis = null;
 
-if (!reduce) {
+if (!reduce && !fromApk) {
   lenis = new Lenis({ autoRaf: true, duration: 1.4, respectReducedMotion: false });
-  lenis.on("scroll", ScrollTrigger.update);
-  gsap.from(".hero h1, .hero .lead, .hero .actions", {
-    y: 36,
-    autoAlpha: 0,
-    duration: 1,
-    stagger: 0.12,
-    delay: 0.15,
-  });
-  gsap.utils.toArray("[data-reveal]").forEach((node) => {
-    gsap.from(node, {
-      y: 32,
-      autoAlpha: 0,
-      duration: 0.8,
-      scrollTrigger: { trigger: node, start: "top 84%" },
+}
+
+const revealNodes = document.querySelectorAll("[data-reveal]");
+if (!reduce && "IntersectionObserver" in window) {
+  const settle = (event) => {
+    if (event.propertyName === "clip-path") event.currentTarget.classList.add("done");
+  };
+  const watcher = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("in");
+      watcher.unobserve(entry.target);
     });
+  }, { rootMargin: "0px 0px -12% 0px" });
+  revealNodes.forEach((node) => {
+    const index = Array.prototype.indexOf.call(node.parentElement.children, node);
+    node.style.setProperty("--i", String(index));
+    node.addEventListener("transitionend", settle);
+    watcher.observe(node);
+  });
+} else {
+  document.documentElement.classList.remove("motion");
+}
+
+const header = document.querySelector("header");
+const navLinks = new Map();
+document.querySelectorAll('nav a[href^="#"]').forEach((link) => {
+  navLinks.set(link.getAttribute("href").slice(1), link);
+});
+if ("IntersectionObserver" in window) {
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const link = navLinks.get(entry.target.id);
+      if (!link) return;
+      if (entry.isIntersecting) link.setAttribute("aria-current", "true");
+      else link.removeAttribute("aria-current");
+    });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  navLinks.forEach((_link, id) => {
+    const target = document.getElementById(id);
+    if (target) spy.observe(target);
+  });
+}
+
+const clock = document.querySelector("#clock");
+if (clock) {
+  const tick = () => {
+    const now = new Date();
+    clock.dateTime = now.toISOString();
+    clock.textContent = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  };
+  tick();
+  setInterval(tick, 15000);
+}
+
+if (window.matchMedia("(hover: hover)").matches) {
+  document.querySelectorAll(".panel").forEach((panel) => {
+    panel.addEventListener("pointermove", (event) => {
+      const box = panel.getBoundingClientRect();
+      panel.style.setProperty("--mx", `${event.clientX - box.left}px`);
+      panel.style.setProperty("--my", `${event.clientY - box.top}px`);
+    }, { passive: true });
+  });
+  document.querySelectorAll(".hero .btn").forEach((button) => {
+    button.addEventListener("pointerenter", () => scene?.setEnergy(1));
+    button.addEventListener("pointerleave", () => scene?.setEnergy(0));
   });
 }
 
@@ -107,7 +165,8 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
     const target = id ? document.querySelector(id) : null;
     if (!target) return;
     event.preventDefault();
-    const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - 88);
+    const offset = header ? header.offsetHeight : 0;
+    const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset);
     const start = window.scrollY;
     const change = top - start;
     const began = performance.now();
@@ -125,9 +184,14 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
 });
 
 const update = () => {
-  if (!scene) return;
   const height = document.documentElement.scrollHeight - innerHeight;
-  scene.setScroll(height > 0 ? scrollY / height : 0);
+  const progress = height > 0 ? Math.min(1, Math.max(0, scrollY / height)) : 0;
+  if (header) header.style.setProperty("--p", progress.toFixed(4));
+  if (canvas) {
+    const ghost = Math.min(1, Math.max(0, (scrollY / innerHeight - 0.2) / 0.6));
+    canvas.style.setProperty("--gl", (1 - ghost * 0.8).toFixed(3));
+  }
+  if (scene) scene.setScroll(progress);
 };
 addEventListener("scroll", update, { passive: true });
 update();
@@ -259,5 +323,30 @@ if (wakeForm && wakeNote) {
     } else {
       wakeNote.textContent = "Paket gönderilemedi.";
     }
+  });
+}
+
+const noteTone = (text) => {
+  if (!text || text === "QR okutunca kod kutuya yazılır.") return "";
+  if (text === "Gönderiliyor." || text === "Dinleniyor.") return "busy";
+  if (/(iletildi|gönderildi|Bağlandı|QR okundu)\.$/.test(text)) return "ok";
+  return "warn";
+};
+let linkTimer = 0;
+const paintNote = (node) => {
+  const tone = noteTone(node.textContent.trim());
+  if (tone) node.dataset.tone = tone;
+  else delete node.dataset.tone;
+  clearTimeout(linkTimer);
+  if (tone) document.documentElement.dataset.link = tone;
+  else delete document.documentElement.dataset.link;
+  if (tone === "ok") {
+    linkTimer = setTimeout(() => delete document.documentElement.dataset.link, 2600);
+  }
+};
+if ("MutationObserver" in window) {
+  document.querySelectorAll(".note").forEach((node) => {
+    new MutationObserver(() => paintNote(node)).observe(node, { childList: true, characterData: true, subtree: true });
+    if (node.textContent.trim()) paintNote(node);
   });
 }

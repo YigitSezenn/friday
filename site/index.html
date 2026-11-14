@@ -2,26 +2,41 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>FRIDAY — Windows için Türkçe sesli asistan</title>
   <meta name="description" content="FRIDAY, Windows için Türkçe sesli asistandır. Kurulum ve Android uygulaması bu sayfadan indirilir. QR kod yalnız uygulamada okunur.">
+  <meta name="theme-color" content="#04070c">
+  <link rel="icon" type="image/svg+xml" href="/friday-mark.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@50..125,100..900&display=swap" rel="stylesheet">
   <script>
     try {
+      var root = document.documentElement;
       var theme = localStorage.getItem("friday-theme");
       if (theme !== "light" && theme !== "dark") {
         theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
       }
-      if (theme === "light") document.documentElement.dataset.theme = "light";
+      if (theme === "light") root.dataset.theme = "light";
+      if (navigator.userAgent.indexOf("FRIDAYAndroid") !== -1) root.dataset.app = "apk";
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        root.classList.add("motion");
+        setTimeout(function () {
+          if (!window.__fridayUp) root.classList.remove("motion");
+        }, 5000);
+      }
     } catch (e) {}
   </script>
 </head>
 <body>
   <canvas id="gl" aria-hidden="true"></canvas>
+  <div class="hud-grid" aria-hidden="true"></div>
+  <div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <header>
-    <a class="mark" href="#ust">FRIDAY</a>
+    <a class="mark" href="#ust">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" pathLength="360"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2.6"/></svg>
+      FRIDAY
+    </a>
     <nav>
       <a href="#ozellik">Özellikler</a>
       <a href="#nasil">Nasıl çalışır</a>
@@ -29,18 +44,20 @@
       <a href="#yaz">İletişim</a>
       <a href="https://discord.com/oauth2/authorize?client_id=1570766952446689401&amp;permissions=68608&amp;scope=bot" target="_blank" rel="noreferrer">Discord’a ekle</a>
     </nav>
+    <time class="clock" id="clock" aria-hidden="true"></time>
     <div class="theme" id="theme" role="group" aria-label="Görünüm">
       <button type="button" data-side="dark" aria-pressed="true">Koyu</button>
       <button type="button" data-side="light" aria-pressed="false">Açık</button>
     </div>
     <a class="btn small" href="#indir">İndir</a>
+    <i class="progress" aria-hidden="true"></i>
   </header>
 
   <main>
     <section class="hero" id="ust">
-      <p class="kicker">Sesli asistan</p>
-      <h1>Bilgisayarınız sizi dinlesin.</h1>
-      <p class="lead">FRIDAY Türkçe konuşur. Yankı engelleme açıktır. Koyu görünümde çekirdek ve halka, açık görünümde güneş yer alır. Komutlar, kurulu olduğu bilgisayarda çalışır.</p>
+      <p class="brand">FRIDAY</p>
+      <h1><span>Bilgisayarınız</span> <span>sizi dinlesin.</span></h1>
+      <p class="lead">Türkçe konuşur. Yankı engelleme açıktır. Koyu görünümde çekirdek ve halka, açık görünümde güneş yer alır. Komutlar, kurulu olduğu bilgisayarda çalışır.</p>
       <div class="actions">
         <a class="btn" href="/indir/FRIDAY-Kurulum.exe?v=4.4">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm8.2-1.2L21 3v8.5h-9.8V4.3ZM3 12.5h7.5v7.2L3 18.6v-6.1Zm8.2 0H21V21l-9.8-1.4v-7.1Z"/></svg>
@@ -57,26 +74,29 @@
       </div>
     </section>
 
-    <section id="ozellik">
+    <section class="sec" id="ozellik">
       <p class="kicker">Özellikler</p>
       <h2>Komut her yerden gelir. İşlem bilgisayarda yapılır.</h2>
       <div class="grid">
-        <article class="card" data-reveal>
+        <article class="panel" data-reveal>
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>
           <h3>Ses</h3>
           <p>Gemini Live ile Türkçe konuşur. Yankı engelleme, hoparlör sesinin mikrofona karışmasını önler. Mikrofon kapatıldığında yazışma sürer.</p>
         </article>
-        <article class="card" data-reveal>
+        <article class="panel" data-reveal>
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5h18v11.5H3zM8 20h8M12 16v4"/></svg>
           <h3>Bilgisayar</h3>
           <p>Takvim, anımsatıcı, hava durumu, harita, not, zamanlayıcı, dosya ve uygulama. Mikrofon F4, kamera F6. “Bilgisayarda aç” komutu bu makinede çalışır.</p>
         </article>
-        <article class="card" data-reveal>
+        <article class="panel" data-reveal>
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 2.5h9v19h-9zM11 18.5h2"/></svg>
           <h3>Telefon ve site</h3>
           <p>Android uygulaması iletişim bölümünü açar. QR kod yalnız bu uygulamada okunur. Telefon kamerası ve tarayıcı eşleştirme yolu değildir. iPhone’da ayrı uygulama yoktur.</p>
         </article>
       </div>
     </section>
 
-    <section id="nasil">
+    <section class="sec" id="nasil">
       <p class="kicker">Nasıl çalışır</p>
       <h2>Üç adım.</h2>
       <ol class="steps">
@@ -86,47 +106,76 @@
       </ol>
     </section>
 
-    <section id="referans">
+    <section class="sec" id="referans">
       <p class="kicker">Nerelerde</p>
       <h2>Tek uygulama, üç erişim.</h2>
-      <div class="grid">
-        <article class="card" data-reveal><h3>Windows</h3><p>Masaüstü uygulaması. Ses, yankı engelleme, ekran, kamera ve dosyalar bu bilgisayardadır.</p></article>
-        <article class="card" data-reveal><h3>Android</h3><p>İletişim ekranını açar. QR kod yalnız FRIDAY uygulamasında okunur.</p></article>
-        <article class="card" data-reveal><h3>iPhone ve tarayıcı</h3><p>Ayrı uygulama yoktur. Komut bu sayfadaki form ile gönderilir.</p></article>
+      <div class="panel triad" data-reveal>
+        <article>
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg>
+          <h3>Windows</h3><p>Masaüstü uygulaması. Ses, yankı engelleme, ekran, kamera ve dosyalar bu bilgisayardadır.</p>
+        </article>
+        <article>
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 2.5h9v19h-9zM11 18.5h2"/></svg>
+          <h3>Android</h3><p>İletişim ekranını açar. QR kod yalnız FRIDAY uygulamasında okunur.</p>
+        </article>
+        <article>
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 0 0 0-19ZM2.5 12h19M12 2.5c2.6 2.6 3.9 5.8 3.9 9.5s-1.3 6.9-3.9 9.5c-2.6-2.6-3.9-5.8-3.9-9.5s1.3-6.9 3.9-9.5Z"/></svg>
+          <h3>iPhone ve tarayıcı</h3><p>Ayrı uygulama yoktur. Komut bu sayfadaki form ile gönderilir.</p>
+        </article>
       </div>
     </section>
 
-    <section id="indir">
+    <section class="sec" id="indir">
       <p class="kicker">İndir</p>
       <h2>Kurulum dosyaları</h2>
       <div class="downloads">
-        <a class="card dl" data-reveal href="/indir/FRIDAY-Kurulum.exe?v=4.4"><b>Windows</b><span>Sürüm 4.4</span><p>Python gerekmez. Masaüstüne kısayol eklenir.</p></a>
-        <a class="card dl" data-reveal href="/indir/FRIDAY.apk?v=4.4"><b>Android</b><span>Sürüm 4.4</span><p>İletişim ekranını açar. QR kod yalnız bu uygulamada okunur.</p></a>
+        <a class="panel dl" data-reveal href="/indir/FRIDAY-Kurulum.exe?v=4.4"><b>Windows</b><span>Sürüm 4.4</span><p>Python gerekmez. Masaüstüne kısayol eklenir.</p><svg class="dl-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v12M6.5 10.5 12 16l5.5-5.5M4 20.5h16"/></svg></a>
+        <a class="panel dl" data-reveal href="/indir/FRIDAY.apk?v=4.4"><b>Android</b><span>Sürüm 4.4</span><p>İletişim ekranını açar. QR kod yalnız bu uygulamada okunur.</p><svg class="dl-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v12M6.5 10.5 12 16l5.5-5.5M4 20.5h16"/></svg></a>
       </div>
     </section>
 
-    <section id="yaz">
-      <p class="kicker">İletişim</p>
-      <h2>Komutu bilgisayara gönderin.</h2>
-      <p class="lead">QR okutunca altı haneli kod kutuya yazılır. Bilgisayardaki rakamla aynıysa komut gider. Okuma yalnız FRIDAY Android uygulamasında yapılır.</p>
-      <p id="note" class="note" role="status"></p>
-      <form id="komut-form" method="post" action="/komut">
-        <label>Bilgisayardaki kod<input name="pair" inputmode="numeric" maxlength="6" autocomplete="off"></label>
-        <label>Komut<textarea name="text" rows="3" placeholder="Bilgisayarda not defterini aç"></textarea></label>
-        <button class="btn" type="submit">Bilgisayara gönder</button>
-        <button class="btn apk-only" id="apk-scan" type="button">QR oku</button>
-        <button class="btn apk-only" id="apk-mic" type="button">Konuş</button>
-        <p id="apk-scan-note" class="note apk-only" role="status"></p>
-      </form>
-      <form id="wake-form" class="apk-only">
-        <p class="kicker">Uyandır</p>
-        <h2>Bilgisayarımı aç</h2>
-        <label>MAC<input name="mac" autocomplete="off" spellcheck="false"></label>
-        <label>IP<input name="ip" autocomplete="off" inputmode="decimal"></label>
-        <label>Port<input name="port" inputmode="numeric" value="9" autocomplete="off"></label>
-        <button class="btn" type="submit">Bilgisayarımı aç</button>
-        <p id="wake-note" class="note" role="status"></p>
-      </form>
+    <section class="sec console" id="yaz">
+      <div class="console-head">
+        <svg class="reactor apk-only" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="rx-dash" cx="100" cy="100" r="96" pathLength="360"/>
+          <circle class="rx-ticks" cx="100" cy="100" r="84" pathLength="360"/>
+          <circle class="rx-arcs" cx="100" cy="100" r="70" pathLength="360"/>
+          <circle class="rx-thin" cx="100" cy="100" r="58"/>
+          <circle class="rx-coil" cx="100" cy="100" r="42" pathLength="360"/>
+          <circle class="rx-core" cx="100" cy="100" r="19"/>
+        </svg>
+        <div>
+          <p class="kicker">İletişim</p>
+          <h2>Komutu bilgisayara gönderin.</h2>
+        </div>
+        <p class="lead">QR okutunca altı haneli kod kutuya yazılır. Bilgisayardaki rakamla aynıysa komut gider. Okuma yalnız FRIDAY Android uygulamasında yapılır.</p>
+      </div>
+      <div class="console-body">
+        <p id="note" class="note" role="status"></p>
+        <form id="komut-form" method="post" action="/komut">
+          <label class="f-pair">Bilgisayardaki kod<input name="pair" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+          <label class="f-text">Komut<textarea name="text" rows="3" placeholder="Bilgisayarda not defterini aç"></textarea></label>
+          <button class="btn f-send" type="submit">Bilgisayara gönder</button>
+          <button class="btn ghost apk-only" id="apk-scan" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5v2H5v3H3Zm13-5h5v5h-2V5h-3V3ZM3 16h2v3h3v2H3v-5Zm16 3v-3h2v5h-5v-2h3ZM8 8h3v3H8V8Zm5 0h3v3h-3V8Zm-5 5h3v3H8v-3Zm5 0h3v3h-3v-3Z"/></svg>
+            QR oku
+          </button>
+          <button class="btn ghost apk-only" id="apk-mic" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a3.5 3.5 0 0 1 3.5 3.5v5.5a3.5 3.5 0 0 1-7 0V6A3.5 3.5 0 0 1 12 2.5ZM5 11h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-3.1A7 7 0 0 1 5 11Z"/></svg>
+            Konuş
+          </button>
+          <p id="apk-scan-note" class="note apk-only" role="status"></p>
+        </form>
+        <form id="wake-form" class="apk-only">
+          <p class="kicker">Uyandır</p>
+          <h2>Bilgisayarımı aç</h2>
+          <label class="f-mac">MAC<input name="mac" autocomplete="off" spellcheck="false"></label>
+          <label class="f-ip">IP<input name="ip" autocomplete="off" inputmode="decimal"></label>
+          <label class="f-port">Port<input name="port" inputmode="numeric" value="9" autocomplete="off"></label>
+          <button class="btn" type="submit">Bilgisayarımı aç</button>
+          <p id="wake-note" class="note" role="status"></p>
+        </form>
+      </div>
     </section>
   </main>
   <footer>
