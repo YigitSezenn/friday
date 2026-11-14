@@ -170,6 +170,8 @@ if (form && note) {
         form.querySelector("textarea").value = "";
       } else if (page.includes("Komut boş")) {
         note.textContent = "Bağlandı.";
+      } else if (page.includes("Anahtar olmadı")) {
+        note.textContent = "QR eski. FRIDAY ekranındaki QR kodu yeniden okutun.";
       } else {
         note.textContent = "Bağlandı. Komut iletilemedi.";
       }
