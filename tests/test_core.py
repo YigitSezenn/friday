@@ -222,6 +222,54 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(after, ["end"])
         self.assertFalse(gate.open)
 
+    def test_live_mic_follows_server_vad(self):
+        from jarvis.live import JarvisLive, queue_mic_frame
+
+        loud = b"\x01\x00" * 16
+        self.assertIsNone(queue_mic_frame(loud, speaking=True, muted=False, paused=False))
+        self.assertIsNone(queue_mic_frame(loud, speaking=False, muted=True, paused=False))
+        self.assertIsNone(queue_mic_frame(b"", speaking=False, muted=False, paused=False))
+        frame = queue_mic_frame(loud, speaking=False, muted=False, paused=False)
+        self.assertEqual(frame["mime_type"], "audio/pcm")
+        self.assertNotIn("activity", frame)
+        live = JarvisLive.__new__(JarvisLive)
+        config = live._build_config()
+        self.assertIsNone(getattr(config, "realtime_input_config", None))
+        source = (Path(__file__).resolve().parents[1] / "jarvis" / "live.py").read_text(encoding="utf-8")
+        self.assertNotIn("automatic_activity_detection", source)
+        self.assertNotIn("ActivityEnd", source)
+
+    def test_gate_urlencoded_command_reaches_the_computer(self):
+        import sys
+        import threading
+        from http.server import ThreadingHTTPServer
+        from urllib.parse import urlencode
+        from urllib.request import Request, urlopen
+
+        gate = Path(__file__).resolve().parents[1] / "gate"
+        sys.path.insert(0, str(gate))
+        os.environ["GATE_KEY"] = "ornek-anahtar"
+        import server as gate_server
+
+        gate_server.QUEUE._items.clear()
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), gate_server.Handler)
+        self.addCleanup(httpd.shutdown)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        port = httpd.server_address[1]
+        body = urlencode({"key": "ornek-anahtar", "text": "spotify aç"}).encode()
+        request = Request(f"http://127.0.0.1:{port}/komut", data=body, method="POST")
+        with urlopen(request, timeout=5) as response:
+            self.assertIn("iletildi=1", response.geturl())
+        poll = Request(f"http://127.0.0.1:{port}/pc/poll", headers={"X-Friday-Key": "ornek-anahtar"})
+        with urlopen(poll, timeout=5) as response:
+            payload = response.read().decode("utf-8")
+        self.assertIn("spotify aç", payload)
+        wrong = urlencode({"key": "baska", "text": "kapat"}).encode()
+        denied = Request(f"http://127.0.0.1:{port}/komut", data=wrong, method="POST")
+        with urlopen(denied, timeout=5) as response:
+            page = response.read().decode("utf-8")
+        self.assertIn("Anahtar olmadı", page)
+
     def test_command_body_is_urlencoded_and_refresh_stays_quiet(self):
         from urllib.parse import parse_qs, urlencode
         from pathlib import Path
