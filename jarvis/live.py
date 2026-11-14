@@ -144,6 +144,9 @@ class JarvisLive:
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
             speech_config=speech,
+            realtime_input_config=types.RealtimeInputConfig(
+                automatic_activity_detection=types.AutomaticActivityDetection(disabled=True),
+            ),
         )
 
     async def _execute(self, function_call):
@@ -175,8 +178,19 @@ class JarvisLive:
         return types.FunctionResponse(id=function_call.id, name=name, response={"result": result})
 
     async def _send_realtime(self) -> None:
+        from google.genai import types
+
         while True:
             message = await self.out_queue.get()
+            kind = message.get("activity")
+            if kind == "start":
+                await self.session.send_realtime_input(activity_start=types.ActivityStart())
+                continue
+            if kind == "end":
+                await self.session.send_realtime_input(activity_end=types.ActivityEnd())
+                if not self.ui.muted and not self._paused:
+                    self.ui.set_state("THINKING")
+                continue
             await self._send_media(message["data"], message["mime_type"])
 
     async def _send_media(self, data: bytes, mime: str) -> None:
@@ -194,7 +208,10 @@ class JarvisLive:
     async def _listen_audio(self) -> None:
         from jarvis.audio.capture import CaptureFilter, aec_wanted, chunks_for_model
 
+        from jarvis.audio.turn import TurnGate
+
         self._capture = CaptureFilter()
+        turn = TurnGate()
         echo = False
         stream = None
         audio = None
@@ -247,12 +264,17 @@ class JarvisLive:
                     frames.append((phone_pcm, False, False))
                 for frame, frame_speaking, frame_echo in frames:
                     for part in chunks_for_model(frame, speaking=frame_speaking, echo_cancelled=frame_echo, filt=self._capture):
+                        before, after = turn.feed(part, __import__("time").monotonic())
+                        for kind in before:
+                            await self.out_queue.put({"activity": kind})
                         if self.out_queue.full():
                             try:
                                 self.out_queue.get_nowait()
                             except asyncio.QueueEmpty:
                                 pass
                         await self.out_queue.put({"data": part, "mime_type": f"audio/pcm;rate={SEND_RATE}"})
+                        for kind in after:
+                            await self.out_queue.put({"activity": kind})
         finally:
             close = getattr(stream, "close", None)
             if close:
