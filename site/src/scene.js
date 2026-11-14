@@ -6,13 +6,13 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 export const SCENE_ID = "friday-core-ring";
 
-const DARK_BG = new THREE.Color("#0a0a0a");
+const DARK_BG = new THREE.Color("#04070c");
 const LIGHT_BG = new THREE.Color("#f6f1e8");
-const DARK_POINT = new THREE.Color("#4cc3ff");
+const DARK_POINT = new THREE.Color("#7fe7ff");
 const LIGHT_POINT = new THREE.Color("#c46212");
 const DARK_METAL = new THREE.Color("#f4f7fb");
 const LIGHT_METAL = new THREE.Color("#e4b57a");
-const DARK_BEAD = new THREE.Color("#4cc3ff").multiplyScalar(3);
+const DARK_BEAD = new THREE.Color("#7fe7ff").multiplyScalar(3);
 const LIGHT_BEAD = new THREE.Color("#ffe08a").multiplyScalar(2.4);
 
 export function startScene(canvas) {
@@ -77,6 +77,8 @@ export function startScene(canvas) {
     uTime: { value: 0 },
     uAmp: { value: 0.12 },
     uTheme: { value: themeMix },
+    uBoot: { value: reduce ? 1 : 0 },
+    uEnergy: { value: 0 },
   };
   const metal = new THREE.MeshStandardMaterial({
     color: themeMix === 1 ? "#e4b57a" : "#f4f7fb",
@@ -278,6 +280,96 @@ export function startScene(canvas) {
   rays.renderOrder = 2;
   world.add(rays);
 
+  const reticle = new THREE.Mesh(
+    new THREE.PlaneGeometry(6.8, 6.8),
+    new THREE.ShaderMaterial({
+      glslVersion: THREE.GLSL3,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+      uniforms: {
+        uTime: uniforms.uTime,
+        uTheme: uniforms.uTheme,
+        uBoot: uniforms.uBoot,
+        uEnergy: uniforms.uEnergy,
+      },
+      vertexShader: `
+        out vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        precision highp float;
+        uniform float uTime;
+        uniform float uTheme;
+        uniform float uBoot;
+        uniform float uEnergy;
+        in vec2 vUv;
+        out vec4 fragColor;
+        const float TAU = 6.28318530718;
+        // friday-hud-reticle
+        float band(float r, float center, float halfWidth, float aa) {
+          return 1.0 - smoothstep(halfWidth - aa, halfWidth + aa, abs(r - center));
+        }
+        float span(float r, float from, float to, float aa) {
+          return smoothstep(from - aa, from + aa, r) * (1.0 - smoothstep(to - aa, to + aa, r));
+        }
+        float arc(float d, float len, float aa) {
+          return smoothstep(0.0, aa, d) * (1.0 - smoothstep(len - aa, len, d));
+        }
+        void main() {
+          vec2 p = (vUv * 2.0 - 1.0) * 3.4;
+          float r = length(p);
+          float a = atan(p.y, p.x) / TAU + 0.5;
+          float aa = fwidth(r) * 1.1;
+          float turn = aa / (TAU * max(r, 0.2));
+          float t = uTime;
+          float line = 0.0;
+          float hot = 0.0;
+
+          float wobble = sin(a * TAU * 11.0 + t * 2.6) * sin(a * TAU * 5.0 - t * 1.7);
+          line += band(r, 1.47 + wobble * (0.012 + 0.06 * uEnergy), 0.007, aa) * 0.9;
+
+          float cells = fract(a + t * 0.006) * 72.0;
+          float arcLen = TAU * r / 72.0;
+          float tick = 1.0 - smoothstep(0.007 - aa, 0.007 + aa, abs(fract(cells) - 0.5) * arcLen);
+          float major = step(mod(floor(cells), 6.0), 0.5);
+          float sweep = smoothstep(0.0, 0.03, uBoot * 1.08 - fract(a + 0.25));
+          line += tick * span(r, 1.68, mix(1.75, 1.84, major), aa) * mix(0.55, 1.0, major) * sweep;
+
+          float thirds = fract(fract(a - t * 0.03) * 3.0);
+          line += band(r, 2.3, 0.02, aa) * arc(thirds, 0.64 * uBoot, turn * 3.0) * 0.85;
+
+          float halves = fract(fract(a + t * 0.018) * 2.0);
+          line += band(r, 2.56, 0.005, aa) * arc(halves, 0.9, turn * 2.0) * 0.7 * uBoot;
+          hot += band(r, 2.56, 0.022, aa) * arc(fract(a - t * 0.05), 0.03, turn) * uBoot;
+
+          float dashes = abs(fract(fract(a + t * 0.004) * 150.0) - 0.5);
+          line += band(r, 2.9, 0.005, aa) * smoothstep(0.2, 0.28, dashes) * 0.4 * uBoot;
+
+          float pair = fract(fract(a + t * 0.011) * 2.0);
+          line += band(r, 3.16, 0.008, aa) * arc(pair, 0.36 * uBoot, turn * 2.0) * 0.6;
+
+          float notch = abs(fract(a * 4.0 + 0.5) - 0.5) * TAU * r / 4.0;
+          line += (1.0 - smoothstep(0.008 - aa, 0.008 + aa, notch)) * span(r, 3.22, 3.36, aa) * 0.8 * uBoot;
+
+          line *= smoothstep(0.0, 0.3, uBoot);
+          vec3 cool = vec3(0.42, 0.9, 1.0) * 1.35;
+          vec3 warm = vec3(0.5, 0.22, 0.04);
+          vec3 emberCool = vec3(1.0, 0.64, 0.24) * 1.6;
+          vec3 emberWarm = vec3(0.05, 0.36, 0.45);
+          float alpha = clamp(line + hot, 0.0, 1.0) * mix(0.92, 0.42, uTheme);
+          if (alpha < 0.004) discard;
+          vec3 color = mix(mix(cool, warm, uTheme), mix(emberCool, emberWarm, uTheme), clamp(hot, 0.0, 1.0));
+          fragColor = vec4(color, alpha);
+        }`,
+    }),
+  );
+  reticle.position.z = -0.2;
+  reticle.renderOrder = 1;
+  world.add(reticle);
+
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(640, 360), 0.45, 0.55, 0.86);
@@ -310,7 +402,9 @@ export function startScene(canvas) {
 
   const clock = new THREE.Clock();
   let time = 0;
-  const pose = { x: 0, y: 0, s: 1 };
+  const pose = { x: 0, y: 0, s: reduce ? 1 : 0.2 };
+  let bootClock = 0;
+  let energyTarget = 0;
   let drawing = !document.hidden;
   document.addEventListener("visibilitychange", () => {
     drawing = !document.hidden;
@@ -321,11 +415,18 @@ export function startScene(canvas) {
     if (!drawing) return;
     const delta = Math.min(clock.getDelta(), 0.05);
     time += reduce ? delta * 0.05 : delta;
+    if (!reduce && uniforms.uBoot.value < 1) {
+      bootClock += delta;
+      const progress = Math.min(1, Math.max(0, (bootClock - 0.25) / 2.2));
+      uniforms.uBoot.value = 1 - (1 - progress) ** 3;
+    }
+    uniforms.uEnergy.value += (energyTarget - uniforms.uEnergy.value) * 0.08;
     mouse.sx += (mouse.x - mouse.sx) * 0.06;
     mouse.sy += (mouse.y - mouse.sy) * 0.06;
     const scroll = state.scroll;
     const away = Math.min(1, Math.max(0, (scroll - 0.08) / 0.45));
-    const heroX = mobile() ? 0 : 2.15;
+    const halfWidth = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 11 * camera.aspect;
+    const heroX = mobile() ? 0 : halfWidth * 0.52;
     const heroY = mobile() ? 1.35 : 0;
     const heroS = mobile() ? 0.72 : 1;
     const targetX = heroX + (mobile() ? 0 : away * 1.45);
@@ -385,6 +486,9 @@ export function startScene(canvas) {
     id: SCENE_ID,
     setScroll(value) {
       state.scroll = Math.min(1, Math.max(0, value));
+    },
+    setEnergy(value) {
+      energyTarget = Math.min(1, Math.max(0, value));
     },
     setTheme(mode) {
       const light = mode === "light";
