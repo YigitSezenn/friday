@@ -109,6 +109,11 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
             ui.minimize_to_taskbar()
         elif kind == "update":
             ui.install_update()
+        elif kind == "gate_refresh":
+            from jarvis.gate_client import rotate_gate_key
+
+            rotate_gate_key()
+            ui.push_settings()
         elif kind == "quit":
             ui.quit_app()
         elif kind == "uninstall":
@@ -416,7 +421,7 @@ class JarvisUI:
             found = requests.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={"q": city, "format": "json", "limit": 1},
-                headers={"User-Agent": "FRIDAY/4.1 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/4.2 (desktop assistant)"},
                 timeout=12,
             )
             found.raise_for_status()
@@ -431,7 +436,7 @@ class JarvisUI:
             y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
             tile = requests.get(
                 f"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{zoom}/{y}/{x}",
-                headers={"User-Agent": "FRIDAY/4.1 (desktop assistant)"},
+                headers={"User-Agent": "FRIDAY/4.2 (desktop assistant)"},
                 timeout=12,
             )
             tile.raise_for_status()

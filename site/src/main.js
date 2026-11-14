@@ -155,10 +155,14 @@ if (form && note) {
     button.disabled = true;
     note.textContent = "Gönderiliyor.";
     try {
-      const body = new FormData();
+      const body = new URLSearchParams();
       body.set("key", gateKey);
       body.set("text", command);
-      const response = await fetch("/komut", { method: "POST", body });
+      const response = await fetch("/komut", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body,
+      });
       const page = await response.text();
       const landed = response.url || "";
       if (landed.includes("iletildi=1")) {
