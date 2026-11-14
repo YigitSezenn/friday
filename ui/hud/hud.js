@@ -246,6 +246,8 @@ function paintIdentity(name) {
   if (about) {
     const bits = [`Ses: Gemini Live, ${model}.`];
     if (window.__appVersion) bits.push(window.__appVersion);
+    const ver = $("t-ver");
+    if (ver) ver.textContent = window.__appVersion ? window.__appVersion : "";
     if (window.__dataDir) bits.push("Kayıtlar: " + window.__dataDir);
     about.textContent = bits.join(" ");
   }
