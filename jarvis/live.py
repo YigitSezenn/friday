@@ -29,6 +29,13 @@ CHUNK = 1024
 CONTROL_TOKEN_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
 
+def queue_mic_frame(pcm: bytes, *, speaking: bool, muted: bool, paused: bool) -> dict | None:
+    """V3 ile aynı: asistan konuşurken, sessizde ve durakta mikrofon modele gitmez."""
+    if speaking or muted or paused or not pcm:
+        return None
+    return {"data": pcm, "mime_type": "audio/pcm"}
+
+
 def repeated_typed_line(typed: str | None, heard: str) -> bool:
     """Yazılan satır sayfada zaten duruyor. Aynı metin mikrofon dökümünden gelirse ikinci kez yazılmaz."""
     left = str(typed or "").strip()
@@ -144,9 +151,6 @@ class JarvisLive:
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
             speech_config=speech,
-            realtime_input_config=types.RealtimeInputConfig(
-                automatic_activity_detection=types.AutomaticActivityDetection(disabled=True),
-            ),
         )
 
     async def _execute(self, function_call):
@@ -178,20 +182,13 @@ class JarvisLive:
         return types.FunctionResponse(id=function_call.id, name=name, response={"result": result})
 
     async def _send_realtime(self) -> None:
-        from google.genai import types
-
         while True:
             message = await self.out_queue.get()
-            kind = message.get("activity")
-            if kind == "start":
-                await self.session.send_realtime_input(activity_start=types.ActivityStart())
+            mime = str(message.get("mime_type") or "")
+            if mime.startswith("image/"):
+                await self._send_media(message["data"], mime)
                 continue
-            if kind == "end":
-                await self.session.send_realtime_input(activity_end=types.ActivityEnd())
-                if not self.ui.muted and not self._paused:
-                    self.ui.set_state("THINKING")
-                continue
-            await self._send_media(message["data"], message["mime_type"])
+            await self.session.send_realtime_input(media={"data": message["data"], "mime_type": "audio/pcm"})
 
     async def _send_media(self, data: bytes, mime: str) -> None:
         from google.genai import types
@@ -206,75 +203,49 @@ class JarvisLive:
             await self.session.send_realtime_input(media={"data": data, "mime_type": mime})
 
     async def _listen_audio(self) -> None:
-        from jarvis.audio.capture import CaptureFilter, aec_wanted, chunks_for_model
+        import pyaudio
 
-        from jarvis.audio.turn import TurnGate
+        audio = pyaudio.PyAudio()
+        try:
+            stream = audio.open(
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=SEND_RATE,
+                input=True,
+                frames_per_buffer=CHUNK,
+            )
+        except Exception as exc:
+            self._text_only = True
+            self.ui.write_log(f"ERR: Mikrofon açılamadı, yazı ile devam edebilirsin. ({exc})")
+            audio.terminate()
+            while True:
+                await asyncio.sleep(0.2)
+                from jarvis.phone_server import take_phone_audio
 
-        self._capture = CaptureFilter()
-        turn = TurnGate()
-        echo = False
-        stream = None
-        audio = None
-        if aec_wanted():
-            from jarvis.audio.win_aec import open_dsp_mic
-
-            stream = await asyncio.to_thread(open_dsp_mic)
-            echo = stream is not None
-            if stream is None:
-                self.ui.write_log("Yankı engelleme açılamadı, düz mikrofon kullanılıyor.")
-        if stream is None:
-            import pyaudio
-
-            audio = pyaudio.PyAudio()
-            try:
-                stream = audio.open(
-                    format=pyaudio.paInt16,
-                    channels=1,
-                    rate=SEND_RATE,
-                    input=True,
-                    frames_per_buffer=CHUNK,
+                frame = queue_mic_frame(
+                    take_phone_audio() or b"",
+                    speaking=self._is_speaking,
+                    muted=bool(self.ui.muted),
+                    paused=bool(self._paused),
                 )
-            except Exception as exc:
-                self._text_only = True
-                self.ui.write_log(f"ERR: Mikrofon açılamadı, yazı ile devam edebilirsin. ({exc})")
-                audio.terminate()
-                while True:
-                    await asyncio.sleep(0.2)
-                    from jarvis.phone_server import take_phone_audio
-
-                    phone_pcm = take_phone_audio()
-                    if not phone_pcm or self.ui.muted or self._paused:
-                        continue
-                    for part in chunks_for_model(phone_pcm, speaking=False, echo_cancelled=False, filt=self._capture):
-                        await self.out_queue.put({"data": part, "mime_type": f"audio/pcm;rate={SEND_RATE}"})
-        elif echo:
-            self.ui.write_log("Yankı engelleme açık.")
+                if frame:
+                    await self.out_queue.put(frame)
         try:
             while True:
                 data = await asyncio.to_thread(stream.read, CHUNK, exception_on_overflow=False)
                 with self._speaking_lock:
                     speaking = self._is_speaking
-                if self.ui.muted or self._paused:
-                    continue
                 from jarvis.phone_server import take_phone_audio
 
-                phone_pcm = take_phone_audio()
-                frames = [(data, speaking, echo)]
-                if phone_pcm:
-                    frames.append((phone_pcm, False, False))
-                for frame, frame_speaking, frame_echo in frames:
-                    for part in chunks_for_model(frame, speaking=frame_speaking, echo_cancelled=frame_echo, filt=self._capture):
-                        before, after = turn.feed(part, __import__("time").monotonic())
-                        for kind in before:
-                            await self.out_queue.put({"activity": kind})
-                        if self.out_queue.full():
-                            try:
-                                self.out_queue.get_nowait()
-                            except asyncio.QueueEmpty:
-                                pass
-                        await self.out_queue.put({"data": part, "mime_type": f"audio/pcm;rate={SEND_RATE}"})
-                        for kind in after:
-                            await self.out_queue.put({"activity": kind})
+                for pcm in (data, take_phone_audio() or b""):
+                    frame = queue_mic_frame(
+                        pcm,
+                        speaking=speaking,
+                        muted=bool(self.ui.muted),
+                        paused=bool(self._paused),
+                    )
+                    if frame:
+                        await self.out_queue.put(frame)
         finally:
             close = getattr(stream, "close", None)
             if close:
