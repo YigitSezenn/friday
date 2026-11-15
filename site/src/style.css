@@ -246,7 +246,35 @@ h3 { font-size: 22px; font-stretch: 90%; letter-spacing: 0.01em; margin-bottom: 
   max-width: 940px;
 }
 .hero .lead { color: var(--ink); opacity: 0.82; }
-.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 22px 28px;
+  margin-top: 34px;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-qr {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--dim);
+  font: 600 12px/1.2 var(--display);
+  font-stretch: 108%;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.hero-qr img {
+  width: 128px;
+  height: 128px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+}
+.hero-qr:hover { color: var(--ink); }
+.hero-qr:hover img { border-color: var(--arc); }
 
 .btn, button.btn {
   --cut: 10px;
@@ -573,7 +601,7 @@ html, body, header, .panel, form, input, textarea { transition-property: backgro
 .motion .hero h1 span:nth-child(2) { animation-delay: 0.5s; }
 .motion .hero .brand { animation: settle 0.7s var(--ease) 0.12s both; }
 .motion .hero .lead { animation: settle 0.8s var(--ease) 0.85s both; }
-.motion .hero .actions { animation: settle 0.8s var(--ease) 1.05s both; }
+.motion .hero .hero-cta { animation: settle 0.8s var(--ease) 1.05s both; }
 .motion header { animation: drop 0.7s var(--ease) both; }
 .motion [data-reveal] { clip-path: inset(-2px -2px 100% -2px); }
 .motion [data-reveal].in {
@@ -614,7 +642,9 @@ html, body, header, .panel, form, input, textarea { transition-property: backgro
   .hero { justify-content: flex-end; padding: 46svh var(--pad) 9vh; }
   h1 { font-size: clamp(46px, 14.5vw, 72px); margin-bottom: 20px; }
   .lead { font-size: 17px; }
+  .hero-cta { align-items: stretch; }
   .actions .btn { flex: 1 1 auto; }
+  .hero-qr { margin-inline: auto; }
   .steps { grid-template-columns: 1fr; gap: 34px; }
   .steps::before { left: 28px; right: auto; top: 0; bottom: 0; width: 1px; height: auto; background: linear-gradient(180deg, var(--line-strong), var(--line) 85%, transparent); }
   .steps li { display: grid; grid-template-columns: 56px 1fr; column-gap: 20px; padding-right: 0; }
