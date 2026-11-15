@@ -145,6 +145,22 @@ if (clock) {
   setInterval(tick, 15000);
 }
 
+const visitors = document.getElementById("visitors");
+if (visitors && !fromApk) {
+  const key = "friday-visit-session";
+  const first = !sessionStorage.getItem(key);
+  if (first) sessionStorage.setItem(key, "1");
+  fetch(first ? "/api/visit?hit=1" : "/api/visit", { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((data) => {
+      const n = Number(data?.visitors);
+      if (!Number.isFinite(n) || n < 1) return;
+      visitors.textContent = `Ziyaretçi ${n.toLocaleString("tr-TR")}`;
+      visitors.hidden = false;
+    })
+    .catch(() => {});
+}
+
 if (window.matchMedia("(hover: hover)").matches) {
   document.querySelectorAll(".panel").forEach((panel) => {
     panel.addEventListener("pointermove", (event) => {

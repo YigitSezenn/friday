@@ -93,6 +93,22 @@ a { color: inherit; text-decoration: none; }
 .frame i:nth-child(3) { bottom: 14px; left: 14px; border-bottom-width: 1px; border-left-width: 1px; }
 .frame i:nth-child(4) { bottom: 14px; right: 14px; border-bottom-width: 1px; border-right-width: 1px; }
 
+.visitors {
+  position: fixed;
+  top: calc(var(--head) + 18px);
+  right: max(40px, 3vw);
+  z-index: 4;
+  margin: 0;
+  color: var(--dim);
+  font: 500 11px/1.2 var(--display);
+  font-stretch: 115%;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
 header, main, footer { position: relative; z-index: 1; }
 header {
   position: sticky;
@@ -666,6 +682,7 @@ html, body, header, .panel, form, input, textarea { transition-property: backgro
 html:not([data-app="apk"]) .apk-only { display: none; }
 html[data-app="apk"] { --head: 0px; }
 html[data-app="apk"] header,
+html[data-app="apk"] .visitors,
 html[data-app="apk"] #gl,
 html[data-app="apk"] .hero,
 html[data-app="apk"] #ozellik,
