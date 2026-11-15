@@ -159,6 +159,20 @@ if (window.matchMedia("(hover: hover)").matches) {
   });
 }
 
+const apkQrDialog = document.getElementById("apk-qr-dialog");
+const apkQrOpen = document.getElementById("apk-qr-open");
+if (apkQrDialog && apkQrOpen) {
+  apkQrOpen.addEventListener("click", () => {
+    if (typeof apkQrDialog.showModal === "function") apkQrDialog.showModal();
+    else apkQrDialog.setAttribute("open", "");
+  });
+  apkQrDialog.addEventListener("click", (event) => {
+    if (event.target !== apkQrDialog) return;
+    if (typeof apkQrDialog.close === "function") apkQrDialog.close();
+    else apkQrDialog.removeAttribute("open");
+  });
+}
+
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
   link.addEventListener("click", (event) => {
     const id = link.getAttribute("href");
