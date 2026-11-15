@@ -466,7 +466,9 @@ h3 { font-size: 22px; font-stretch: 90%; letter-spacing: 0.01em; margin-bottom: 
   align-items: start;
 }
 .console-head .lead { margin-top: -8px; }
+.console-apk-qr { margin-top: 22px; }
 .console-body { display: grid; gap: 18px; }
+html[data-app="apk"] .site-only { display: none; }
 form {
   position: relative;
   display: grid;
