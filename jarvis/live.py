@@ -8,6 +8,7 @@ import traceback
 
 from tools.actions.webcam import WebcamStreamer
 from jarvis.config import get_app_config_value
+from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
 from jarvis.language import live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
@@ -76,6 +77,13 @@ class JarvisLive:
         ui.on_webcam_toggle = self._on_webcam_toggle
         ui.on_settings_saved = self.request_reconnect
 
+    @property
+    def rejections(self) -> RejectionBudget:
+        budget = self.__dict__.get("_rejections")
+        if budget is None:
+            budget = self.__dict__["_rejections"] = RejectionBudget()
+        return budget
+
     def request_reconnect(self) -> None:
         loop = self._loop
         event = self._reconnect
@@ -84,6 +92,7 @@ class JarvisLive:
 
     def _on_pause_toggle(self, paused: bool) -> None:
         self._paused = paused
+        self.rejections.reset()
         self.request_reconnect()
 
     def _on_webcam_toggle(self, activate: bool) -> None:
@@ -97,6 +106,7 @@ class JarvisLive:
             self.ui.set_webcam_active(False)
 
     def _on_text_command(self, text: str) -> None:
+        self.rejections.reset()
         if self._paused:
             return
         text = repair_text(str(text or "")).strip()
@@ -371,11 +381,12 @@ class JarvisLive:
         from google import genai
 
         attempts = 0
+        without_proxy_for_google()
         while True:
             if self._paused:
                 await asyncio.sleep(0.4)
                 continue
-            key = str(get_app_config_value("gemini_api_key", "") or "").strip()
+            key = clean_api_key(get_app_config_value("gemini_api_key", ""))
             if not key:
                 self.ui.set_state("ERROR")
                 if not getattr(self, "_missing_key_logged", False):
@@ -384,6 +395,10 @@ class JarvisLive:
                 await asyncio.sleep(2)
                 continue
             self._missing_key_logged = False
+            if self.rejections.should_wait(key):
+                self.ui.set_state("ERROR")
+                await asyncio.sleep(1)
+                continue
             if self._reconnect is None:
                 self._reconnect = asyncio.Event()
             try:
@@ -397,6 +412,7 @@ class JarvisLive:
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=8)
                     attempts = 0
+                    self.rejections.success()
                     self.ui.set_state("LISTENING")
                     if not getattr(self, "_ready_announced", False):
                         self._ready_announced = True
@@ -426,7 +442,11 @@ class JarvisLive:
                     self.ui.set_webcam_active(False)
                 attempts += 1
                 self.ui.set_state("ERROR")
-                message = _public_connect_error(exc, key)
+                issue = classify(exc, key)
+                self.rejections.note(issue, key)
+                message = issue.message
+                if self.rejections.should_wait(key) and issue.rejection:
+                    message += " Yeniden denemek için bir şey yaz, mikrofona bas ya da anahtarı değiştir."
                 if message != getattr(self, "_last_connect_error", ""):
                     self._last_connect_error = message
                     self.ui.write_log(message)

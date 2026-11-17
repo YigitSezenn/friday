@@ -119,6 +119,18 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
             import os
 
             os.startfile(data_root())  # type: ignore[attr-defined]
+        elif kind == "permissions":
+            from jarvis.permissions import snapshot
+
+            ui._call("permissions", snapshot())
+        elif kind == "open_privacy":
+            import os
+
+            from jarvis.permissions import settings_uri
+
+            uri = settings_uri(str(payload.get("kind") or ""))
+            if uri:
+                os.startfile(uri)  # type: ignore[attr-defined]
         elif kind == "copy":
             _copy_text(str(payload.get("text") or ""))
         elif kind == "open":

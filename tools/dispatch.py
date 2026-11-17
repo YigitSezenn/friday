@@ -28,6 +28,7 @@ TOOL_DECLARATIONS = [
     {"name": "save_whatsapp_contact", "description": "WhatsApp kisisi kaydeder.", "parameters": {"type": "OBJECT", "properties": {"display_name": {"type": "STRING"}, "phone_number": {"type": "STRING"}, "aliases": {"type": "STRING"}}, "required": ["display_name", "phone_number"]}},
     {"name": "web_search", "description": "Internette kisa bir ozet arar.", "parameters": {"type": "OBJECT", "properties": {"query": {"type": "STRING"}}, "required": ["query"]}},
     {"name": "list_files", "description": "Masaustu, Belgeler veya Indirilenler klasorunu listeler.", "parameters": {"type": "OBJECT", "properties": {"folder": {"type": "STRING"}}, "required": ["folder"]}},
+    {"name": "set_location", "description": "Kalici konumu degistirir (hava ve harita da gecer). Kullanici \"Konumum artik Izmir\" veya \"Kadikoy'deyim\" derse cagir. auto=true ise konum yeniden internetten bulunur.", "parameters": {"type": "OBJECT", "properties": {"location": {"type": "STRING"}, "auto": {"type": "BOOLEAN"}}}},
 ]
 
 ERROR_MARKERS = (
