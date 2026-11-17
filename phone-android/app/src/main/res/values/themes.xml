@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Açılışta beyaz parlama olmasın: pencere zemini HUD'un siyahı. -->
+    <style name="Theme.Friday" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/friday_bg</item>
+        <item name="android:colorBackground">@color/friday_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
