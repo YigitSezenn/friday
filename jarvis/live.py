@@ -4,12 +4,15 @@ import asyncio
 import datetime
 import re
 import threading
+import time
 import traceback
 
 from tools.actions.webcam import WebcamStreamer
+from jarvis.audio.barge import peak
 from jarvis.config import get_app_config_value
 from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
-from jarvis.language import live_speech_code, speech_codes
+from jarvis.heard import REPEAT_NOTE, RepeatPolicy, StallWatch, usable_transcript
+from jarvis.language import current as current_language, live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
 from jarvis.textfix import repair_text
@@ -83,6 +86,14 @@ class JarvisLive:
         if budget is None:
             budget = self.__dict__["_rejections"] = RejectionBudget()
         return budget
+
+    @property
+    def stall(self) -> StallWatch:
+        return self.__dict__.setdefault("_stall", StallWatch())
+
+    @property
+    def repeat(self) -> RepeatPolicy:
+        return self.__dict__.setdefault("_repeat", RepeatPolicy())
 
     def request_reconnect(self) -> None:
         loop = self._loop
@@ -255,6 +266,7 @@ class JarvisLive:
                         paused=bool(self._paused),
                     )
                     if frame:
+                        self.stall.voice(time.monotonic(), peak(pcm))
                         await self.out_queue.put(frame)
         finally:
             close = getattr(stream, "close", None)
@@ -266,23 +278,29 @@ class JarvisLive:
     async def _receive_audio(self) -> None:
         out_buf, in_buf = [], []
         output_noise = False
+        misheard = False
+        got_audio = False
         while True:
             async for response in self.session.receive():
+                self.stall.server_event()
                 if response.data:
+                    got_audio = True
                     self.audio_in_queue.put_nowait(response.data)
                 content = response.server_content
                 if content:
                     if content.output_transcription and content.output_transcription.text:
                         self.set_speaking(True)
                         text, noisy = clean_transcript(content.output_transcription.text)
-                        output_noise = output_noise or noisy
+                        text, rejected = usable_transcript(text, current_language())
+                        output_noise = output_noise or noisy or rejected
                         if text:
                             out_buf.append(text)
                     if content.input_transcription and content.input_transcription.text:
-                        heard = content.input_transcription.text.strip()
+                        heard, rejected = usable_transcript(content.input_transcription.text, current_language())
+                        misheard = misheard or rejected
                         if heard:
                             in_buf.append(heard)
-                            self.ui.last_heard = __import__("time").time()
+                            self.ui.last_heard = time.time()
                     if content.turn_complete:
                         self.set_speaking(False)
                         heard = repair_text(" ".join(in_buf).strip())
@@ -296,13 +314,38 @@ class JarvisLive:
                         elif output_noise and not self._said_result:
                             self.ui.write_log("ERR: JARVIS sesli yanitini cozumlerken bir hata olustu.")
                             self.ui.set_state("ERROR")
+                        await self._after_turn(bool(heard), bool(spoken) or got_audio, misheard)
                         in_buf, out_buf, output_noise = [], [], False
+                        misheard = got_audio = False
                         self._said_result = False
                 if response.tool_call:
                     responses = []
                     for function_call in response.tool_call.function_calls:
                         responses.append(await self._execute(function_call))
                     await self.session.send_tool_response(function_responses=responses)
+
+    async def _after_turn(self, heard: bool, answered: bool, misheard: bool) -> None:
+        """Konuştun ama model yanıt vermediyse ya da döküm bozuksa, tahmin ettirmeden tekrar iste."""
+        voiced = self.stall.take_voice()
+        if answered or self._said_result:
+            self.repeat.understood()
+            return
+        if not (misheard or (voiced and not heard)):
+            return
+        if self.ui.muted or self._paused or not self.repeat.should_ask(time.monotonic()):
+            return
+        await self._nudge(REPEAT_NOTE)
+
+    async def _watch_stall(self) -> None:
+        """Konuşuldu ama yanıt hiç gelmediyse bağlantıyı yenile; yoksa uygulama sonsuza dek dinliyor görünür."""
+        while True:
+            await asyncio.sleep(1)
+            idle = bool(self._is_speaking or self.ui.muted or self._paused)
+            if self.stall.stalled(time.monotonic(), idle=idle):
+                self.stall.reset()
+                self.ui.write_log("SYS: Yanıt gelmedi, bağlantı yenileniyor.")
+                if self._reconnect is not None:
+                    self._reconnect.set()
 
     async def _play_audio(self) -> None:
         import pyaudio
@@ -424,6 +467,7 @@ class JarvisLive:
                     group.create_task(self._stream_webcam())
                     group.create_task(self._preview_webcam())
                     group.create_task(self._watch_reconnect())
+                    group.create_task(self._watch_stall())
             except Reconnect:
                 self.set_speaking(False)
                 if not self._paused:
