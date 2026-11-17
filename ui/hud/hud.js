@@ -274,7 +274,22 @@ function addLine(text, kind) {
   while (log.children.length > 4) log.removeChild(log.firstChild);
 }
 
+const PERM_TEXT = {granted: "✓ VERİLDİ", denied: "✕ KAPALI", unknown: "— BİLİNMİYOR"};
+function paintPermissions(data) {
+  document.querySelectorAll(".perm").forEach(row => {
+    const state = (data && data[row.dataset.perm]) || "unknown";
+    const badge = row.querySelector(".perm-state");
+    badge.dataset.state = state;
+    badge.textContent = PERM_TEXT[state] || PERM_TEXT.unknown;
+    row.querySelector(".perm-open").hidden = state === "granted";
+  });
+}
+document.querySelectorAll(".perm-open").forEach(button => {
+  button.addEventListener("click", () => send("open_privacy", {kind: button.closest(".perm").dataset.perm}));
+});
+
 window.hud = {
+  permissions(data) { paintPermissions(data); },
   state(name) {
     document.body.dataset.state = name || "idle";
     $("t-state").textContent = LABEL[name] || name;
@@ -565,6 +580,7 @@ document.querySelectorAll(".stab").forEach(button => {
   button.addEventListener("click", () => {
     document.querySelectorAll(".stab").forEach(node => node.setAttribute("aria-selected", node === button ? "true" : "false"));
     document.querySelectorAll(".pane").forEach(node => node.classList.toggle("on", node.dataset.pane === button.dataset.tab));
+    if (button.dataset.tab === "izinler") send("permissions");
   });
 });
 $("set-sfx").addEventListener("click", () => $("set-sfx").setAttribute("aria-checked", $("set-sfx").getAttribute("aria-checked") === "true" ? "false" : "true"));

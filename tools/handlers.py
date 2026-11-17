@@ -248,3 +248,22 @@ def list_files(args, ctx):
     from tools.actions.files import list_user_files
 
     return list_user_files(text(args, "folder", "desktop"))
+
+
+@tool("set_location")
+def set_location(args, ctx):
+    from jarvis.config import save_app_config
+    from tools.actions.weather import clear_detected_city
+
+    if bool(args.get("auto", False)):
+        save_app_config({"weather_location": ""})
+        clear_detected_city()
+        return "Konum otomatik yapildi; internet baglantindan yeniden bulunacak."
+    place = " ".join(text(args, "location").split())
+    if not place or len(place) > 80:
+        return "Konum gecersiz: sehir ya da semt adi soyle."
+    save_app_config({"weather_location": place})
+    clear_detected_city()
+    if ctx.ui:
+        ctx.ui.focus_panel("weather")
+    return f"Konum kalici olarak {place} yapildi. Hava ve harita oraya gecti."
