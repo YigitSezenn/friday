@@ -93,13 +93,21 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
 }
 Write-Utf8NoBom $init ((Get-Content $init -Raw) -replace '__version__\s*=\s*"[^"]+"', ('__version__ = "{0}"' -f $Version))
 Write-Utf8NoBom $iss ((Get-Content $iss -Raw) -replace 'AppVersion=\d+\.\d+(\.\d+)?', ('AppVersion={0}' -f $Version))
-Write-Utf8NoBom $gradleKts ((Get-Content $gradleKts -Raw) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version))
+$verParts = $Version.Split('.')
+$verMajor = [int]$verParts[0]
+$verMinor = [int]$verParts[1]
+$verPatch = if ($verParts.Length -ge 3) { [int]$verParts[2] } else { 0 }
+$versionCode = ($verMajor * 10000) + ($verMinor * 100) + $verPatch
+$gradleRaw = Get-Content $gradleKts -Raw
+$gradleRaw = $gradleRaw -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version)
+$gradleRaw = [regex]::Replace($gradleRaw, 'versionCode\s*=\s*\d+', ('versionCode = {0}' -f $versionCode))
+Write-Utf8NoBom $gradleKts $gradleRaw
 # HTML: only query/version labels, not SVG path numbers like 10.5 4.4
 $htmlRaw = [System.IO.File]::ReadAllText($html, [System.Text.UTF8Encoding]::new($false))
 $htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+(?:\.\d+)?', ('?v={0}' -f $Version))
 $htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+(?:\.\d+)?', ('Sürüm {0}' -f $Version))
 Write-Utf8NoBom $html $htmlRaw
-Info "bumped __init__.py friday.iss build.gradle.kts index.html (surum.txt untouched)"
+Info ("bumped __init__.py friday.iss build.gradle.kts(versionCode={0}) index.html (surum.txt untouched)" -f $versionCode)
 # --- tests ---
 if (-not $SkipTests) {
   Step "2 unittest"

@@ -1,9 +1,20 @@
 package com.friday.phone.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,13 +34,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +57,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,10 +65,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.friday.phone.data.WakeConfig
@@ -66,8 +87,11 @@ fun PairScreen(state: UiState, onScan: () -> Unit, onConfirm: (String) -> Unit, 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(28.dp),
         verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("FRIDAY", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+        Reactor(Modifier.size(200.dp), busy = state.pendingKey.isNotEmpty())
+        Spacer(Modifier.height(18.dp))
+        Text("FRIDAY", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(12.dp))
         if (state.pendingKey.isEmpty()) {
             Text(
@@ -110,9 +134,26 @@ fun PairScreen(state: UiState, onScan: () -> Unit, onConfirm: (String) -> Unit, 
 
 // ---------- Komut ----------
 
+/** Kayıtlı komut işlemleri: tekrar gönder, düzenle, sabitle, sil, temizle. */
+data class HistoryActions(
+    val onDelete: (String) -> Unit,
+    val onEdit: (String, String) -> Unit,
+    val onPin: (String) -> Unit,
+    val onClear: () -> Unit,
+)
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit, onToggleLanMic: () -> Unit) {
+fun CommandScreen(
+    state: UiState,
+    onSend: (String) -> Unit,
+    onListen: () -> Unit,
+    onToggleLanMic: () -> Unit,
+    history: HistoryActions,
+) {
     var text by rememberSaveable { mutableStateOf("") }
+    var editing by remember { mutableStateOf<HistoryItem?>(null) }
+    var confirmClear by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
     val submit = {
         if (text.isNotBlank() && !state.sending) {
@@ -122,7 +163,7 @@ fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit
         }
     }
     Column(Modifier.fillMaxSize()) {
-        StatusHeader(state.pairingCode)
+        StatusHeader(state.pairingCode, busy = state.sending)
         if (state.lanHost.isNotEmpty()) {
             OutlinedButton(
                 onClick = onToggleLanMic,
@@ -148,7 +189,25 @@ fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit
                     )
                 }
             } else {
-                items(state.history, key = { it.text }) { item -> HistoryRow(item) { onSend(item.text) } }
+                item(key = "__header") {
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("KAYITLI KOMUTLAR", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.weight(1f))
+                        if (state.history.any { !it.pinned }) {
+                            TextButton(onClick = { confirmClear = true }) { Text("TEMİZLE", style = MaterialTheme.typography.labelMedium) }
+                        }
+                    }
+                }
+                items(state.history, key = { it.text }) { item ->
+                    HistoryRow(
+                        item,
+                        modifier = Modifier.animateItemPlacement(),
+                        onResend = { onSend(item.text) },
+                        onEdit = { editing = item },
+                        onPin = { history.onPin(item.text) },
+                        onDelete = { history.onDelete(item.text) },
+                    )
+                }
             }
         }
         Row(
@@ -161,12 +220,19 @@ fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit
                 onValueChange = { text = it },
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("Bilgisayara yaz…") },
+                shape = MaterialTheme.shapes.large,
                 maxLines = 3,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { submit() }),
             )
             IconButton(onClick = onListen) { Icon(Icons.Filled.Mic, contentDescription = "Konuş") }
-            FilledIconButton(onClick = { submit() }, enabled = text.isNotBlank() && !state.sending) {
+            val sendPulse = rememberInfiniteTransition(label = "send")
+            val sendScale by sendPulse.animateFloat(1f, 1.08f, infiniteRepeatable(tween(600), RepeatMode.Reverse), label = "s")
+            FilledIconButton(
+                onClick = { submit() },
+                enabled = text.isNotBlank() && !state.sending,
+                modifier = Modifier.scale(if (state.sending) sendScale else 1f),
+            ) {
                 if (state.sending) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
@@ -175,43 +241,156 @@ fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit
             }
         }
     }
+    CommandDialogs(
+        editing = editing,
+        onEditDone = { value ->
+            val current = editing
+            editing = null
+            if (current != null && value != null) history.onEdit(current.text, value)
+        },
+        confirmClear = confirmClear,
+        onClearDone = { yes -> confirmClear = false; if (yes) history.onClear() },
+    )
 }
 
 @Composable
-private fun StatusHeader(code: String) {
+private fun CommandDialogs(
+    editing: HistoryItem?,
+    onEditDone: (String?) -> Unit,
+    confirmClear: Boolean,
+    onClearDone: (Boolean) -> Unit,
+) {
+    if (editing != null) {
+        var value by remember(editing.text) { mutableStateOf(editing.text) }
+        AlertDialog(
+            onDismissRequest = { onEditDone(null) },
+            title = { Text("Komutu düzenle") },
+            text = {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 4,
+                )
+            },
+            confirmButton = { TextButton(onClick = { onEditDone(value) }, enabled = value.isNotBlank()) { Text("KAYDET") } },
+            dismissButton = { TextButton(onClick = { onEditDone(null) }) { Text("VAZGEÇ") } },
+        )
+    }
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { onClearDone(false) },
+            title = { Text("Geçmiş temizlensin mi?") },
+            text = { Text("Sabitlenmiş komutlar kalır, diğerleri silinir.") },
+            confirmButton = { TextButton(onClick = { onClearDone(true) }) { Text("TEMİZLE") } },
+            dismissButton = { TextButton(onClick = { onClearDone(false) }) { Text("VAZGEÇ") } },
+        )
+    }
+}
+
+@Composable
+private fun StatusHeader(code: String, busy: Boolean) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 8.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("FRIDAY", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.weight(1f))
-        StatusDot(MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.size(8.dp))
-        Text("EŞLEŞTİ · $code", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Reactor(Modifier.size(64.dp), busy = busy)
+        Spacer(Modifier.size(10.dp))
+        Column {
+            Text("FRIDAY", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(if (busy) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.size(6.dp))
+                Text(
+                    if (busy) "GÖNDERİLİYOR…" else "EŞLEŞTİ · $code",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun StatusDot(color: Color) {
-    Spacer(Modifier.size(8.dp).background(color, CircleShape))
+    val pulse = rememberInfiniteTransition(label = "dot")
+    val a by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "a")
+    Spacer(Modifier.size(8.dp).alpha(a).background(color, CircleShape))
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HistoryRow(item: HistoryItem, onResend: () -> Unit) {
+private fun HistoryRow(
+    item: HistoryItem,
+    modifier: Modifier = Modifier,
+    onResend: () -> Unit,
+    onEdit: () -> Unit,
+    onPin: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val time = remember(item.time) { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(item.time)) }
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onResend),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    var menu by remember { mutableStateOf(false) }
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val haptics = LocalHapticFeedback.current
+    AnimatedVisibility(
+        visible = shown,
+        modifier = modifier,
+        enter = fadeIn(tween(260)) + slideInVertically(tween(320)) { it / 3 },
     ) {
-        Column(Modifier.padding(14.dp)) {
-            Text(item.text, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                (if (item.delivered) "İLETİLDİ" else "İLETİLEMEDİ") + " · $time · tekrar göndermek için dokun",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (item.delivered) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            )
+        Card(
+            modifier = Modifier.fillMaxWidth().combinedClickable(
+                onClick = onResend,
+                onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); menu = true },
+            ),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(
+                containerColor = if (item.pinned) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
+            ),
+            border = BorderStroke(1.dp, if (item.pinned) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Row(Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (item.pinned) {
+                            Icon(Icons.Filled.PushPin, contentDescription = "Sabitlendi", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.size(6.dp))
+                        }
+                        Text(item.text, color = MaterialTheme.colorScheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        (if (item.delivered) "İLETİLDİ" else "İLETİLEMEDİ") + " · $time",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (item.delivered) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "Komut seçenekleri") }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Tekrar gönder") },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Send, null) },
+                            onClick = { menu = false; onResend() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Düzenle") },
+                            leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                            onClick = { menu = false; onEdit() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (item.pinned) "Sabitlemeyi kaldır" else "Sabitle") },
+                            leadingIcon = { Icon(Icons.Filled.PushPin, null) },
+                            onClick = { menu = false; onPin() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Sil", color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                            onClick = { menu = false; onDelete() },
+                        )
+                    }
+                }
+            }
         }
     }
 }

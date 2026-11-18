@@ -56,7 +56,7 @@ class FridayStore(context: Context) {
             val array = JSONArray(raw)
             (0 until array.length()).map { index ->
                 val item = array.getJSONObject(index)
-                HistoryItem(item.getString("text"), item.getLong("time"), item.getBoolean("ok"))
+                HistoryItem(item.getString("text"), item.getLong("time"), item.getBoolean("ok"), item.optBoolean("pin", false))
             }
         } catch (_: Exception) {
             emptyList()
@@ -65,7 +65,7 @@ class FridayStore(context: Context) {
 
     fun saveHistory(items: List<HistoryItem>) {
         val array = JSONArray()
-        items.forEach { array.put(JSONObject().put("text", it.text).put("time", it.time).put("ok", it.delivered)) }
+        items.forEach { array.put(JSONObject().put("text", it.text).put("time", it.time).put("ok", it.delivered).put("pin", it.pinned)) }
         prefs.edit().putString(HISTORY, array.toString()).apply()
     }
 

@@ -272,6 +272,16 @@ def _send_outlook(address: str, subject: str, body: str) -> None:
         pythoncom.CoUninitialize()
 
 
+def gmail_compose_url(address: str, subject: str, body: str) -> str:
+    """Tarayıcıda açık Gmail oturumuyla dolu 'Yeni ileti' penceresi (OAuth gerekmez)."""
+    query = urllib.parse.urlencode({"view": "cm", "fs": "1", "to": address, "su": subject, "body": body}, quote_via=urllib.parse.quote)
+    return f"https://mail.google.com/mail/?{query}"
+
+
+def _open_gmail_web(address: str, subject: str, body: str) -> None:
+    webbrowser.open(gmail_compose_url(address, subject, body))
+
+
 def _open_draft(address: str, subject: str, body: str) -> None:
     query = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
     webbrowser.open(f"mailto:{urllib.parse.quote(address, safe='@')}?{query}")
@@ -281,16 +291,18 @@ def choose_provider(provider: str = "auto") -> str:
     """auto: Gmail bağlıysa Gmail, değilse klasik Outlook, o da yoksa taslak."""
     key = (provider or "auto").strip().casefold()
     if key in {"gmail", "google"}:
-        return "gmail" if gmail_connected() else "none-gmail"
+        return "gmail" if gmail_connected() else "gmail_web"
     if key in {"outlook", "office", "hotmail"}:
         return "outlook" if outlook_available() else "none-outlook"
     if key in {"taslak", "draft", "mailto"}:
         return "draft"
+    if key in {"gmail_web", "web", "tarayici"}:
+        return "gmail_web"
     if gmail_connected():
         return "gmail"
     if outlook_available():
         return "outlook"
-    return "draft"
+    return "gmail_web"
 
 
 def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: str = "", confirm_send: bool = False, provider: str = "auto") -> str:
@@ -309,8 +321,12 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     if not (body or "").strip():
         return "E-posta metni bos olamaz."
     route = choose_provider(provider)
-    if route == "none-gmail":
-        return "Gmail bagli degil. Once 'Gmail'i bagla' de ya da Outlook'tan gondermemi iste."
+    if route == "gmail_web":
+        try:
+            _open_gmail_web(address, subject, body)
+        except Exception as exc:
+            return f"Gmail tarayicida acilamadi: {exc}"
+        return f"Gmail tarayicida {label} icin doldurulmus yeni ileti olarak acildi; kontrol edip Gonder'e bas."
     if route == "none-outlook":
         return "Klasik Outlook kullanilmiyor (yeni Outlook dogrudan gonderimi desteklemiyor). Taslak olarak acayim mi, yoksa Gmail mi baglayalim?"
     if route == "draft":
