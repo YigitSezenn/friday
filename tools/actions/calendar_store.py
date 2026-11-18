@@ -60,7 +60,9 @@ def load_store() -> dict:
 
 def save_store(store: dict) -> None:
     path = store_path()
-    path.write_text(json.dumps(store, indent=2, ensure_ascii=False), encoding="utf-8")
+    from jarvis.atomic import write_text
+
+    write_text(path, json.dumps(store, indent=2, ensure_ascii=False))
     try:
         write_ics(store)
     except OSError:

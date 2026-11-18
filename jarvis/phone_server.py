@@ -243,6 +243,9 @@ def _with_gate_key(page: str) -> str:
     return page.replace("<!--gate-->", shown)
 
 
+MAX_BODY = 512 * 1024  # mikrofon parçası ve komut için fazlasıyla yeterli
+
+
 def handle_phone_request(method: str, path: str, body: bytes, on_text) -> tuple[int, bytes, str]:
     parsed = urlparse(path)
     query = parse_qs(parsed.query)
@@ -253,7 +256,9 @@ def handle_phone_request(method: str, path: str, body: bytes, on_text) -> tuple[
             return 404, "APK henüz derlenmedi. Sayfayı tarayıcıda aç.".encode("utf-8"), "text/plain; charset=utf-8"
         return 200, path_apk.read_bytes(), "application/vnd.android.package-archive"
     given = (query.get("token") or [""])[0]
-    if given != phone_token():
+    import hmac
+
+    if not hmac.compare_digest(given.encode("utf-8"), phone_token().encode("utf-8")):
         return 403, "Yetkisiz.".encode("utf-8"), "text/plain; charset=utf-8"
     if route in {"/", "/join"} and method == "GET":
         page = _with_gate_key(JOIN_PAGE if route == "/join" else PHONE_PAGE)
@@ -292,7 +297,17 @@ def start_phone_server(on_text, lan: bool | None = None) -> str:
             return
 
         def _respond(self) -> None:
-            length = int(self.headers.get("Content-Length", "0") or 0)
+            # Gövde, yetki kontrolünden önce okunuyordu: aynı ağdaki biri dev Content-Length ile
+            # belleği doldurabilirdi. Üst sınır + bozuk başlığa 400.
+            try:
+                length = int(self.headers.get("Content-Length", "0") or 0)
+            except ValueError:
+                length = -1
+            if length < 0 or length > MAX_BODY:
+                self.send_response(413 if length > MAX_BODY else 400)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             body = self.rfile.read(length) if length else b""
             status, payload, content = handle_phone_request(self.command, self.path, body, _on_text)
             self.send_response(status)

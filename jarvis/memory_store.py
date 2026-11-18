@@ -24,15 +24,20 @@ def load_memory() -> dict:
 
 
 def update_memory(data: dict) -> None:
-    mem = load_memory()
-    _deep_merge(mem, data)
-    _write_memory(mem)
+    from jarvis.atomic import LOCK
+
+    with LOCK:
+        mem = load_memory()
+        _deep_merge(mem, data)
+        _write_memory(mem)
 
 
 def _write_memory(mem: dict) -> None:
     path = memory_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(mem, indent=2, ensure_ascii=False), encoding="utf-8")
+    from jarvis.atomic import write_text
+
+    write_text(path, json.dumps(mem, indent=2, ensure_ascii=False))
 
 
 def _deep_merge(base: dict, update: dict) -> None:
