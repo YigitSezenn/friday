@@ -1,6 +1,7 @@
 "use strict";
 // Kalan düğme/klavye bağlantıları: pencere, Yenile, güncelleme, ayar kaydı, zamanlayıcı, notlar, komut.
 // Klasik betikler: üst düzey const/let/function tüm hud-*.js dosyalarında ortaktır; sıra index.html'deki gibidir.
+$("app-pw-open")?.addEventListener("click", () => send("open", {url: "https://myaccount.google.com/apppasswords"}));
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 // Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).
@@ -36,7 +37,7 @@ $("settings-form").addEventListener("submit", event => {
   event.preventDefault();
   const form = event.target;
   const values = {};
-  for (const key of ["gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes"]) values[key] = form[key].value.trim();
+  for (const key of ["gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password"]) values[key] = form[key].value.trim();
   values.voice_volume = Number(form.voice_volume.value);
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
   values.music = $("set-music").getAttribute("aria-checked") === "true";

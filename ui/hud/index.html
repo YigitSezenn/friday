@@ -187,6 +187,13 @@
       <div id="set-panels"></div>
     </section>
     <section class="pane" data-pane="ses">
+      <div class="row2"><div>MAİL<small>Bağlı hesap yoksa FRIDAY maili tarayıcıda bu servisle doldurur, onayından sonra kendisi gönderir. Yeni Outlook kullanıyorsan Outlook seç.</small></div>
+        <select class="sel" name="mail_web"><option value="gmail">Gmail</option><option value="outlook">Outlook</option></select></div>
+      <div class="row2"><div>ARKA PLANDA GMAIL<small>Pencere açmadan göndermek için: Google Hesabı › Güvenlik › 2 adımlı doğrulama açık olmalı, sonra “Uygulama şifreleri”nden FRIDAY için 16 haneli şifre oluştur ve buraya yapıştır. Şifre yalnızca bu bilgisayarda durur.</small></div>
+        <button type="button" class="tbtn" id="app-pw-open">ŞİFRE OLUŞTUR</button></div>
+      <div class="field"><input name="gmail_address" type="email" autocomplete="off" placeholder="ornek@gmail.com"><input name="gmail_app_password" type="password" autocomplete="off" placeholder="16 haneli uygulama şifresi"></div>
+      <div class="row2"><div>OUTLOOK HESABI<small>Kişisel (outlook.com, hotmail) ya da iş/okul (Microsoft 365).</small></div>
+        <select class="sel" name="outlook_web_host"><option value="outlook.live.com">Kişisel</option><option value="outlook.office.com">İş / okul</option></select></div>
       <div class="row2"><div>SES KARAKTERİ<small>Kayıt, aynı modele bu sesle yeniden bağlar.</small></div>
         <select class="sel" name="voice"></select></div>
       <div class="row2 vol"><div>ASİSTANIN SESİ<small id="vol-label">%100</small></div>
