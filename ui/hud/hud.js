@@ -141,15 +141,19 @@ function buildRing() {
   hit.className = "hit";
   hit.type = "button";
   hit.title = "Uyut / uyandır";
-  hit.addEventListener("click", () => {
-    const asleep = document.body.dataset.sleep !== "1";
-    document.body.dataset.sleep = asleep ? "1" : "0";
-    window.hud.state(asleep ? "paused" : "listening");
-    $("t-state").textContent = asleep ? "UYKUDA" : LABEL[document.body.dataset.state];
-    send("sleep", {asleep});
-  });
+  hit.addEventListener("click", () => setSleep(document.body.dataset.sleep !== "1"));
   host.appendChild(hit);
   return shells;
+}
+
+// Uyku: çekirdeğe tıklama, sesli komut (sleep_mode aracı), yazı ya da F4 ile.
+function setSleep(asleep) {
+  asleep = !!asleep;
+  if ((document.body.dataset.sleep === "1") === asleep) return;
+  document.body.dataset.sleep = asleep ? "1" : "0";
+  window.hud.state(asleep ? "paused" : "listening");
+  $("t-state").textContent = asleep ? "UYKUDA" : LABEL[document.body.dataset.state];
+  send("sleep", {asleep});
 }
 
 const ring = buildRing();
@@ -290,6 +294,8 @@ document.querySelectorAll(".perm-open").forEach(button => {
 
 window.hud = {
   permissions(data) { paintPermissions(data); },
+  // Sesli komutla uyutma: FRIDAY "iyi geceler" desin diye kısa gecikme.
+  sleep(asleep, delayMs) { setTimeout(() => setSleep(asleep), Math.max(0, Number(delayMs) || 0)); },
   state(name) {
     document.body.dataset.state = name || "idle";
     $("t-state").textContent = LABEL[name] || name;
@@ -856,7 +862,28 @@ $("ov-weather").addEventListener("click", event => { if (event.target.id === "wx
 $("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
-$("pair-refresh")?.addEventListener("click", () => send("gate_refresh"));
+// Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).
+(() => {
+  const button = $("pair-refresh");
+  if (!button) return;
+  let armed = null;
+  const reset = () => { armed = null; button.textContent = "Yenile"; button.classList.remove("warn"); };
+  button.addEventListener("click", () => {
+    if (!armed) {
+      button.textContent = "Eski telefon eşleşmesi bozulur · onayla";
+      button.classList.add("warn");
+      armed = setTimeout(reset, 4000);
+      return;
+    }
+    clearTimeout(armed);
+    reset();
+    button.disabled = true;
+    button.textContent = "Yenileniyor…";
+    Promise.resolve(send("gate_refresh", {rotate: true})).finally(() => {
+      setTimeout(() => { button.disabled = false; reset(); }, 900);
+    });
+  });
+})();
 $("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));
 $("uninstall").addEventListener("click", () => {
@@ -920,11 +947,16 @@ $("cmd").addEventListener("keydown", event => {
     }
     return;
   }
+  if (document.body.dataset.sleep === "1") setSleep(false);
   addLine(text, "you");
   send("command", {text});
 });
 addEventListener("keydown", event => {
-  if (event.key === "F4") { event.preventDefault(); toggleMic(); }
+  if (event.key === "F4") {
+    event.preventDefault();
+    if (document.body.dataset.sleep === "1") { setSleep(false); return; }
+    toggleMic();
+  }
   if (event.key === "F6") { event.preventDefault(); $("t-cam").click(); }
   if (event.key === "Escape") { $("ov-settings").hidden = true; $("ov-models").hidden = true; }
 });

@@ -46,7 +46,8 @@ class MailTest(unittest.TestCase):
 
         self.assertIn("Gecersiz", send_email("yanlis", "s", "b"))
         self.assertIn("Gecersiz", send_email("a@b.co", "s\nBcc: x@y.z", "b"))
-        self.assertIn("bagli degil", send_email("a@b.co", "s", "b", provider="gmail"))
+        with mock.patch("webbrowser.open"):
+            self.assertIn("tarayicida", send_email("a@b.co", "s", "b", provider="gmail"))
 
     def test_draft_then_confirm_sends_once(self):
         from tools.actions import mail
@@ -112,15 +113,23 @@ class MailTest(unittest.TestCase):
         with mock.patch.object(mail, "_search_dirs", return_value=[]):
             self.assertFalse(mail.import_client_file())
 
-    def test_auto_route_falls_back_to_draft(self):
+    def test_auto_route_opens_gmail_web_compose(self):
         from tools.actions import mail
 
         with mock.patch.object(mail, "outlook_available", return_value=False), mock.patch.object(mail.webbrowser, "open") as opened:
             out = mail.send_email("a@b.co", "Konu ş", "Merhaba dünya")
-        self.assertIn("taslagi", out)
+        self.assertIn("Gonder", out)
         url = opened.call_args[0][0]
-        self.assertTrue(url.startswith("mailto:a@b.co?"))
-        self.assertIn("subject=Konu%20%C5%9F", url)
+        self.assertTrue(url.startswith("https://mail.google.com/mail/?view=cm&fs=1&to=a%40b.co"))
+        self.assertIn("su=Konu%20%C5%9F", url)
+        self.assertIn("body=Merhaba%20d%C3%BCnya", url)
+
+    def test_explicit_mailto_draft(self):
+        from tools.actions import mail
+
+        with mock.patch.object(mail.webbrowser, "open") as opened:
+            self.assertIn("taslagi", mail.send_email("a@b.co", "K", "B", provider="taslak"))
+        self.assertTrue(opened.call_args[0][0].startswith("mailto:a@b.co?"))
 
     def test_outlook_route_needs_confirm_then_sends(self):
         from tools.actions import mail
