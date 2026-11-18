@@ -304,24 +304,15 @@ def _open_draft(address: str, subject: str, body: str) -> None:
 
 
 def _foreground_title() -> str:
-    import ctypes
+    from jarvis.win32 import foreground_title
 
-    user32 = ctypes.windll.user32
-    hwnd = user32.GetForegroundWindow()
-    length = user32.GetWindowTextLengthW(hwnd)
-    buffer = ctypes.create_unicode_buffer(length + 1)
-    user32.GetWindowTextW(hwnd, buffer, length + 1)
-    return buffer.value
+    return foreground_title()
 
 
 def _press_ctrl_enter() -> None:
-    import ctypes
+    from jarvis.win32 import press_keys
 
-    user32 = ctypes.windll.user32
-    user32.keybd_event(0x11, 0, 0, 0)  # Ctrl
-    user32.keybd_event(0x0D, 0, 0, 0)  # Enter
-    user32.keybd_event(0x0D, 0, 2, 0)
-    user32.keybd_event(0x11, 0, 2, 0)
+    press_keys(0x11, 0x0D)  # Ctrl + Enter
 
 
 def gmail_web_send(address: str, subject: str, body: str, title=None, press=None, sleep=None,
