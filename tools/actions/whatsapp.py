@@ -125,6 +125,7 @@ def send_whatsapp_message(
     recipient_name: str = "",
     send_now: bool = False,
     app_target: str = "auto",
+    confirm_send: bool = False,
 ) -> str:
     if not message or not message.strip():
         return "Mesaj bos olamaz."
@@ -148,6 +149,16 @@ def send_whatsapp_message(
         if resolved:
             return f"'{resolved}' icin kayitli bir telefon numarasi bulamadim. Istersen once kisiyi numarasiyla kaydet."
         return "WhatsApp mesaji icin kisi adi veya telefon numarasi gerekli."
+    if send_now:
+        from tools.actions import confirm
+
+        parts = (normalized, message.strip())
+        if confirm.required():
+            if not confirm_send:
+                return confirm.ask("whatsapp", parts, f"WhatsApp taslagi — Kime: {resolved or '+' + normalized}, Mesaj: {message.strip()[:300]}.")
+            problem = confirm.check("whatsapp", parts)
+            if problem:
+                return problem
     encoded = urllib.parse.quote(message.strip())
     url = f"https://web.whatsapp.com/send?phone={normalized}&text={encoded}"
     desktop = f"whatsapp://send?phone={normalized}&text={encoded}"
