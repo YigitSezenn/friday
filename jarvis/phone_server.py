@@ -141,7 +141,8 @@ def phone_qr_data_url(url: str | None = None) -> str:
 
     import qrcode
 
-    image = qrcode.make(phone_qr_payload(url), box_size=8, border=2)
+    # border=4: QR standardının istediği sessiz bölge (telefon kameraları için daha güvenli).
+    image = qrcode.make(phone_qr_payload(url), box_size=8, border=4)
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
