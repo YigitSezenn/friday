@@ -112,6 +112,13 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
         elif kind == "update":
             ui.install_update()
         elif kind == "gate_refresh":
+            # "Yenile": yeni kapı anahtarı -> yeni QR ve 6 haneli kod. Eski telefon eşleşmesi geçersiz olur
+            # (arayüz bunu ikinci basışta onaylatır).
+            if payload.get("rotate"):
+                from jarvis.gate_client import rotate_gate_key
+
+                rotate_gate_key()
+                ui.write_log("SYS: Yeni telefon anahtarı oluşturuldu. Telefonda QR'ı yeniden okut.")
             ui.push_settings()
         elif kind == "quit":
             ui.quit_app()
