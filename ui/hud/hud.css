@@ -271,3 +271,6 @@ body[data-shutdown="1"] #core canvas#core3d{transition:opacity 3s ease-in .4s;op
 body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown="1"] #topbar,body[data-shutdown="1"] #br{transition:opacity 1.2s ease-in,transform 1.2s ease-in;opacity:0;transform:translateY(10px)}
 @keyframes coreOff{0%{transform:translateY(-4vh) scale(1);filter:brightness(1)}18%{transform:translateY(-4vh) scale(1.06);filter:brightness(1.8)}100%{transform:translateY(-4vh) scale(.12);filter:brightness(.2) blur(2px)}}
 @media (prefers-reduced-motion:reduce){body[data-boot="1"] #core canvas#core3d{animation:none}}
+
+#pair-refresh.warn{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px rgba(var(--arg),.3)}
+#pair-refresh:disabled{opacity:.6;cursor:progress}

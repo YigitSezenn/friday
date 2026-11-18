@@ -14,7 +14,12 @@ import com.friday.phone.domain.LanLink
 import com.friday.phone.domain.isPairingLink
 import com.friday.phone.domain.lanLinkFrom
 import com.friday.phone.domain.pairCode
+import com.friday.phone.domain.clearedUnpinned
+import com.friday.phone.domain.edited
+import com.friday.phone.domain.ordered
+import com.friday.phone.domain.togglePinned
 import com.friday.phone.domain.withNewest
+import com.friday.phone.domain.without
 import com.friday.phone.net.GateClient
 import com.friday.phone.net.LanBridge
 import com.friday.phone.net.WakeOnLan
@@ -50,7 +55,7 @@ class FridayViewModel(app: Application) : AndroidViewModel(app) {
         return UiState(
             paired = key.isNotEmpty(),
             pairingCode = if (key.isNotEmpty()) pairCode(key) else "",
-            history = store.history(),
+            history = store.history().ordered(),
             wake = store.wake,
             lanHost = lan?.host.orEmpty(),
         )
@@ -135,6 +140,28 @@ class FridayViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(sending = false, history = history, message = describe(outcome)) }
         }
     }
+
+    // ---- Kayıtlı komutlar ----
+
+    private fun updateHistory(message: String?, change: (List<HistoryItem>) -> List<HistoryItem>) {
+        val history = change(_state.value.history)
+        store.saveHistory(history)
+        _state.update { it.copy(history = history, message = message ?: it.message) }
+    }
+
+    fun deleteCommand(text: String) = updateHistory("Komut silindi.") { it.without(text) }
+
+    fun editCommand(old: String, new: String) {
+        if (new.isBlank()) return say("Komut boş olamaz.")
+        updateHistory("Komut güncellendi.") { it.edited(old, new) }
+    }
+
+    fun togglePin(text: String) {
+        val pinned = _state.value.history.firstOrNull { it.text == text }?.pinned == true
+        updateHistory(if (pinned) "Sabitleme kaldırıldı." else "Komut sabitlendi.") { it.togglePinned(text) }
+    }
+
+    fun clearHistory() = updateHistory("Geçmiş temizlendi; sabitlenenler kaldı.") { it.clearedUnpinned() }
 
     fun onHeard(said: String) {
         if (said.isBlank()) say("Ses alınamadı.") else send(said)

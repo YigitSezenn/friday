@@ -28,7 +28,7 @@ android {
         compose = true
     }
     composeOptions {
-        // Kotlin 1.9.24 ile eÃ…Å¸leÃ…Å¸en Compose derleyicisi.
+        // Kotlin 1.9.24 ile eslesen Compose derleyicisi.
         kotlinCompilerExtensionVersion = "1.5.14"
     }
 }

@@ -862,7 +862,28 @@ $("ov-weather").addEventListener("click", event => { if (event.target.id === "wx
 $("map-close").addEventListener("click", () => { $("ov-map").hidden = true; });
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
-$("pair-refresh")?.addEventListener("click", () => send("gate_refresh"));
+// Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).
+(() => {
+  const button = $("pair-refresh");
+  if (!button) return;
+  let armed = null;
+  const reset = () => { armed = null; button.textContent = "Yenile"; button.classList.remove("warn"); };
+  button.addEventListener("click", () => {
+    if (!armed) {
+      button.textContent = "Eski telefon eşleşmesi bozulur · onayla";
+      button.classList.add("warn");
+      armed = setTimeout(reset, 4000);
+      return;
+    }
+    clearTimeout(armed);
+    reset();
+    button.disabled = true;
+    button.textContent = "Yenileniyor…";
+    Promise.resolve(send("gate_refresh", {rotate: true})).finally(() => {
+      setTimeout(() => { button.disabled = false; reset(); }, 900);
+    });
+  });
+})();
 $("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));
 $("uninstall").addEventListener("click", () => {
