@@ -95,7 +95,7 @@ Write-Utf8NoBom $init ((Get-Content $init -Raw) -replace '__version__\s*=\s*"[^"
 Write-Utf8NoBom $iss ((Get-Content $iss -Raw) -replace 'AppVersion=\d+\.\d+', ('AppVersion={0}' -f $Version))
 Write-Utf8NoBom $gradleKts ((Get-Content $gradleKts -Raw) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version))
 # HTML: only query/version labels, not SVG path numbers like 10.5 4.4
-$htmlRaw = Get-Content $html -Raw
+$htmlRaw = [System.IO.File]::ReadAllText($html, [System.Text.UTF8Encoding]::new($false))
 $htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+', ('?v={0}' -f $Version))
 $htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+', ('Sürüm {0}' -f $Version))
 Write-Utf8NoBom $html $htmlRaw
