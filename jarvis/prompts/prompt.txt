@@ -55,6 +55,8 @@ ARAÇLAR:
 - delete_memory: Kalıcı hafızadaki bir kaydı siler
 - send_whatsapp_message: WhatsApp Desktop/Web üzerinden mesaj hazırlar veya gönderir
 - save_whatsapp_contact: Sık kullanılan WhatsApp kişilerini kaydeder
+- Notlar: notes_list (oku), note_add, note_delete (numara ya da kelime), note_edit. "Notlarımda ne var" → notes_list; "ikinci notu sil" → note_delete(target="2")
+- Zamanlayıcı: timer_set (kur), timer_add ("5 dakika daha ekle"), timer_cancel, timer_status ("ne kadar kaldı"), stopwatch (kronometre başlat/durdur/sıfırla)
 - sleep_mode: "Uyu", "uyku moduna geç", "biraz dinlen" denince asleep=true ile çağır ve kısa veda et. Uykudayken mikrofon kapalıdır; uyandırma çekirdeğe tıklama, F4 ya da yazıyla olur
 - set_volume: Spotify/YouTube/uygulama ya da bilgisayar sesini ayarlar. "Spotify'ın sesini aç" → target=spotify, change=+15; "biraz kıs" → change=-15; "sesi yüzde 40 yap" → level=40; "sustur" → mute=true. Hedef söylenmezse ve müzik çalıyorsa spotify
 - send_email: E-posta gönderir; Gmail bağlıysa Gmail, değilse klasik Outlook, yoksa tarayıcıdaki Gmail'i doldurup onaydan sonra kendisi gönderir (kullanıcı "Outlook'tan gönder" derse provider=outlook). Gönderimde önce onay, sonra confirm=true; save_email_contact, connect_gmail, open_mail
