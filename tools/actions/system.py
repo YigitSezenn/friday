@@ -45,9 +45,9 @@ def _battery() -> str:
         extra = ""
         if not bat.power_plugged and bat.secsleft and bat.secsleft > 0:
             hours, remainder = divmod(int(bat.secsleft), 3600)
-            extra = f", ~{hours}s {remainder // 60}dk kaldi"
+            extra = f", ~{hours}s {remainder // 60}dk kaldı"
         return f"Pil: %{bat.percent:.0f} — {status}{extra}"
-    return "Pil bulunamadi (masaustu bilgisayar olabilir)."
+    return "Pil bulunamadi (masaüstü bilgisayar olabilir)."
 
 
 def _cpu() -> str:
@@ -68,8 +68,8 @@ def _ram() -> str:
 def _disk() -> str:
     du = _psutil().disk_usage("C:\\")
     return (
-        f"Disk (C:): {du.used / (1024 ** 3):.1f}GB kullanildi, "
-        f"{du.free / (1024 ** 3):.1f}GB bos (toplam {du.total / (1024 ** 3):.1f}GB)"
+        f"Disk (C:): {du.used / (1024 ** 3):.1f}GB kullanıldı, "
+        f"{du.free / (1024 ** 3):.1f}GB boş (toplam {du.total / (1024 ** 3):.1f}GB)"
     )
 
 
@@ -94,12 +94,12 @@ def _network() -> str:
         name = (result.stdout or "").strip().splitlines()
         if name and name[0]:
             suffix = f" — IP {ip}" if ip else ""
-            return f"Ag: {name[0]} bagli{suffix}"
+            return f"Ag: {name[0]} bağlı{suffix}"
     except (OSError, subprocess.TimeoutExpired):
         pass
     if ip:
         return f"Ag: IP {ip}"
-    return "Ag baglantisi bulunamadi."
+    return "Ag bağlantısı bulunamadi."
 
 
 def _local_ip() -> str:

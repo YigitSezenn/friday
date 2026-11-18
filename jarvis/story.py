@@ -86,10 +86,10 @@ def note_phone() -> None:
 
 def choose(ending: str) -> str:
     if not enabled():
-        return "Hikaye kapali."
+        return "Hikaye kapalı."
     ending = ending if ending in {"surdur", "kapat"} else ""
     if not ending:
-        return "Secim gecersiz."
+        return "Seçim geçersiz."
     state = _load()
     state["ending"] = ending
     _save(state)

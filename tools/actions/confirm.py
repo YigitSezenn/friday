@@ -35,7 +35,7 @@ def ask(kind: str, parts: tuple, summary: str) -> str:
         for k in [k for k, t in _pending.items() if now - t > TTL]:
             _pending.pop(k, None)
         _pending[_key(kind, parts)] = now
-    return f"ONAY GEREKLI: {summary} Gondermeden once kullaniciya sesli sor: 'Gondereyim mi?' Evet derse ayni bilgilerle confirm=true ile tekrar cagir."
+    return f"ONAY GEREKLİ: {summary} Göndermeden önce kullanıcıya sesli sor: 'Göndereyim mi?' Evet derse aynı bilgilerle confirm=true ile tekrar çağır."
 
 
 def check(kind: str, parts: tuple) -> str:
@@ -45,8 +45,8 @@ def check(kind: str, parts: tuple) -> str:
     with _lock:
         t = _pending.get(k)
         if t is None or now - t > TTL:
-            return "ONAY GEREKLI: once taslagi kullaniciya soyle ve 'Gondereyim mi?' diye sor; onay gelince tekrar cagir."
+            return "ONAY GEREKLİ: önce taslağı kullanıcıya söyle ve 'Göndereyim mi?' diye sor; onay gelince tekrar çağır."
         if now - t < MIN_WAIT:
-            return "ONAY GEREKLI: kullanicinin cevabini bekle; onayi kendin varsayma."
+            return "ONAY GEREKLİ: kullanıcının cevabini bekle; onayi kendin varsayma."
         _pending.pop(k, None)
     return ""

@@ -44,8 +44,8 @@ class JarvisTestCase(unittest.TestCase):
         from tools.actions.shell import shell_run
 
         blocked = shell_run("Remove-Item -Recurse C:\\")
-        self.assertIn("Guvenlik", blocked)
-        self.assertIn("Guvenlik", shell_run("del C:\\Windows\\notepad.exe"))
+        self.assertIn("Güvenlik", blocked)
+        self.assertIn("Güvenlik", shell_run("del C:\\Windows\\notepad.exe"))
         self.assertIn("belirtilmedi", shell_run("   ").lower())
 
     @windows_only
@@ -58,7 +58,7 @@ class JarvisTestCase(unittest.TestCase):
         from tools.actions.calendar import add_calendar_event, delete_calendar_event, get_calendar_events
         from tools.actions.reminders import add_reminder, get_reminders
 
-        self.assertIn("gorunmuyor", get_calendar_events("today"))
+        self.assertIn("görünmüyor", get_calendar_events("today"))
         when = (dt.datetime.now() + dt.timedelta(days=2)).replace(hour=15, minute=0, second=0, microsecond=0)
         added = add_calendar_event("Disci", when.strftime("%Y-%m-%dT%H:%M"))
         self.assertIn("Takvime eklendi", added)
@@ -127,9 +127,9 @@ class JarvisTestCase(unittest.TestCase):
 
         saved = execute_tool("save_memory", {"category": "notes", "key": "renk", "value": "mavi"})
         self.assertIn("mavi", saved)
-        self.assertIn("dolu olmali", execute_tool("save_memory", {"category": "notes"}))
+        self.assertIn("dolu olmalı", execute_tool("save_memory", {"category": "notes"}))
         self.assertIn("Bilinmeyen", execute_tool("yok", {}))
-        self.assertIn("yalnizca aktif pencere", execute_tool("analyze_screen", {"target": "desktop"}))
+        self.assertIn("yalnızca aktif pencere", execute_tool("analyze_screen", {"target": "desktop"}))
         self.assertIn("YouTube API", execute_tool("get_youtube_channel_report", {}))
 
     def test_weather_summary_parser(self):
@@ -408,7 +408,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("models/gemini-flash-latest", VISION_MODELS)
         self.assertNotIn("models/gemini-2.0-flash", VISION_MODELS)
         self.assertIn("kod 4", explain_vision_error(RuntimeError("4")))
-        self.assertIn("bos", web_search("  ").lower())
+        self.assertIn("boş", web_search("  ").lower())
         folder = Path(self._tmp.name) / "Desktop"
         folder.mkdir()
         (folder / "not.txt").write_text("x", encoding="utf-8")

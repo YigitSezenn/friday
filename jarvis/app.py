@@ -60,11 +60,11 @@ def smoke_ui() -> int:
     ui = JarvisUI()
     ui.root.withdraw()
     ui.set_state("LISTENING")
-    ui.write_log("SYS: Arayuz duman testi.")
+    ui.write_log("SYS: Arayüz duman testi.")
     ui.root.update_idletasks()
     ui.root.update()
     ui.root.destroy()
-    print("Arayuz olusturuldu ve kapatildi.")
+    print("Arayüz oluşturuldu ve kapatıldı.")
     return 0
 
 
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     _note_launch()
     _show_event()
     if not _acquire_single_instance():
-        print("JARVIS zaten calisiyor.")
+        print("JARVIS zaten çalışıyor.")
         return 0
 
     from jarvis.live import JarvisLive
@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             ui.write_log(f"ERR: Telefon sunucusu açılamadı. ({exc})")
             return ""
-        ui.write_debug("Telefon ayni Wi-Fi icin hazir. QR Ayarlar icinde, paylasma.")
+        ui.write_debug("Telefon aynı Wi-Fi için hazır. QR Ayarlar içinde, paylaşma.")
         try:
             from jarvis.story import note_phone
 

@@ -140,7 +140,7 @@ class ActionTests(unittest.TestCase):
         from tools.actions.search import web_search
 
         result = web_search("Albert Einstein")
-        self.assertNotIn("yapilamadi", result.lower())
+        self.assertNotIn("yapılamadı", result.lower())
         self.assertGreater(len(result.strip()), 20)
 
     @windows_only

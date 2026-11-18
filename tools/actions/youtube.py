@@ -7,12 +7,12 @@ def get_youtube_channel_report(query: str = "overview", handle: str = "", video_
     api_key = str(get_app_config_value("youtube_api_key", "") or "").strip()
     if not api_key:
         return (
-            "YouTube istatistikleri icin once YouTube API Key gerekli. "
-            "Ayarlar icinden YouTube API anahtarini gir."
+            "YouTube istatistikleri için önce YouTube API Key gerekli. "
+            "Ayarlar içinden YouTube API anahtarını gir."
         )
     channel_ref = (handle or str(get_app_config_value("youtube_channel_handle", "") or "")).strip()
     if not channel_ref:
-        return "YouTube kanal adi veya handle gerekli. Ayarlara youtube_channel_handle yazabilirsin."
+        return "YouTube kanal adı veya handle gerekli. Ayarlara youtube_channel_handle yazabilirsin."
     try:
         limit = max(1, min(15, int(video_limit or 6)))
     except (TypeError, ValueError):
@@ -20,7 +20,7 @@ def get_youtube_channel_report(query: str = "overview", handle: str = "", video_
     try:
         channel, videos = _fetch(api_key, channel_ref, limit)
     except Exception as exc:
-        return f"YouTube raporu alinamadi: {exc}"
+        return f"YouTube raporu alınamadı: {exc}"
     snippet = channel.get("snippet") or {}
     stats = channel.get("statistics") or {}
     title = snippet.get("title", "YouTube kanalin")

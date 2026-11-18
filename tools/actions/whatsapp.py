@@ -15,7 +15,7 @@ def normalize_phone(phone_number: str) -> str:
     elif len(digits) == 10:
         digits = "90" + digits
     if len(digits) < 8 or len(digits) > 15:
-        raise ValueError("Telefon numarasi uluslararasi formatta olmali. Orn: +905551112233")
+        raise ValueError("Telefon numarası uluslararası formatta olmalı. Orn: +905551112233")
     return digits
 
 
@@ -97,7 +97,7 @@ def find_contact(recipient_name: str) -> dict | None:
 
 def save_whatsapp_contact(display_name: str, phone_number: str, aliases: str = "") -> str:
     if not display_name or not display_name.strip():
-        return "Kisi adi bos olamaz."
+        return "Kişi adı boş olamaz."
     try:
         normalized = normalize_phone(phone_number)
     except ValueError as exc:
@@ -115,8 +115,8 @@ def save_whatsapp_contact(display_name: str, phone_number: str, aliases: str = "
         }
     )
     if alias_list:
-        return f"{display_name.strip()} WhatsApp kisilerine kaydedildi. Takma adlar: {', '.join(alias_list)}"
-    return f"{display_name.strip()} WhatsApp kisilerine kaydedildi."
+        return f"{display_name.strip()} WhatsApp kişilerine kaydedildi. Takma adlar: {', '.join(alias_list)}"
+    return f"{display_name.strip()} WhatsApp kişilerine kaydedildi."
 
 
 def send_whatsapp_message(
@@ -128,7 +128,7 @@ def send_whatsapp_message(
     confirm_send: bool = False,
 ) -> str:
     if not message or not message.strip():
-        return "Mesaj bos olamaz."
+        return "Mesaj boş olamaz."
     normalized = ""
     if phone_number and phone_number.strip():
         try:
@@ -147,15 +147,15 @@ def send_whatsapp_message(
         source = str(contact.get("_source", ""))
     if not normalized:
         if resolved:
-            return f"'{resolved}' icin kayitli bir telefon numarasi bulamadim. Istersen once kisiyi numarasiyla kaydet."
-        return "WhatsApp mesaji icin kisi adi veya telefon numarasi gerekli."
+            return f"'{resolved}' için kayıtlı bir telefon numarası bulamadım. Istersen önce kişiyi numarasiyla kaydet."
+        return "WhatsApp mesaji için kişi adı veya telefon numarası gerekli."
     if send_now:
         from tools.actions import confirm
 
         parts = (normalized, message.strip())
         if confirm.required():
             if not confirm_send:
-                return confirm.ask("whatsapp", parts, f"WhatsApp taslagi — Kime: {resolved or '+' + normalized}, Mesaj: {message.strip()[:300]}.")
+                return confirm.ask("whatsapp", parts, f"WhatsApp taslağı — Kime: {resolved or '+' + normalized}, Mesaj: {message.strip()[:300]}.")
             problem = confirm.check("whatsapp", parts)
             if problem:
                 return problem
@@ -180,20 +180,20 @@ def send_whatsapp_message(
         else:
             webbrowser.open(url)
     except OSError as exc:
-        return f"WhatsApp acilamadi: {exc}"
+        return f"WhatsApp açılamadı: {exc}"
     label = resolved or f"+{normalized}"
     note = " (rehberden bulundu)" if source == "phone_book" else ""
     chosen = desktop if opened == "WhatsApp Desktop" else url
     if not send_now:
-        return f"WhatsApp sohbeti {opened} icinde {label}{note} icin taslak mesajla acildi: {chosen}"
+        return f"WhatsApp sohbeti {opened} içinde {label}{note} için taslak mesajla açıldı: {chosen}"
     try:
         _press_enter()
     except OSError as exc:
         return (
-            f"WhatsApp sohbeti acildi ama otomatik gonderim tamamlanamadi ({exc}). "
-            "Sohbet hazir — Enter'a basman yeterli."
+            f"WhatsApp sohbeti açıldı ama otomatik gönderim tamamlanamadı ({exc}). "
+            "Sohbet hazır — Enter'a basman yeterli."
         )
-    return f"WhatsApp uzerinden {label}{note} kisisine mesaj gonderildi."
+    return f"WhatsApp üzerinden {label}{note} kişisine mesaj gönderildi."
 
 
 def _press_enter() -> None:

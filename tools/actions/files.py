@@ -21,7 +21,7 @@ def list_user_files(folder: str, root: Path | None = None) -> str:
     if target != base and base not in target.parents:
         return "Bu klasore bakamam."
     if not target.is_dir():
-        return "Klasor bulunamadi."
+        return "Klasör bulunamadi."
     names = []
     for path in sorted(target.iterdir(), key=lambda item: item.name.lower()):
         if path.name.startswith(".") or path.name.lower() in {"api_keys.json", ".env"}:
@@ -30,5 +30,5 @@ def list_user_files(folder: str, root: Path | None = None) -> str:
         if len(names) >= 30:
             break
     if not names:
-        return "Klasor bos."
+        return "Klasör boş."
     return target.name + ":\n" + "\n".join("- " + item for item in names)
