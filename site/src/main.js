@@ -69,7 +69,7 @@ const paintTheme = (mode, persist) => {
   if (mode === "light") document.documentElement.dataset.theme = "light";
   else delete document.documentElement.dataset.theme;
   const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.setAttribute("content", mode === "light" ? "#f6f1e8" : "#04070c");
+  if (themeColor) themeColor.setAttribute("content", mode === "light" ? "#f6f1e8" : "#05060a");
   themeButtons.forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.side === mode));
   });
