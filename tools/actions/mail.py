@@ -417,7 +417,7 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
                 return f"E-posta Gmail (tarayici) ile {label} kisisine gonderildi."
             if outcome == "pressed":
                 return f"Gmail'de {label} icin Gonder komutu verildi; sayfa degismedi, Gonderilenler'den kontrol etmeni oneririm."
-            return f"Gmail acildi ama pencere one gelmedigi icin otomatik gonderemedim; ileti dolu bekliyor, Gonder'e bas."
+            return "Gmail acildi ama pencere one gelmedigi icin otomatik gonderemedim; ileti dolu bekliyor, Gonder'e bas."
         if route == "outlook":
             _send_outlook(address, subject, body)
             return f"E-posta Outlook ile {label} kisisine gonderildi."
