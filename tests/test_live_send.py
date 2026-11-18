@@ -33,10 +33,31 @@ class LiveSendTest(unittest.TestCase):
         asyncio.run(make_live(s)._send_user_text("selam"))
         self.assertEqual(s.calls, [("rt", {"text": "selam"})])
 
-    def test_text_falls_back_on_old_sdk(self):
+    def test_text_never_uses_client_content(self):
+        # 3.x canlı oturumda send_client_content 1007 ile bağlantıyı kapatır (S-022).
         s = FakeSession(old_sdk=True)
-        asyncio.run(make_live(s)._send_user_text("selam"))
-        self.assertEqual(s.calls[0][0], "cc")
+        live = make_live(s)
+        logged = []
+        live.ui = types.SimpleNamespace(write_log=logged.append)
+        asyncio.run(live._send_user_text("selam"))
+        self.assertEqual(s.calls, [])
+        self.assertTrue(logged and logged[0].startswith("ERR"))
+
+    def test_error_log_masks_key(self):
+        import os
+        import tempfile
+
+        from jarvis import live
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"JARVIS_DATA_DIR": tmp}):
+            try:
+                raise RuntimeError("1007 bad request key=GIZLI123")
+            except RuntimeError as exc:
+                with mock.patch.object(live, "current_live_model", return_value="models/x"):
+                    live._log_error(exc, "GIZLI123")
+            text = open(os.path.join(tmp, "logs", "live-errors.log"), encoding="utf-8").read()
+        self.assertIn("1007", text)
+        self.assertNotIn("GIZLI123", text)
 
     def test_audio_uses_audio_blob_with_rate(self):
         fake_types = types.SimpleNamespace(Blob=lambda data, mime_type: {"data": data, "mime_type": mime_type})
