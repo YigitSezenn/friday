@@ -8,6 +8,8 @@ from pathlib import Path
 
 import requests
 
+from tests._env import live_api, needs_module, needs_network, windows_only
+
 
 class ActionTests(unittest.TestCase):
     def setUp(self):
@@ -16,6 +18,7 @@ class ActionTests(unittest.TestCase):
         os.environ["JARVIS_CALENDAR_BACKEND"] = "local"
         self.addCleanup(self._tmp.cleanup)
 
+    @windows_only
     def test_spotify_opens_the_track(self):
         from tools.actions.media import control_media, play_media, spotify_cli_path, spotify_now
 
@@ -59,6 +62,7 @@ class ActionTests(unittest.TestCase):
         self.assertFalse(any(call[:1] == ["search"] for call in calls))
         self.assertIsNone(play_saved_collection("Blinding Lights", run))
 
+    @needs_network
     def test_youtube_opens_a_real_video(self):
         from tools.actions.browser import browser_control
 
@@ -75,6 +79,7 @@ class ActionTests(unittest.TestCase):
         page.raise_for_status()
         self.assertTrue(page.json().get("title"))
 
+    @needs_network
     def test_browser_search_opens_google(self):
         from tools.actions.browser import browser_control
 
@@ -96,6 +101,7 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(result.startswith("WhatsApp sohbeti"))
         self.assertIn("whatsapp", result.lower())
 
+    @windows_only
     def test_open_notepad_creates_a_process(self):
         import psutil
 
@@ -129,6 +135,7 @@ class ActionTests(unittest.TestCase):
         self.assertIn("silindi", removed.lower())
         self.assertNotIn("Dis fircasi", [item["title"] for item in load_store()["reminders"]])
 
+    @needs_network
     def test_web_search_returns_a_summary(self):
         from tools.actions.search import web_search
 
@@ -136,6 +143,7 @@ class ActionTests(unittest.TestCase):
         self.assertNotIn("yapilamadi", result.lower())
         self.assertGreater(len(result.strip()), 20)
 
+    @windows_only
     def test_folder_list_shows_created_file(self):
         from tools.actions.files import list_user_files
 
@@ -149,6 +157,7 @@ class ActionTests(unittest.TestCase):
         self.assertNotIn("api_keys.json", listed)
         self.assertIn("bakamam", list_user_files("..\\Windows", root).lower())
 
+    @needs_module("qrcode", "cv2")
     def test_phone_qr_decodes_to_the_pairing_url(self):
         import cv2
         import numpy as np
@@ -166,20 +175,13 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(value.startswith("http://127.0.0.1:8766/join?token="))
         self.assertGreater(len(value.split("token=", 1)[1]), 8)
 
+    @live_api
     def test_screen_analysis_describes_the_window(self):
-        import json
-
         from tools.actions.screen import analyze_screen
         from jarvis.config import has_gemini_api_key, save_app_config
 
-        real = Path(r"C:\Users\yigit\Desktop\jarvis-rebuild\data\config\api_keys.json")
-        if real.exists():
-            try:
-                key = str(json.loads(real.read_text(encoding="utf-8")).get("gemini_api_key") or "")
-            except (OSError, json.JSONDecodeError):
-                key = ""
-            if key:
-                save_app_config({"gemini_api_key": key})
+        # Gerçek anahtar dosyası okunmaz; anahtar yalnızca ortam değişkeninden gelir.
+        save_app_config({"gemini_api_key": os.environ["FRIDAY_TEST_GEMINI_KEY"]})
         if not has_gemini_api_key():
             self.skipTest("Gemini anahtari yok")
         result = analyze_screen("Ekranda kisa olarak ne gorunuyor?")
