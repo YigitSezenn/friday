@@ -32,6 +32,9 @@ class MainActivity : ComponentActivity() {
     private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) openScanner() else viewModel.say("QR okumak için kamera izni gerekli.")
     }
+    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.setLanMic(true) else viewModel.say("Telefon mikrofonu için mikrofon izni gerekli.")
+    }
     private val hear = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val said = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
         viewModel.onHeard(said)
@@ -45,6 +48,7 @@ class MainActivity : ComponentActivity() {
             scanQr = ::requestScan,
             listen = ::listen,
             openSite = ::openSite,
+            toggleLanMic = ::toggleLanMic,
             versionName = versionName(),
         )
         setContent { FridayTheme { FridayApp(viewModel, actions) } }
@@ -59,6 +63,12 @@ class MainActivity : ComponentActivity() {
     private fun requestScan() {
         val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         if (granted) openScanner() else cameraPermission.launch(Manifest.permission.CAMERA)
+    }
+
+    private fun toggleLanMic() {
+        if (viewModel.state.value.lanMic) return viewModel.setLanMic(false)
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.setLanMic(true) else micPermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     private fun openScanner() {

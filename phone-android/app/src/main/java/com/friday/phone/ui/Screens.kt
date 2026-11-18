@@ -111,7 +111,7 @@ fun PairScreen(state: UiState, onScan: () -> Unit, onConfirm: (String) -> Unit, 
 // ---------- Komut ----------
 
 @Composable
-fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit) {
+fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit, onToggleLanMic: () -> Unit) {
     var text by rememberSaveable { mutableStateOf("") }
     val haptics = LocalHapticFeedback.current
     val submit = {
@@ -123,6 +123,17 @@ fun CommandScreen(state: UiState, onSend: (String) -> Unit, onListen: () -> Unit
     }
     Column(Modifier.fillMaxSize()) {
         StatusHeader(state.pairingCode)
+        if (state.lanHost.isNotEmpty()) {
+            OutlinedButton(
+                onClick = onToggleLanMic,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Text(
+                    if (state.lanMic) "TELEFON MİKROFONU: AÇIK · KAPAT" else "TELEFON MİKROFONUNU AÇ (${state.lanHost})",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -263,7 +274,7 @@ fun WakeScreen(state: UiState, onWake: (WakeConfig) -> Unit) {
 // ---------- Ayarlar ----------
 
 @Composable
-fun SettingsScreen(state: UiState, actions: PlatformActions, onForget: () -> Unit) {
+fun SettingsScreen(state: UiState, actions: PlatformActions, onForget: () -> Unit, onForgetLan: () -> Unit) {
     var confirm by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -277,6 +288,16 @@ fun SettingsScreen(state: UiState, actions: PlatformActions, onForget: () -> Uni
         }
         OutlinedButton(onClick = { confirm = true }, modifier = Modifier.fillMaxWidth()) {
             Text("EŞLEŞMEYİ SİL", style = MaterialTheme.typography.labelLarge)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Text("YEREL BAĞLANTI", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (state.lanHost.isEmpty()) {
+            Text("Aynı Wi-Fi'de telefon mikrofonu için bilgisayardaki telefon QR'ını okut.")
+        } else {
+            Text("Kayıtlı: ${state.lanHost}")
+            OutlinedButton(onClick = onForgetLan, modifier = Modifier.fillMaxWidth()) {
+                Text("YEREL BAĞLANTIYI SİL", style = MaterialTheme.typography.labelLarge)
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         OutlinedButton(onClick = actions.openSite, modifier = Modifier.fillMaxWidth()) {
