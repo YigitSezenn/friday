@@ -271,6 +271,19 @@ class MailTest(unittest.TestCase):
             self.assertEqual(out, "sent")
             self.assertEqual(pressed, [1])
 
+    def test_web_send_refocuses_if_focus_stolen_before_press(self):
+        from tools.actions import mail
+
+        # Gmail önde -> bekleme sırasında Teams odağı çalar -> yeniden öne getirilir -> basılır.
+        titles = iter(["Yeni ileti - Gmail", "Teams", "Yeni ileti - Gmail", "Gelen Kutusu - Gmail"])
+        fronted, pressed = [], []
+        with mock.patch.object(mail, "_open_gmail_web"):
+            out = mail.web_send("gmail_web", "a@b.co", "K", "B", title=lambda: next(titles), press=lambda: pressed.append(1),
+                                sleep=lambda _s: None, find=lambda m: 42, front=lambda h: fronted.append(h))
+        self.assertEqual(fronted, [42])
+        self.assertEqual(pressed, [1])
+        self.assertEqual(out, "sent")
+
     def test_mime_utf8(self):
         from tools.actions.mail import build_message
 
