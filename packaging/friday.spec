@@ -20,6 +20,8 @@ hidden = [
     "jarvis.app",
     "jarvis.live",
     "webview.platforms.edgechromium",
+    "win32com.client",
+    "pythoncom",
 ]
 hidden += collect_submodules("tools.actions")
 hidden += collect_submodules("jarvis")

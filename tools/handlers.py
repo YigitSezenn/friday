@@ -242,7 +242,7 @@ def send_whatsapp_message(args, ctx):
 def send_email(args, ctx):
     from tools.actions.mail import send_email as run
 
-    return run(text(args, "to"), text(args, "subject"), text(args, "body"), text(args, "recipient_name"), bool(args.get("confirm", False)))
+    return run(text(args, "to"), text(args, "subject"), text(args, "body"), text(args, "recipient_name"), bool(args.get("confirm", False)), text(args, "provider", "auto"))
 
 
 @tool("save_email_contact")
@@ -263,7 +263,7 @@ def connect_gmail(args, ctx):
 def open_mail(args, ctx):
     from tools.actions.mail import open_mail as run
 
-    return run()
+    return run(text(args, "provider", "auto"))
 
 
 @tool("save_whatsapp_contact")
