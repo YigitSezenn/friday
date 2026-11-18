@@ -388,7 +388,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(live_speech_code("models/gemini-3.8-live", {"language": "en"}), "en")
         self.assertTrue(is_newer("3.6", "3.5"))
         self.assertFalse(is_newer("3.5", "3.6"))
-        hud = (Path(__file__).resolve().parents[1] / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        hud = "\n".join(f.read_text(encoding="utf-8") for f in sorted((Path(__file__).resolve().parents[1] / "ui" / "hud").glob("hud-*.js")))
         self.assertIn("applyLanguage", hud)
         self.assertIn("send(\"settings\", {values: {language: value}})", hud)
 
@@ -432,7 +432,7 @@ class JarvisTestCase(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
         css = (root / "ui" / "hud" / "hud.css").read_text(encoding="utf-8")
-        script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        script = "\n".join(f.read_text(encoding="utf-8") for f in sorted((root / "ui" / "hud").glob("hud-*.js")))
         self.assertIn('id="onboard"', html)
         self.assertNotIn("ov-welcome", html)
         self.assertNotIn("greet-ring", html)
@@ -516,7 +516,7 @@ class JarvisTestCase(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         bridge = "\n".join(path.read_text(encoding="utf-8") for path in sorted((root / "ui").glob("*.py")))
         html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
-        script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        script = "\n".join(f.read_text(encoding="utf-8") for f in sorted((root / "ui" / "hud").glob("hud-*.js")))
         self.assertIn("events.closing", bridge)
         self.assertIn("minimize_to_taskbar", bridge)
         self.assertIn("play_close_sfx", bridge)
