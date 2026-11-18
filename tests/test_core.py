@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests._env import needs_gate, needs_module, windows_only
+
 
 class JarvisTestCase(unittest.TestCase):
     def setUp(self):
@@ -46,6 +48,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("Guvenlik", shell_run("del C:\\Windows\\notepad.exe"))
         self.assertIn("belirtilmedi", shell_run("   ").lower())
 
+    @windows_only
     def test_shell_runs_safe_command(self):
         from tools.actions.shell import shell_run
 
@@ -178,6 +181,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(card["uvLabel"], "orta")
         self.assertEqual(len(card["hours"]), 1)
 
+    @needs_gate
     def test_gate_rejects_a_wrong_key_and_queues_a_command(self):
         from gate.logic import CommandQueue, key_matches
 
@@ -226,6 +230,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertNotIn("activity_end", source)
         self.assertNotIn('"disabled"', source)
 
+    @needs_gate
     def test_gate_urlencoded_command_reaches_the_computer(self):
         import sys
         import threading
@@ -587,6 +592,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn('id="uninstall"', hud)
 
 
+    @needs_module("qrcode")
     def test_missing_gate_key_is_created_once_and_qr_matches(self):
         import base64
         import io
