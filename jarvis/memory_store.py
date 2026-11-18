@@ -95,7 +95,7 @@ def _entry_matches(needle: str, category: str, item_key: str, item_value) -> boo
 def delete_memory(category: str = "", key: str = "", match_text: str = "") -> str:
     mem = load_memory()
     if not mem:
-        return "Hafizada silinecek bir kayit yok."
+        return "Hafizada silinecek bir kayıt yok."
 
     category = (category or "").strip()
     key = (key or "").strip()
@@ -108,19 +108,19 @@ def delete_memory(category: str = "", key: str = "", match_text: str = "") -> st
             if not bucket:
                 mem.pop(category, None)
             _write_memory(mem)
-            return f"{category}/{key} hafizadan kaldirildi."
-        return "Bu hafiza kaydini bulamadim."
+            return f"{category}/{key} hafızadan kaldirildi."
+        return "Bu hafiza kaydini bulamadım."
 
     needle = _normalize_text(match_text or key)
     if not needle:
-        return "Silmek icin category/key veya match_text gerekli."
+        return "Silmek için category/key veya match_text gerekli."
 
     for cat, bucket in list(mem.items()):
         if not isinstance(bucket, dict):
             if _entry_matches(needle, cat, cat, bucket):
                 del mem[cat]
                 _write_memory(mem)
-                return f"{cat} hafizadan kaldirildi."
+                return f"{cat} hafızadan kaldirildi."
             continue
         for item_key, item_value in list(bucket.items()):
             if _entry_matches(needle, cat, item_key, item_value):
@@ -128,8 +128,8 @@ def delete_memory(category: str = "", key: str = "", match_text: str = "") -> st
                 if not bucket:
                     mem.pop(cat, None)
                 _write_memory(mem)
-                return f"{cat}/{item_key} hafizadan kaldirildi."
-    return "Eslestigim bir hafiza kaydi bulamadim."
+                return f"{cat}/{item_key} hafızadan kaldirildi."
+    return "Eslestigim bir hafiza kaydi bulamadım."
 
 
 def _has_entries(memory: dict) -> bool:

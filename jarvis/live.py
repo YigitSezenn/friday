@@ -398,7 +398,7 @@ class JarvisLive:
                         if spoken and not self._said_result:
                             self.ui.write_log(f"JARVIS: {spoken}")
                         elif output_noise and not self._said_result:
-                            self.ui.write_log("ERR: JARVIS sesli yanitini cozumlerken bir hata olustu.")
+                            self.ui.write_log("ERR: JARVIS sesli yanıtını çözümlerken bir hata oluştu.")
                             self.ui.set_state("ERROR")
                         await self._after_turn(bool(heard), bool(spoken) or got_audio, misheard)
                         in_buf, out_buf, output_noise = [], [], False
@@ -497,7 +497,7 @@ class JarvisLive:
             try:
                 await self._send_media(frame, "image/jpeg")
             except Exception as exc:
-                self.ui.write_log(f"ERR: Kamera karesi gonderilemedi. ({exc})")
+                self.ui.write_log(f"ERR: Kamera karesi gönderilemedi. ({exc})")
             await asyncio.sleep(0.5)
 
     async def _preview_webcam(self) -> None:
@@ -598,7 +598,7 @@ class JarvisLive:
         if self.session is None:
             return
         try:
-            await self._send_user_text(f"[Sistem notu, sesli ve kisa soyle] {text}")
+            await self._send_user_text(f"[Sistem notu, sesli ve kısa söyle] {text}")
         except Exception:
             pass  # oturum o anda kapanıyorsa sessizce vazgeç
 

@@ -95,19 +95,19 @@ def set_volume(target: str = "spotify", level=None, change=None, mute=None, back
     try:
         api = backend or _Backend()
     except Exception as exc:  # pycaw/comtypes yoksa ya da Windows değilse
-        return f"Ses kontrolu kullanilamiyor: {exc}"
+        return f"Ses kontrolü kullanılamıyor: {exc}"
     try:
         if name == "system":
             _now, new = _set_master(api, level, change, mute)
-            label = "Bilgisayarin sesi"
+            label = "Bilgisayarın sesi"
         else:
             exes = TARGETS.get(name, (name if name.endswith(".exe") else name + ".exe",))
             volumes = api.sessions(exes)
-            label = {"spotify": "Spotify", "youtube": "Tarayici (YouTube)"}.get(name, target)
+            label = {"spotify": "Spotify", "youtube": "Tarayıcı (YouTube)"}.get(name, target)
             if not volumes:
                 # Uygulama ses oturumu yoksa (henüz çalmadı) genel sesi ayarla; kullanıcı yine de sonuç alsın.
                 _now, new = _set_master(api, level, change, mute)
-                return f"{label} su an ses calmiyor; bilgisayarin genel sesini %{round(new)} yaptim."
+                return f"{label} şu an ses çalmıyor; bilgisayarın genel sesini %{round(new)} yaptım."
             now = volumes[0].GetMasterVolume() * 100
             new = resolve_level(now, level, change)
             for vol in volumes:
@@ -122,9 +122,9 @@ def set_volume(target: str = "spotify", level=None, change=None, mute=None, back
             # Uygulama kaydırıcısı zaten tavandaysa "aç" isteği genel sese gider (yoksa hiçbir şey değişmezdi).
             if mute is None and wanted is not None and wanted > now and now >= 99.5:
                 _m_now, m_new = _set_master(api, None, _percent(change) or 15, None)
-                return f"{label} zaten en yuksekteydi; bilgisayarin genel sesini %{round(m_new)} yaptim."
+                return f"{label} zaten en yüksekteydi; bilgisayarın genel sesini %{round(m_new)} yaptım."
     except Exception as exc:
         return f"Ses ayarlanamadi: {exc}"
     if mute:
-        return f"{label} sessize alindi."
-    return f"{label} sesi %{round(new)} yapildi."
+        return f"{label} sessize alındı."
+    return f"{label} sesi %{round(new)} yapıldı."

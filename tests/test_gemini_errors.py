@@ -108,8 +108,8 @@ class LocationToolTests(unittest.TestCase):
     def test_empty_or_huge_location_is_rejected(self):
         from tools.dispatch import execute_tool
 
-        self.assertIn("gecersiz", execute_tool("set_location", {"location": "  "}))
-        self.assertIn("gecersiz", execute_tool("set_location", {"location": "x" * 200}))
+        self.assertIn("geçersiz", execute_tool("set_location", {"location": "  "}))
+        self.assertIn("geçersiz", execute_tool("set_location", {"location": "x" * 200}))
 
     def test_saved_key_is_cleaned(self):
         from jarvis.config import get_app_config_value, save_app_config

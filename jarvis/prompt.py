@@ -26,11 +26,11 @@ WINDOWS_REPLACEMENTS: list[tuple[str, str]] = [
 
 WINDOWS_NOTE = (
     "\nPLATFORM NOTU (Windows):\n"
-    "- Kabuk komutlari PowerShell sozdizimiyle yazilir (ls degil Get-ChildItem, "
+    "- Kabuk komutlari PowerShell sozdizimiyle yazilir (ls değil Get-ChildItem, "
     "dosya yollarinda ters bolu).\n"
-    "- Takvim ve animsaticilar Outlook yapilandirilmissa Outlook'a, degilse "
-    "JARVIS'in kendi yerel takvimine yazilir. Kullanici sormadikca bu ayrimi anlatma.\n"
-    "- Apple Music yoktur; muzik istekleri Spotify veya YouTube uzerinden karsilanir.\n"
+    "- Takvim ve anımsatıcılar Outlook yapılandırılmışsa Outlook'a, değilse "
+    "JARVIS'in kendi yerel takvimine yazilir. Kullanıcı sormadikca bu ayrimi anlatma.\n"
+    "- Apple Music yoktur; muzik istekleri Spotify veya YouTube üzerinden karsilanir.\n"
     "- get_health_data bu Windows surumunde yoktur; saglik orneklerini uygulama.\n"
 )
 

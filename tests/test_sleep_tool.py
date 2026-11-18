@@ -24,7 +24,7 @@ class SleepToolTest(unittest.TestCase):
         self.assertIn("window.hud.sleep(false, 0)", ui.scripts[-1])
 
     def test_without_ui(self):
-        self.assertIn("kullanilamiyor", execute_tool("sleep_mode", {"asleep": True}))
+        self.assertIn("kullanılamıyor", execute_tool("sleep_mode", {"asleep": True}))
 
 
 if __name__ == "__main__":
