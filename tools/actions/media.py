@@ -70,11 +70,11 @@ def spotify_cli_path() -> Path | None:
 
 
 def _press_media(vk: int) -> None:
-    import ctypes
+    from jarvis.win32 import available, press_keys
 
-    user32 = ctypes.windll.user32
-    user32.keybd_event(vk, 0, 0, 0)
-    user32.keybd_event(vk, 0, 2, 0)
+    if not available():
+        raise OSError("Yalnızca Windows'ta")
+    press_keys(vk)
 
 
 def play_media(query: str, provider: str = "auto", autoplay: bool = True) -> str:
