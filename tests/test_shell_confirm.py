@@ -19,8 +19,8 @@ class ShellConfirmTest(unittest.TestCase):
     def test_changing_command_needs_confirm(self):
         with mock.patch("subprocess.run") as run:
             out = shell_run("Stop-Process -Name notepad")
-            self.assertIn("ONAY GEREKLI", out)
-            self.assertIn("Calistirayim mi?", out)
+            self.assertIn("ONAY GEREKLİ", out)
+            self.assertIn("Çalıştırayım mı?", out)
             run.assert_not_called()
             self.assertIn("ONAY", shell_run("Stop-Process -Name notepad", confirm_run=True))  # çok erken
             run.assert_not_called()

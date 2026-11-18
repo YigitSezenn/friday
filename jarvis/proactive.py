@@ -10,13 +10,13 @@ def due_nudges(now: float, state: dict, config: dict, paused: bool = False) -> l
     last_heard = float(state.get("heard") or now)
     if now - last_heard >= quiet * 60 and now - float(state.get("silence") or 0) >= quiet * 60:
         state["silence"] = now
-        notes.append("Uzun sessizlik oldu. Bir kez, kisa ve israr etmeden soz al.")
+        notes.append("Uzun sessizlik oldu. Bir kez, kısa ve israr etmeden soz al.")
     if config.get("water_enabled") and now - float(state.get("water") or 0) >= 3600:
         state["water"] = now
-        notes.append("Su hatirlatmasi: kisa bir yudum oner.")
+        notes.append("Su hatirlatmasi: kısa bir yudum oner.")
     if config.get("break_enabled") and now - float(state.get("break") or 0) >= 50 * 60:
         state["break"] = now
-        notes.append("Mola hatirlatmasi: kalkip gerinmeyi kisa oner.")
+        notes.append("Mola hatirlatmasi: kalkip gerinmeyi kısa oner.")
     if config.get("event_alerts"):
         notes.extend(_event_note(now, state))
     return notes
@@ -37,4 +37,4 @@ def _event_note(now: float, state: dict) -> list[str]:
     first = next((line for line in text.splitlines() if line.startswith("- ")), "")
     if not first:
         return []
-    return [f"Yaklasan takvim: {first[2:]} Bir kez haber ver."]
+    return [f"Yaklaşan takvim: {first[2:]} Bir kez haber ver."]

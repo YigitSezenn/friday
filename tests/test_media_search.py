@@ -56,7 +56,7 @@ class SpotifyVerificationTests(unittest.TestCase):
                 mock.patch.object(media, "play_saved_collection", return_value=None), \
                 mock.patch.object(media, "wait_until_playing", return_value=(False, {})):
             result = media._play_spotify("Blinding Lights", "spotify.exe")
-        self.assertIn("dogrulayamadim", result)
+        self.assertIn("doğrulayamadım", result)
         self.assertNotIn("acilmadi", result)
         self.assertNotIn("acilamadi", result)
 
@@ -163,7 +163,7 @@ class WebSearchTests(unittest.TestCase):
         result = web_search("x", ask=ask, fallback=lambda q: "")
         self.assertEqual(len(calls), 1)
         self.assertIn("ERİŞİM KAPALI", result)
-        self.assertIn("yapilamadi", result)
+        self.assertIn("yapılamadı", result)
 
     def test_everything_failing_names_each_reason_and_hides_the_key(self):
         from tools.actions.search import web_search
@@ -192,7 +192,7 @@ class WebSearchTests(unittest.TestCase):
     def test_empty_query_and_long_answers(self):
         from tools.actions.search import ANSWER_LIMIT, web_search
 
-        self.assertIn("bos", web_search("   "))
+        self.assertIn("boş", web_search("   "))
         self._key()
         self.assertEqual(len(web_search("x", ask=lambda *a: "a" * 5000)), ANSWER_LIMIT)
 

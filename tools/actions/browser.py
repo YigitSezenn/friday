@@ -49,17 +49,17 @@ def browser_control(action: str, url: str | None = None, query: str | None = Non
         if not str(url).startswith(("http://", "https://")):
             url = "https://" + str(url)
         open_url(url)
-        return f"Acildi: {url}"
+        return f"Açıldı: {url}"
     if action == "search":
         if not query:
             return "Arama sorgusu belirtilmedi."
         encoded = urllib.parse.quote(query)
         search_url = f"https://www.google.com/search?q={encoded}"
         open_url(search_url)
-        return f"'{query}' icin arama acildi: {search_url}"
+        return f"'{query}' için arama açıldı: {search_url}"
     if action in ("play_youtube", "youtube_play", "play_music"):
         if not query:
-            return "YouTube icin arama sorgusu belirtilmedi."
+            return "YouTube için arama sorgusu belirtilmedi."
         _stop_current_playback()
         try:
             video_id = _find_first_youtube_video(query)
@@ -67,12 +67,12 @@ def browser_control(action: str, url: str | None = None, query: str | None = Non
             encoded = urllib.parse.quote(query)
             fallback = f"https://www.youtube.com/results?search_query={encoded}"
             open_url(fallback)
-            return f"YouTube ilk sonucu alinamadi ({exc}). Arama sonuclari acildi: {query}"
+            return f"YouTube ilk sonucu alınamadı ({exc}). Arama sonuçları açıldı: {query}"
         if not video_id:
             encoded = urllib.parse.quote(query)
             fallback = f"https://www.youtube.com/results?search_query={encoded}"
             open_url(fallback)
-            return f"YouTube'da dogrudan video bulunamadi. Arama sonuclari acildi: {query}"
+            return f"YouTube'da doğrudan video bulunamadi. Arama sonuçları açıldı: {query}"
         watch = f"https://www.youtube.com/watch?v={video_id}&autoplay=1"
         open_url(watch)
         return f"YouTube'da oynatiliyor: {watch}"

@@ -4,14 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests._env import needs_gate, needs_module, windows_only
+
 
 class JarvisTestCase(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         os.environ["JARVIS_DATA_DIR"] = self._tmp.name
         os.environ["JARVIS_CALENDAR_BACKEND"] = "local"
-        from jarvis import config as config_module
-
         self.addCleanup(self._tmp.cleanup)
 
     def test_config_roundtrip_and_bad_voice(self):
@@ -41,23 +41,24 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("yok", delete_memory(category="identity", key="name").lower() + delete_memory())
 
     def test_shell_blocks_destructive_commands(self):
-        from jarvis.actions.shell import shell_run
+        from tools.actions.shell import shell_run
 
         blocked = shell_run("Remove-Item -Recurse C:\\")
-        self.assertIn("Guvenlik", blocked)
-        self.assertIn("Guvenlik", shell_run("del C:\\Windows\\notepad.exe"))
+        self.assertIn("Güvenlik", blocked)
+        self.assertIn("Güvenlik", shell_run("del C:\\Windows\\notepad.exe"))
         self.assertIn("belirtilmedi", shell_run("   ").lower())
 
+    @windows_only
     def test_shell_runs_safe_command(self):
-        from jarvis.actions.shell import shell_run
+        from tools.actions.shell import shell_run
 
         self.assertEqual(shell_run("Write-Output tamam"), "tamam")
 
     def test_calendar_and_reminder_roundtrip(self):
-        from jarvis.actions.calendar import add_calendar_event, delete_calendar_event, get_calendar_events
-        from jarvis.actions.reminders import add_reminder, get_reminders
+        from tools.actions.calendar import add_calendar_event, delete_calendar_event, get_calendar_events
+        from tools.actions.reminders import add_reminder, get_reminders
 
-        self.assertIn("gorunmuyor", get_calendar_events("today"))
+        self.assertIn("görünmüyor", get_calendar_events("today"))
         when = (dt.datetime.now() + dt.timedelta(days=2)).replace(hour=15, minute=0, second=0, microsecond=0)
         added = add_calendar_event("Disci", when.strftime("%Y-%m-%dT%H:%M"))
         self.assertIn("Takvime eklendi", added)
@@ -111,7 +112,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("token=", phone_url())
 
     def test_whatsapp_contact_lookup(self):
-        from jarvis.actions.whatsapp import find_contact, normalize_phone, save_whatsapp_contact
+        from tools.actions.whatsapp import find_contact, normalize_phone, save_whatsapp_contact
 
         self.assertEqual(normalize_phone("0555 111 22 33"), "905551112233")
         self.assertIn("kaydedildi", save_whatsapp_contact("Annem", "05551112233", "anne").lower())
@@ -126,13 +127,13 @@ class JarvisTestCase(unittest.TestCase):
 
         saved = execute_tool("save_memory", {"category": "notes", "key": "renk", "value": "mavi"})
         self.assertIn("mavi", saved)
-        self.assertIn("dolu olmali", execute_tool("save_memory", {"category": "notes"}))
+        self.assertIn("dolu olmalı", execute_tool("save_memory", {"category": "notes"}))
         self.assertIn("Bilinmeyen", execute_tool("yok", {}))
-        self.assertIn("yalnizca aktif pencere", execute_tool("analyze_screen", {"target": "desktop"}))
+        self.assertIn("yalnızca aktif pencere", execute_tool("analyze_screen", {"target": "desktop"}))
         self.assertIn("YouTube API", execute_tool("get_youtube_channel_report", {}))
 
     def test_weather_summary_parser(self):
-        from jarvis.actions.weather import summarize_weather_payload
+        from tools.actions.weather import summarize_weather_payload
 
         text = summarize_weather_payload(
             {
@@ -149,7 +150,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("Istanbul", text)
         self.assertIn("18 derece", text)
         self.assertIn("nem", text)
-        from jarvis.actions.weather import weather_card
+        from tools.actions.weather import weather_card
 
         card = weather_card(
             {
@@ -180,6 +181,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(card["uvLabel"], "orta")
         self.assertEqual(len(card["hours"]), 1)
 
+    @needs_gate
     def test_gate_rejects_a_wrong_key_and_queues_a_command(self):
         from gate.logic import CommandQueue, key_matches
 
@@ -193,7 +195,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(queue.take(), [])
 
     def test_app_alias_without_launching(self):
-        from jarvis.actions.apps import resolve_alias
+        from tools.actions.apps import resolve_alias
 
         self.assertEqual(resolve_alias("hesap makinesi"), "Calculator")
         self.assertEqual(resolve_alias("not defteri"), "Notepad")
@@ -206,21 +208,6 @@ class JarvisTestCase(unittest.TestCase):
         text, noisy = clean_transcript("Merhaba <ctrl46>   dünya\x01")
         self.assertEqual(text, "Merhaba dünya")
         self.assertTrue(noisy)
-
-    def test_turn_closes_after_silence(self):
-        from jarvis.audio.turn import TurnGate
-
-        gate = TurnGate(speech=0.02, silence_s=0.7)
-        loud = b"\xff\x0f" * 160
-        quiet = b"\x00\x00" * 160
-        before, after = gate.feed(loud, 0.0)
-        self.assertEqual(before, ["start"])
-        self.assertEqual(after, [])
-        before, after = gate.feed(quiet, 0.3)
-        self.assertEqual((before, after), ([], []))
-        before, after = gate.feed(quiet, 1.1)
-        self.assertEqual(after, ["end"])
-        self.assertFalse(gate.open)
 
     def test_live_mic_follows_server_vad(self):
         from jarvis.live import JarvisLive, queue_mic_frame
@@ -243,6 +230,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertNotIn("activity_end", source)
         self.assertNotIn('"disabled"', source)
 
+    @needs_gate
     def test_gate_urlencoded_command_reaches_the_computer(self):
         import sys
         import threading
@@ -334,8 +322,8 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("return null", script)
 
     def test_ics_written(self):
-        from jarvis.actions.calendar import add_calendar_event
-        from jarvis.actions.calendar_store import ics_path
+        from tools.actions.calendar import add_calendar_event
+        from tools.actions.calendar_store import ics_path
 
         add_calendar_event("Deneme", "2099-05-05")
         ics = Path(ics_path()).read_text(encoding="utf-8")
@@ -400,16 +388,16 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(live_speech_code("models/gemini-3.8-live", {"language": "en"}), "en")
         self.assertTrue(is_newer("3.6", "3.5"))
         self.assertFalse(is_newer("3.5", "3.6"))
-        hud = (Path(__file__).resolve().parents[1] / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        hud = "\n".join(f.read_text(encoding="utf-8") for f in sorted((Path(__file__).resolve().parents[1] / "ui" / "hud").glob("hud-*.js")))
         self.assertIn("applyLanguage", hud)
         self.assertIn("send(\"settings\", {values: {language: value}})", hud)
 
     def test_story_search_files_and_vision_code(self):
         from pathlib import Path
 
-        from jarvis.actions.files import list_user_files
-        from jarvis.actions.screen import VISION_MODELS, explain_vision_error
-        from jarvis.actions.search import web_search
+        from tools.actions.files import list_user_files
+        from tools.actions.screen import VISION_MODELS, explain_vision_error
+        from tools.actions.search import web_search
         from jarvis.config import save_app_config
         from jarvis.proactive import due_nudges
         from jarvis.story import note_tool, view
@@ -420,7 +408,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("models/gemini-flash-latest", VISION_MODELS)
         self.assertNotIn("models/gemini-2.0-flash", VISION_MODELS)
         self.assertIn("kod 4", explain_vision_error(RuntimeError("4")))
-        self.assertIn("bos", web_search("  ").lower())
+        self.assertIn("boş", web_search("  ").lower())
         folder = Path(self._tmp.name) / "Desktop"
         folder.mkdir()
         (folder / "not.txt").write_text("x", encoding="utf-8")
@@ -440,41 +428,11 @@ class JarvisTestCase(unittest.TestCase):
         self.assertTrue(any("Su" in note for note in notes))
 
 
-    def test_capture_path_applies_echo_and_noise_filter(self):
-        import array
-
-        from jarvis.audio.capture import CaptureFilter, aec_wanted, chunks_for_model
-        from jarvis.config import save_app_config
-
-        self.assertTrue(aec_wanted())
-        save_app_config({"aec_enabled": False})
-        self.assertFalse(aec_wanted())
-        save_app_config({"aec_enabled": True})
-        quiet = array.array("h", [80] * 1024).tobytes()
-        loud = array.array("h", [16000] * 1024).tobytes()
-        filt = CaptureFilter()
-        filt.note_playback(b"\x00\x00" * 24000, now=0.0)
-        dropped = []
-        now = 10.0
-        for step in range(4):
-            dropped.extend(chunks_for_model(quiet, speaking=True, echo_cancelled=True, filt=filt, now=now + step * 0.05))
-        self.assertEqual(dropped, [])
-        sent = []
-        for step in range(6):
-            sent.extend(chunks_for_model(loud, speaking=True, echo_cancelled=True, filt=filt, now=now + 1 + step * 0.05))
-        self.assertIn(loud, sent)
-        self.assertLess(len(dropped), 4)
-        plain = chunks_for_model(loud, speaking=True, echo_cancelled=False, filt=CaptureFilter(), now=now)
-        self.assertEqual(plain, [])
-        heard = chunks_for_model(loud, speaking=False, echo_cancelled=False, filt=CaptureFilter(), now=now)
-        self.assertEqual(heard, [loud])
-        self.assertEqual(chunks_for_model(quiet, speaking=False, echo_cancelled=True, filt=filt, now=now + 8), [quiet])
-
     def test_first_run_screen_closes_and_uses_hud_type(self):
         root = Path(__file__).resolve().parents[1]
         html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
         css = (root / "ui" / "hud" / "hud.css").read_text(encoding="utf-8")
-        script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        script = "\n".join(f.read_text(encoding="utf-8") for f in sorted((root / "ui" / "hud").glob("hud-*.js")))
         self.assertIn('id="onboard"', html)
         self.assertNotIn("ov-welcome", html)
         self.assertNotIn("greet-ring", html)
@@ -556,9 +514,9 @@ class JarvisTestCase(unittest.TestCase):
         self.assertTrue(installer_is_running(["FRIDAY-Kurulum.exe"]))
         self.assertTrue(installer_is_running(["unins000.exe"]))
         root = Path(__file__).resolve().parents[1]
-        bridge = (root / "ui" / "bridge.py").read_text(encoding="utf-8")
+        bridge = "\n".join(path.read_text(encoding="utf-8") for path in sorted((root / "ui").glob("*.py")))
         html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
-        script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
+        script = "\n".join(f.read_text(encoding="utf-8") for f in sorted((root / "ui" / "hud").glob("hud-*.js")))
         self.assertIn("events.closing", bridge)
         self.assertIn("minimize_to_taskbar", bridge)
         self.assertIn("play_close_sfx", bridge)
@@ -634,6 +592,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn('id="uninstall"', hud)
 
 
+    @needs_module("qrcode")
     def test_missing_gate_key_is_created_once_and_qr_matches(self):
         import base64
         import io

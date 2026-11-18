@@ -191,8 +191,6 @@
         <select class="sel" name="voice"></select></div>
       <div class="row2 vol"><div>ASİSTANIN SESİ<small id="vol-label">%100</small></div>
         <input name="voice_volume" type="range" min="0" max="150" step="5" value="100"></div>
-      <div class="row2"><div>YANKI ENGELLEME<small>Açıkken hoparlör yankısı ve konuşma sırasındaki ortam gürültüsü mikrofona karışmadan önce silinir. Mikrofon düzgün çalışmıyorsa kapat.</small></div>
-        <button type="button" class="switch" id="set-aec" role="switch" aria-checked="true"></button></div>
       <div class="row2"><div>SABIRLI DİNLEME<small>Hızlı ya da duraksayarak konuşunca cümlen yarıda kesilmez; FRIDAY bitirmeni kısa bir sessizlikle anlar. Kapatınca daha çabuk yanıtlar.</small></div>
         <button type="button" class="switch" id="set-patient" role="switch" aria-checked="true"></button></div>
       <div class="row2"><div>SES EFEKTLERİ<small>Açılış, kapanış ve onay sesleri.</small></div>
@@ -315,7 +313,13 @@
   </div>
 </div>
 <script src="i18n.js"></script>
-<script src="hud.js"></script>
+<script src="hud-base.js"></script>
+<script src="hud-core.js"></script>
+<script src="hud-panels.js"></script>
+<script src="hud-api.js"></script>
+<script src="hud-settings.js"></script>
+<script src="hud-overlays.js"></script>
+<script src="hud-events.js"></script>
 <script src="core3d.js"></script>
 </body>
 </html>

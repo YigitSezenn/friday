@@ -47,9 +47,9 @@ def save_memory(args, ctx):
     key = str(args.get("key") or "").strip()
     value = str(args.get("value") or "").strip()
     if not key or not value:
-        return "Hafizaya yazilamadi: key ve value dolu olmali."
+        return "Hafızaya yazilamadi: key ve value dolu olmalı."
     update_memory({category: {key: {"value": value}}})
-    return f"Hafizaya kaydedildi: {category}/{key} = {value}"
+    return f"Hafızaya kaydedildi: {category}/{key} = {value}"
 
 
 @tool("delete_memory")
@@ -172,7 +172,7 @@ def shell_run(args, ctx):
 def toggle_webcam(args, ctx):
     action = text(args, "action", "start").strip().lower()
     if ctx.webcam is None:
-        return "Webcam bu oturumda kullanilamiyor."
+        return "Webcam bu oturumda kullanılamıyor."
     if action == "start":
         status = ctx.webcam.start()
         if ctx.ui:
@@ -180,7 +180,7 @@ def toggle_webcam(args, ctx):
         if status == "ok":
             return "Webcam akisi baslatildi. Artik kamerani goruyorum."
         if status == "already_active":
-            return "Webcam zaten acik, goruntu aliyorum."
+            return "Webcam zaten açık, görüntü aliyorum."
         return "Webcam baslatilamadi."
     ctx.webcam.stop()
     if ctx.ui:
@@ -199,7 +199,7 @@ def notes_list(args, ctx):
 
     lines = notes.load()
     if not lines:
-        return "Hic not yok."
+        return "Hiç not yok."
     return "Notlar:\n" + "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
 
 
@@ -209,7 +209,7 @@ def note_add(args, ctx):
 
     note = text(args, "text")
     if not note.strip():
-        return "Not metni bos."
+        return "Not metni boş."
     lines = notes.add(note)
     if (ui := _ui_or_none(ctx)) is not None:
         ui._call("notes", lines)
@@ -222,7 +222,7 @@ def note_delete(args, ctx):
 
     lines, removed = notes.remove(text(args, "target"))
     if removed is None:
-        return "Silinecek not bulunamadi. Numarasini ya da icinden bir kelime soyle."
+        return "Silinecek not bulunamadi. Numarasini ya da içinden bir kelime söyle."
     if (ui := _ui_or_none(ctx)) is not None:
         ui._call("notes", lines)
     return f"Not silindi: {removed}"
@@ -234,10 +234,10 @@ def note_edit(args, ctx):
 
     lines, old = notes.edit(text(args, "target"), text(args, "text"))
     if old is None:
-        return "Duzenlenecek not bulunamadi ya da yeni metin bos."
+        return "Düzenlenecek not bulunamadi ya da yeni metin boş."
     if (ui := _ui_or_none(ctx)) is not None:
         ui._call("notes", lines)
-    return f"Not guncellendi: '{old}' -> '{text(args, 'text').strip()}'"
+    return f"Not güncellendi: '{old}' -> '{text(args, 'text').strip()}'"
 
 
 @tool("timer_set")
@@ -247,11 +247,11 @@ def timer_set(args, ctx):
     ui = _ui_or_none(ctx)
     seconds = parse_seconds(args.get("minutes"), args.get("seconds"))
     if ui is None:
-        return "Zamanlayici su an kullanilamiyor."
+        return "Zamanlayıcı şu an kullanılamıyor."
     if seconds <= 0:
-        return "Sure belirtilmedi."
+        return "Süre belirtilmedi."
     ui.timer_set(seconds, text(args, "label"))
-    return f"Zamanlayici kuruldu: {clock(seconds)}" + (f" ({text(args, 'label')})" if text(args, "label") else "") + "."
+    return f"Zamanlayıcı kuruldu: {clock(seconds)}" + (f" ({text(args, 'label')})" if text(args, "label") else "") + "."
 
 
 @tool("timer_add")
@@ -263,20 +263,20 @@ def timer_add(args, ctx):
     ui = _ui_or_none(ctx)
     seconds = parse_seconds(args.get("minutes"), args.get("seconds"))
     if ui is None:
-        return "Zamanlayici su an kullanilamiyor."
+        return "Zamanlayıcı şu an kullanılamıyor."
     if seconds == 0:
-        return "Eklenecek sure belirtilmedi."
+        return "Eklenecek süre belirtilmedi."
     running = ui.timer_add(seconds)
     left = ui.timer.remaining(_time.time())
-    return (f"Sureye eklendi; kalan {clock(left)}." if running else f"Calisan zamanlayici yoktu; {clock(left)} yeni zamanlayici kuruldu.")
+    return (f"Sureye eklendi; kalan {clock(left)}." if running else f"Çalışan zamanlayıcı yoktu; {clock(left)} yeni zamanlayıcı kuruldu.")
 
 
 @tool("timer_cancel")
 def timer_cancel(args, ctx):
     ui = _ui_or_none(ctx)
     if ui is None:
-        return "Zamanlayici su an kullanilamiyor."
-    return "Zamanlayici iptal edildi." if ui.timer_cancel() else "Calisan zamanlayici yok."
+        return "Zamanlayıcı şu an kullanılamıyor."
+    return "Zamanlayıcı iptal edildi." if ui.timer_cancel() else "Çalışan zamanlayıcı yok."
 
 
 @tool("timer_status")
@@ -287,13 +287,13 @@ def timer_status(args, ctx):
 
     ui = _ui_or_none(ctx)
     if ui is None:
-        return "Zamanlayici su an kullanilamiyor."
+        return "Zamanlayıcı şu an kullanılamıyor."
     now = _time.time()
     left = ui.timer.remaining(now)
-    parts = [f"Zamanlayicida {spoken(left)} kaldi ({clock(left)})." if left else "Calisan zamanlayici yok."]
+    parts = [f"Zamanlayicida {spoken(left)} kaldı ({clock(left)})." if left else "Çalışan zamanlayıcı yok."]
     watched = ui.timer.elapsed(now)
     if watched:
-        parts.append(f"Kronometre {clock(int(watched))}" + (" (calisiyor)." if ui.timer.watch_running else " (durdu)."))
+        parts.append(f"Kronometre {clock(int(watched))}" + (" (çalışıyor)." if ui.timer.watch_running else " (durdu)."))
     return " ".join(parts)
 
 
@@ -303,7 +303,7 @@ def stopwatch(args, ctx):
 
     ui = _ui_or_none(ctx)
     if ui is None:
-        return "Kronometre su an kullanilamiyor."
+        return "Kronometre şu an kullanılamıyor."
     action = text(args, "action", "toggle")
     elapsed = ui.timer_watch(action)
     state = "calisiyor" if ui.timer.watch_running else "durdu"
@@ -315,11 +315,11 @@ def sleep_mode(args, ctx):
     asleep = bool(args.get("asleep", True))
     ui = ctx.ui
     if ui is None or not hasattr(ui, "_js"):
-        return "Uyku modu su an kullanilamiyor."
+        return "Uyku modu şu an kullanılamıyor."
     # Kısa gecikme: önce vedalaşma cümlesi söylenir, sonra mikrofon uykuya geçer.
     ui._js(f"window.hud && window.hud.sleep({'true' if asleep else 'false'}, {2500 if asleep else 0})")
     if asleep:
-        return "Uyku moduna geciliyor. Kullaniciya kisa bir veda et; uyandirmak icin cekirdege tiklamasini, F4'e basmasini ya da bir sey yazmasini soyle."
+        return "Uyku moduna geçiliyor. Kullanıcıya kısa bir veda et; uyandırmak için cekirdege tıklamasını, F4'e basmasını ya da bir sey yazmasını söyle."
     return "Uyandim."
 
 
@@ -430,12 +430,12 @@ def set_location(args, ctx):
     if bool(args.get("auto", False)):
         save_app_config({"weather_location": ""})
         clear_detected_city()
-        return "Konum otomatik yapildi; internet baglantindan yeniden bulunacak."
+        return "Konum otomatik yapıldı; internet bağlantından yeniden bulunacak."
     place = " ".join(text(args, "location").split())
     if not place or len(place) > 80:
-        return "Konum gecersiz: sehir ya da semt adi soyle."
+        return "Konum geçersiz: şehir ya da semt adı söyle."
     save_app_config({"weather_location": place})
     clear_detected_city()
     if ctx.ui:
         ctx.ui.focus_panel("weather")
-    return f"Konum kalici olarak {place} yapildi. Hava ve harita oraya gecti."
+    return f"Konum kalıcı olarak {place} yapıldı. Hava ve harita oraya gecti."
