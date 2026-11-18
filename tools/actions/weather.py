@@ -9,6 +9,12 @@ _detected_city = ""
 _lock = threading.Lock()
 
 
+def clear_detected_city() -> None:
+    global _detected_city
+    with _lock:
+        _detected_city = ""
+
+
 def configured_location() -> str:
     value = str(get_app_config_value("weather_location", "") or "").strip()
     if value:
