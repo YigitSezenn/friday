@@ -226,7 +226,36 @@ def send_whatsapp_message(args, ctx):
         text(args, "recipient_name"),
         bool(args.get("send_now", False)),
         text(args, "app_target", "auto"),
+        bool(args.get("confirm", False)),
     )
+
+
+@tool("send_email")
+def send_email(args, ctx):
+    from tools.actions.mail import send_email as run
+
+    return run(text(args, "to"), text(args, "subject"), text(args, "body"), text(args, "recipient_name"), bool(args.get("confirm", False)))
+
+
+@tool("save_email_contact")
+def save_email_contact(args, ctx):
+    from tools.actions.mail import save_email_contact as run
+
+    return run(text(args, "display_name"), text(args, "email"), text(args, "aliases"))
+
+
+@tool("connect_gmail")
+def connect_gmail(args, ctx):
+    from tools.actions.mail import connect_gmail as run
+
+    return run()
+
+
+@tool("open_mail")
+def open_mail(args, ctx):
+    from tools.actions.mail import open_mail as run
+
+    return run()
 
 
 @tool("save_whatsapp_contact")
