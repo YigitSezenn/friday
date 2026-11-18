@@ -49,6 +49,17 @@ def _invalid(char: str) -> bool:
     return unicodedata.category(char) in {"Cc", "Cs", "Co", "Cn"}
 
 
+_WORD_RE = re.compile(r"[^\W\d_]+")
+FRAGMENT_RATIO = 0.2
+
+
+def _fragmented(text: str) -> bool:
+    """'Spo tif y 'dan E vergün'i' gibi tek harfli parçalara bölünmüş döküm: gerçek konuşma değil."""
+    words = _WORD_RE.findall(text)
+    singles = [w for w in words if len(w) == 1 and w.lower() != "o"]
+    return len(words) >= 5 and len(singles) >= 2 and len(singles) / len(words) >= FRAGMENT_RATIO
+
+
 def usable_transcript(text: str, language: str = "tr") -> tuple[str, bool]:
     """(gösterilecek metin, anlaşılmadı mı).
 
@@ -74,6 +85,8 @@ def usable_transcript(text: str, language: str = "tr") -> tuple[str, bool]:
     if foreign and letters and foreign / letters > REJECT_RATIO:
         return "", True
     if not cleaned and noisy:
+        return "", True
+    if _fragmented(cleaned):
         return "", True
     return cleaned, False
 
