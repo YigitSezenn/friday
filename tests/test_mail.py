@@ -46,7 +46,7 @@ class MailTest(unittest.TestCase):
 
         self.assertIn("Geçersiz", send_email("yanlis", "s", "b"))
         self.assertIn("Geçersiz", send_email("a@b.co", "s\nBcc: x@y.z", "b"))
-        with mock.patch("webbrowser.open"):
+        with mock.patch("webbrowser.open"), mock.patch("tools.actions.mail._web_autosend", return_value=False):
             self.assertIn("tarayıcıda", send_email("a@b.co", "s", "b", provider="gmail"))
 
     def test_draft_then_confirm_sends_once(self):
@@ -116,7 +116,9 @@ class MailTest(unittest.TestCase):
     def test_auto_route_opens_gmail_web_compose(self):
         from tools.actions import mail
 
-        with mock.patch.object(mail, "outlook_available", return_value=False), mock.patch.object(mail.webbrowser, "open") as opened:
+        with mock.patch.object(mail, "outlook_available", return_value=False), \
+                mock.patch.object(mail, "_web_autosend", return_value=False), \
+                mock.patch.object(mail.webbrowser, "open") as opened:
             out = mail.send_email("a@b.co", "Konu ş", "Merhaba dünya")
         self.assertIn("Gönder", out)
         url = opened.call_args[0][0]

@@ -109,7 +109,7 @@ class ActionTests(unittest.TestCase):
 
         before = {proc.pid for proc in psutil.process_iter(["name"]) if (proc.info["name"] or "").lower() == "notepad.exe"}
         result = open_app("not defteri")
-        self.assertIn("acildi", result.lower())
+        self.assertTrue("acildi" in result.lower() or "açıldı" in result.lower(), result)
         time.sleep(1)
         after = [proc for proc in psutil.process_iter(["name"]) if (proc.info["name"] or "").lower() == "notepad.exe"]
         fresh = [proc for proc in after if proc.pid not in before]
