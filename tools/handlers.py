@@ -165,7 +165,7 @@ def browser_control(args, ctx):
 def shell_run(args, ctx):
     from tools.actions.shell import shell_run as run
 
-    return run(text(args, "command"))
+    return run(text(args, "command"), confirm_run=bool(args.get("confirm", False)))
 
 
 @tool("toggle_webcam")
@@ -186,6 +186,128 @@ def toggle_webcam(args, ctx):
     if ctx.ui:
         ctx.ui.set_webcam_active(False)
     return "Webcam akisi durduruldu."
+
+
+def _ui_or_none(ctx):
+    ui = ctx.ui
+    return ui if ui is not None and hasattr(ui, "_call") else None
+
+
+@tool("notes_list")
+def notes_list(args, ctx):
+    from jarvis import notes
+
+    lines = notes.load()
+    if not lines:
+        return "Hic not yok."
+    return "Notlar:\n" + "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
+
+
+@tool("note_add")
+def note_add(args, ctx):
+    from jarvis import notes
+
+    note = text(args, "text")
+    if not note.strip():
+        return "Not metni bos."
+    lines = notes.add(note)
+    if (ui := _ui_or_none(ctx)) is not None:
+        ui._call("notes", lines)
+    return f"Not eklendi ({len(lines)}. not): {lines[-1]}"
+
+
+@tool("note_delete")
+def note_delete(args, ctx):
+    from jarvis import notes
+
+    lines, removed = notes.remove(text(args, "target"))
+    if removed is None:
+        return "Silinecek not bulunamadi. Numarasini ya da icinden bir kelime soyle."
+    if (ui := _ui_or_none(ctx)) is not None:
+        ui._call("notes", lines)
+    return f"Not silindi: {removed}"
+
+
+@tool("note_edit")
+def note_edit(args, ctx):
+    from jarvis import notes
+
+    lines, old = notes.edit(text(args, "target"), text(args, "text"))
+    if old is None:
+        return "Duzenlenecek not bulunamadi ya da yeni metin bos."
+    if (ui := _ui_or_none(ctx)) is not None:
+        ui._call("notes", lines)
+    return f"Not guncellendi: '{old}' -> '{text(args, 'text').strip()}'"
+
+
+@tool("timer_set")
+def timer_set(args, ctx):
+    from jarvis.timer import clock, parse_seconds
+
+    ui = _ui_or_none(ctx)
+    seconds = parse_seconds(args.get("minutes"), args.get("seconds"))
+    if ui is None:
+        return "Zamanlayici su an kullanilamiyor."
+    if seconds <= 0:
+        return "Sure belirtilmedi."
+    ui.timer_set(seconds, text(args, "label"))
+    return f"Zamanlayici kuruldu: {clock(seconds)}" + (f" ({text(args, 'label')})" if text(args, "label") else "") + "."
+
+
+@tool("timer_add")
+def timer_add(args, ctx):
+    import time as _time
+
+    from jarvis.timer import clock, parse_seconds
+
+    ui = _ui_or_none(ctx)
+    seconds = parse_seconds(args.get("minutes"), args.get("seconds"))
+    if ui is None:
+        return "Zamanlayici su an kullanilamiyor."
+    if seconds == 0:
+        return "Eklenecek sure belirtilmedi."
+    running = ui.timer_add(seconds)
+    left = ui.timer.remaining(_time.time())
+    return (f"Sureye eklendi; kalan {clock(left)}." if running else f"Calisan zamanlayici yoktu; {clock(left)} yeni zamanlayici kuruldu.")
+
+
+@tool("timer_cancel")
+def timer_cancel(args, ctx):
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Zamanlayici su an kullanilamiyor."
+    return "Zamanlayici iptal edildi." if ui.timer_cancel() else "Calisan zamanlayici yok."
+
+
+@tool("timer_status")
+def timer_status(args, ctx):
+    import time as _time
+
+    from jarvis.timer import clock, spoken
+
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Zamanlayici su an kullanilamiyor."
+    now = _time.time()
+    left = ui.timer.remaining(now)
+    parts = [f"Zamanlayicida {spoken(left)} kaldi ({clock(left)})." if left else "Calisan zamanlayici yok."]
+    watched = ui.timer.elapsed(now)
+    if watched:
+        parts.append(f"Kronometre {clock(int(watched))}" + (" (calisiyor)." if ui.timer.watch_running else " (durdu)."))
+    return " ".join(parts)
+
+
+@tool("stopwatch")
+def stopwatch(args, ctx):
+    from jarvis.timer import clock
+
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Kronometre su an kullanilamiyor."
+    action = text(args, "action", "toggle")
+    elapsed = ui.timer_watch(action)
+    state = "calisiyor" if ui.timer.watch_running else "durdu"
+    return f"Kronometre {state}: {clock(int(elapsed))}."
 
 
 @tool("sleep_mode")

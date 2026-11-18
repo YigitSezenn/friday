@@ -204,8 +204,11 @@ function arcPath(fraction) {
 }
 
 let timerEnd = 0;
+let timerLabel = "";
+let timerSpan = 0;
 let stopwatch = false;
 let stopwatchStart = 0;
+let watchTotal = 0;
 let cpu = 0;
 
 function paintDials() {
@@ -219,15 +222,15 @@ function paintDials() {
   let text = "--:--";
   let sub = "HAZIR";
   if (timerEnd) {
+    // Sayaç Python'da; burada yalnızca gösterilir (bitiş alarmı da oradan gelir).
     const left = Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000));
-    text = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
-    sub = left ? "" : "BİTTİ";
-    if (!left) {
-      timerEnd = 0;
-      send("beep");
-    }
-  } else if (stopwatch) {
-    const elapsed = Math.floor((Date.now() - stopwatchStart) / 1000);
+    const h = Math.floor(left / 3600);
+    const m = Math.floor((left % 3600) / 60);
+    text = h ? `${h}:${String(m).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}` : `${String(m).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
+    sub = timerLabel ? timerLabel.toUpperCase().slice(0, 10) : (left ? "" : "BİTTİ");
+    timerFace.arc && timerSpan && timerFace.arc.setAttribute("d", arcPath(Math.max(0.02, left / timerSpan)));
+  } else if (stopwatch || watchTotal) {
+    const elapsed = Math.floor((stopwatch ? Date.now() - stopwatchStart : watchTotal) / 1000);
     text = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
     sub = "";
   }
@@ -264,9 +267,56 @@ function paintPalette(palette) {
     if (palette[key]) root.setProperty("--" + key, palette[key]);
   }
 }
+// Notlar: liste, çift tıkla düzenle, × ile sil (kalıcı kayıt Python'da: jarvis/notes.py).
 function renderNotes() {
   $("note-count").textContent = String(notes.length);
-  $("note-hint").textContent = notes.length ? notes.slice(-2).join("\n") : (uiPack.noteEmpty || "");
+  const hint = $("note-hint");
+  hint.textContent = uiPack.noteEmpty || "Henüz not yok. “Not al: …” de ya da aşağıya yaz.";
+  hint.hidden = notes.length > 0;
+  const list = $("note-list");
+  list.replaceChildren();
+  notes.forEach((note, index) => {
+    const item = document.createElement("li");
+    const text = document.createElement("span");
+    text.className = "note-text";
+    text.textContent = note;
+    text.title = "Düzenlemek için çift tıkla";
+    text.addEventListener("dblclick", () => editNote(item, index));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "note-x";
+    remove.title = "Notu sil";
+    remove.setAttribute("aria-label", "Notu sil: " + note);
+    remove.textContent = "×";
+    remove.addEventListener("click", () => {
+      item.classList.add("leaving");
+      setTimeout(() => send("note_delete", {index}), 180);
+    });
+    item.append(text, remove);
+    list.appendChild(item);
+  });
+}
+
+function editNote(item, index) {
+  const input = document.createElement("input");
+  input.className = "note-in note-edit";
+  input.value = notes[index] || "";
+  item.replaceChildren(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = save => {
+    if (done) return;
+    done = true;
+    const value = input.value.trim();
+    if (save && value && value !== notes[index]) send("note_edit", {index, text: value});
+    else renderNotes();
+  };
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter") finish(true);
+    if (event.key === "Escape") finish(false);
+  });
+  input.addEventListener("blur", () => finish(true));
 }
 
 function addLine(text, kind) {
@@ -369,6 +419,27 @@ window.hud = {
   notes(lines) {
     notes = lines || [];
     renderNotes();
+  },
+  timer(state) {
+    const s = state || {};
+    const newEnd = Number(s.end) || 0;
+    if (newEnd && newEnd !== timerEnd) timerSpan = Math.max(1, Math.round((newEnd - Date.now()) / 1000));
+    timerEnd = newEnd;
+    timerLabel = s.label || "";
+    stopwatch = !!s.watchRunning;
+    stopwatchStart = Number(s.watchStart) || 0;
+    watchTotal = Number(s.watchTotal) || 0;
+    $("timer-live").hidden = !timerEnd;
+    $("timer-hint").hidden = !!timerEnd;
+    $("timer-pick").hidden = !!timerEnd;
+    $("t-stop").textContent = stopwatch ? "⏸ KRONOMETREYİ DURDUR" : (watchTotal ? "▶ KRONOMETRE DEVAM" : "⏱ KRONOMETRE");
+  },
+  timerDone(label) {
+    $("td-label").textContent = label || "";
+    $("timer-done").hidden = false;
+    $("td-close").focus();
+    clearTimeout(window.__tdHide);
+    window.__tdHide = setTimeout(() => { $("timer-done").hidden = true; }, 60000);
   },
   updateOffer(version) {
     if (!version) return;
@@ -922,17 +993,20 @@ $("settings-form").addEventListener("submit", event => {
   send("settings", {values});
   $("ov-settings").hidden = true;
 });
-document.querySelectorAll(".tbtn[data-min]").forEach(button => {
-  button.addEventListener("click", () => {
-    stopwatch = false;
-    timerEnd = Date.now() + Number(button.dataset.min) * 60000;
-  });
+document.querySelectorAll("#timer-pick .tbtn[data-min]").forEach(button => {
+  button.addEventListener("click", () => send("timer", {action: "set", seconds: Number(button.dataset.min) * 60}));
 });
-$("t-stop").addEventListener("click", () => {
-  timerEnd = 0;
-  stopwatch = !stopwatch;
-  if (stopwatch) stopwatchStart = Date.now();
+document.querySelectorAll("#timer-live .tbtn[data-add]").forEach(button => {
+  button.addEventListener("click", () => send("timer", {action: "add", seconds: Number(button.dataset.add)}));
 });
+$("t-cancel").addEventListener("click", () => send("timer", {action: "cancel"}));
+$("t-stop").addEventListener("click", () => send("timer", {action: "watch", watch: "toggle"}));
+function closeTimerDone() {
+  $("timer-done").hidden = true;
+  send("timer", {action: "dismiss"});
+}
+$("td-close").addEventListener("click", closeTimerDone);
+$("td-snooze").addEventListener("click", () => { closeTimerDone(); send("timer", {action: "set", seconds: 300, label: $("td-label").textContent}); });
 $("note-in").addEventListener("keydown", event => {
   if (event.key !== "Enter") return;
   const text = event.target.value.trim();

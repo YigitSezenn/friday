@@ -7,7 +7,7 @@ from jarvis.config import DEFAULT_CONFIG
 
 class SoundAssetsTest(unittest.TestCase):
     def test_wavs_exist_and_are_valid(self):
-        for name, low, high in (("startup", 3, 10), ("shutdown", 3, 10), ("success", 0.2, 2), ("ambient", 10, 60)):
+        for name, low, high in (("startup", 3, 10), ("shutdown", 3, 10), ("success", 0.2, 2), ("alarm", 1, 5), ("ambient", 10, 60)):
             file = sounds.path(name)
             self.assertIsNotNone(file, name)
             with wave.open(str(file)) as w:
@@ -26,6 +26,22 @@ class SoundAssetsTest(unittest.TestCase):
         if sys.platform != "win32":
             self.assertFalse(sounds.play("startup"))
         self.assertFalse(sounds.play("yok-boyle-ses"))
+
+
+    def test_startup_sound_is_wired_into_boot(self):
+        import inspect
+
+        from ui.bridge import JarvisUI
+
+        self.assertIn("self.play_startup_sfx()", inspect.getsource(JarvisUI._boot))
+
+    def test_close_paths_use_farewell(self):
+        import inspect
+
+        from ui.bridge import JarvisUI
+
+        self.assertIn("begin_farewell", inspect.getsource(JarvisUI._on_closing))
+        self.assertIn("begin_farewell", inspect.getsource(JarvisUI.quit_app))
 
 
 if __name__ == "__main__":

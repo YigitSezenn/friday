@@ -196,6 +196,20 @@ def success():
     save("success.wav", l, r)
 
 
+def alarm():
+    """Zamanlayıcı alarmı: üç yükselen çan + kısa sessizlik (~2,4 sn, döngüye uygun)."""
+    sec = 2.4
+    n = int(sec * SR)
+    mono = np.zeros(n)
+    for k, (start, fr) in enumerate([(0.0, 880.0), (0.18, 1108.73), (0.36, 1318.51), (0.9, 880.0), (1.08, 1108.73), (1.26, 1318.51)]):
+        sig = bell(fr, 0.9, 6.0) * (0.75 if k < 3 else 0.6)
+        i0 = int(start * SR)
+        m = min(len(sig), n - i0)
+        mono[i0:i0 + m] += sig[:m]
+    l, r = reverb(mono, 0.2, 0.8)
+    save("alarm.wav", l, r)
+
+
 def ambient():
     sec = 24.0
     n = int(sec * SR)
@@ -230,4 +244,5 @@ if __name__ == "__main__":
     startup()
     shutdown()
     success()
+    alarm()
     ambient()

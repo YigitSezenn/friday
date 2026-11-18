@@ -41,8 +41,13 @@
       <div class="dial sm" id="timer-dial"></div>
       <div>
         <div class="kicker" data-i18n="timer">ZAMANLAYICI</div>
-        <p class="whisper" data-i18n="timerHint">“On dakikalık zamanlayıcı kur” de</p>
-        <div class="tbtns">
+        <p class="whisper" id="timer-hint" data-i18n="timerHint">“On dakikalık zamanlayıcı kur” de</p>
+        <div class="tbtns" id="timer-live" hidden>
+          <button class="tbtn" data-add="60">+1 DK</button>
+          <button class="tbtn" data-add="300">+5 DK</button>
+          <button class="tbtn" id="t-cancel">İPTAL</button>
+        </div>
+        <div class="tbtns" id="timer-pick">
           <button class="tbtn" data-min="1">1 DK</button>
           <button class="tbtn" data-min="5">5 DK</button>
           <button class="tbtn" data-min="10">10 DK</button>
@@ -54,7 +59,8 @@
     <section class="mod" data-key="notes" style="--i:3">
       <div class="kicker" data-i18n="notes">NOTLAR</div>
       <div class="hero"><b id="note-count">0</b><span data-i18n="noteWord">NOT</span></div>
-      <p class="whisper" id="note-hint" data-i18n="noteEmpty">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
+      <p class="whisper" id="note-hint">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
+      <ul class="note-list" id="note-list" aria-label="Notlar"></ul>
       <input class="note-in" id="note-in" data-i18n-ph="notePh" placeholder="Not ekle...">
     </section>
   </div>
@@ -93,6 +99,15 @@
     <input id="cmd" data-i18n-ph="cmdPh" placeholder="KONUŞ YA DA YAZ" autocomplete="off" spellcheck="false">
     <div id="vu"><i></i><i></i><i></i><i></i><i></i></div>
     <span class="hint-side" data-i18n="typeHint">/ YAZ</span>
+  </div>
+</div>
+<div id="timer-done" role="alertdialog" aria-live="assertive" hidden>
+  <div class="td-ring"></div>
+  <div class="td-kicker">SÜRE DOLDU</div>
+  <div class="td-label" id="td-label"></div>
+  <div class="td-actions">
+    <button type="button" class="tbtn" id="td-snooze">+5 DK ERTELE</button>
+    <button type="button" class="tbtn" id="td-close">TAMAM</button>
   </div>
 </div>
 <div id="br">
