@@ -36,6 +36,46 @@ CHUNK = 1024
 CONTROL_TOKEN_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
 
+class SafeStream:
+    """PyAudio akışını iş parçacığı güvenli sarar.
+
+    Yeniden bağlanmada (uyku, ayar kaydı) görevler iptal edilir ama `asyncio.to_thread` ile
+    başlamış read/write iş parçacığı sürer. Akış o sırada kapatılırsa PortAudio yerel kodda
+    çöker ve uygulama kapanır. Kilit: close() süren okuma/yazmanın bitmesini bekler,
+    kapandıktan sonra gelen okuma/yazma sessizce atlanır.
+    """
+
+    def __init__(self, audio, stream) -> None:
+        self._audio = audio
+        self._stream = stream
+        self._lock = threading.Lock()
+        self.closed = False
+
+    def write(self, data: bytes) -> None:
+        with self._lock:
+            if not self.closed:
+                self._stream.write(data)
+
+    def read(self, frames: int) -> bytes:
+        with self._lock:
+            if self.closed:
+                return b""
+            return self._stream.read(frames, exception_on_overflow=False)
+
+    def close(self) -> None:
+        with self._lock:
+            if self.closed:
+                return
+            self.closed = True
+            for step in (getattr(self._stream, "stop_stream", None), getattr(self._stream, "close", None), getattr(self._audio, "terminate", None)):
+                if step is None:
+                    continue
+                try:
+                    step()
+                except Exception:
+                    pass
+
+
 def listening_config(patient: bool) -> dict | None:
     """Sunucu ses algılama ayarı. Gemini Live varsayılanı konuşmayı erken bitmiş sayar
     (END_SENSITIVITY_HIGH); hızlı ya da duraksayarak konuşanın cümlesi yarıda kesilir.
@@ -294,9 +334,12 @@ class JarvisLive:
                 )
                 if frame:
                     await self.out_queue.put(frame)
+        mic = SafeStream(audio, stream)
         try:
             while True:
-                data = await asyncio.to_thread(stream.read, CHUNK, exception_on_overflow=False)
+                data = await asyncio.to_thread(mic.read, CHUNK)
+                if mic.closed:
+                    break
                 with self._speaking_lock:
                     speaking = self._is_speaking
                 from jarvis.phone_server import take_phone_audio
@@ -312,11 +355,7 @@ class JarvisLive:
                         self.stall.voice(time.monotonic(), peak(pcm))
                         await self.out_queue.put(frame)
         finally:
-            close = getattr(stream, "close", None)
-            if close:
-                close()
-            if audio is not None:
-                audio.terminate()
+            mic.close()
 
     async def _receive_audio(self) -> None:
         out_buf, in_buf = [], []
@@ -412,6 +451,7 @@ class JarvisLive:
             audio.terminate()
             while True:
                 await self.audio_in_queue.get()
+        speaker = SafeStream(audio, stream)
         try:
             while True:
                 chunk = await self.audio_in_queue.get()
@@ -423,13 +463,12 @@ class JarvisLive:
                 from jarvis.phone_server import publish_speaker
 
                 publish_speaker(heard)
-                await asyncio.to_thread(stream.write, heard)
+                await asyncio.to_thread(speaker.write, heard)
                 if self.audio_in_queue.empty():
                     self.set_speaking(False)
         finally:
             self.set_speaking(False)
-            stream.close()
-            audio.terminate()
+            speaker.close()
 
     def _scale_output(self, chunk: bytes) -> bytes:
         level = int(get_app_config_value("voice_volume", 100) or 100)
