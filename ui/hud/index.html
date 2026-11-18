@@ -110,6 +110,7 @@
       <button type="button" class="stab" data-tab="hikaye" data-i18n="tabStory">HİKÂYE</button>
       <button type="button" class="stab" data-tab="hafiza" data-i18n="tabMemory">HAFIZA</button>
       <button type="button" class="stab" data-tab="telefon" data-i18n="tabPhone">TELEFON</button>
+      <button type="button" class="stab" data-tab="izinler" data-i18n="tabPerms">İZİNLER</button>
       <button type="button" class="stab" data-tab="hakkinda" data-i18n="tabAbout">HAKKINDA</button>
     </div>
     <section class="pane on" data-pane="genel">
@@ -191,6 +192,13 @@
       </div>
       <div class="row2"><div>AÇILIŞTA BAĞLA<small>Uygulama açılınca aynı Wi-Fi sunucusunu başlatır.</small></div>
         <button type="button" class="switch" id="set-phone-auto" aria-checked="false"></button></div>
+    </section>
+    <section class="pane" data-pane="izinler">
+      <p class="whisper">Windows masaüstü uygulamalarına izin sorması: mikrofon ve kamera Ayarlar › Gizlilik ve güvenlik'teki anahtarlarla açılır. Kapalı olanın AYARLARI AÇ düğmesi o sayfayı açar; anahtarı açınca satır kendiliğinden güncellenir.</p>
+      <div class="row2 perm" data-perm="microphone"><div>MİKROFON<small>Seninle sesli konuşabilmek için. Olmadan da yazarak konuşabilirsin.</small></div>
+        <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
+      <div class="row2 perm" data-perm="webcam"><div>KAMERA<small>İstediğinde kameradan gördüğünü anlatabilmek için.</small></div>
+        <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
     </section>
     <section class="pane" data-pane="hakkinda">
       <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>

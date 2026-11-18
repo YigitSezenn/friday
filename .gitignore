@@ -3,7 +3,7 @@ dist/
 build/
 __pycache__/
 *.pyc
-data/
+/data/
 *.log
 tools/gate-deploy-status.txt
 .idea/

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from jarvis.gemini_errors import clean_api_key
+
 import json
 import os
 from pathlib import Path
@@ -77,6 +79,7 @@ def load_app_config() -> dict:
         return config
     if isinstance(raw, dict):
         config.update(raw)
+    config["gemini_api_key"] = clean_api_key(config.get("gemini_api_key"))
     config["voice"] = _clean_voice(config.get("voice"))
     config["assistant_name"] = _clean_name(config.get("assistant_name"))
     config["address_as"] = _clean_address(config.get("address_as"))
@@ -239,4 +242,4 @@ def get_app_config_value(key: str, default=None):
 
 
 def has_gemini_api_key() -> bool:
-    return bool(str(get_app_config_value("gemini_api_key", "") or "").strip())
+    return bool(clean_api_key(get_app_config_value("gemini_api_key", "")))

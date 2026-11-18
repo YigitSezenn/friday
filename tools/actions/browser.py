@@ -31,6 +31,16 @@ def _find_first_youtube_video(query: str) -> str | None:
     return None
 
 
+def _stop_current_playback() -> None:
+    """Yeni video acilmadan once calan ses (eski sekme, Spotify) duraklatilir."""
+    try:
+        from tools.actions.playback import pause_playing_sessions
+
+        pause_playing_sessions()
+    except Exception:
+        pass
+
+
 def browser_control(action: str, url: str | None = None, query: str | None = None) -> str:
     action = (action or "").strip().lower()
     if action == "open_url":
@@ -50,6 +60,7 @@ def browser_control(action: str, url: str | None = None, query: str | None = Non
     if action in ("play_youtube", "youtube_play", "play_music"):
         if not query:
             return "YouTube icin arama sorgusu belirtilmedi."
+        _stop_current_playback()
         try:
             video_id = _find_first_youtube_video(query)
         except Exception as exc:
