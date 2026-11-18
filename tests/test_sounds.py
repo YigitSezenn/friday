@@ -7,7 +7,7 @@ from jarvis.config import DEFAULT_CONFIG
 
 class SoundAssetsTest(unittest.TestCase):
     def test_wavs_exist_and_are_valid(self):
-        for name, low, high in (("startup", 3, 10), ("shutdown", 3, 10), ("success", 0.2, 2), ("ambient", 10, 60)):
+        for name, low, high in (("startup", 3, 10), ("shutdown", 3, 10), ("success", 0.2, 2), ("alarm", 1, 5), ("ambient", 10, 60)):
             file = sounds.path(name)
             self.assertIsNotNone(file, name)
             with wave.open(str(file)) as w:

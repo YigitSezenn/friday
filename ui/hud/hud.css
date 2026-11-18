@@ -274,3 +274,28 @@ body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown=
 
 #pair-refresh.warn{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px rgba(var(--arg),.3)}
 #pair-refresh:disabled{opacity:.6;cursor:progress}
+
+/* Notlar listesi */
+.note-list{list-style:none;margin:6px 0 8px;max-height:148px;overflow:auto;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin}
+.note-list li{display:flex;align-items:flex-start;gap:6px;padding:5px 6px 5px 9px;border-radius:7px;background:rgba(var(--rgb),.06);
+  border:1px solid rgba(var(--rgb),.12);animation:noteIn .35s var(--ease) both;transition:opacity .18s,transform .18s}
+.note-list li.leaving{opacity:0;transform:translateX(-10px)}
+@keyframes noteIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.note-text{flex:1;font-family:var(--sans);font-size:13px;line-height:1.35;color:var(--ink);word-break:break-word;cursor:text}
+.note-x{border:0;background:transparent;color:var(--dim);font-size:16px;line-height:1;width:22px;height:22px;border-radius:50%;cursor:pointer;flex:none}
+.note-x:hover{color:var(--accent);background:rgba(var(--arg),.14)}
+.note-edit{width:100%}
+#note-hint[hidden],#timer-hint[hidden],#timer-live[hidden],#timer-pick[hidden]{display:none}
+/* Süre doldu uyarısı */
+#timer-done{position:fixed;inset:0;z-index:95;display:grid;place-content:center;justify-items:center;gap:14px;
+  background:radial-gradient(circle at 50% 45%,rgba(var(--arg),.18),rgba(0,0,0,.82) 60%);animation:tdIn .4s var(--ease) both}
+#timer-done[hidden]{display:none}
+@keyframes tdIn{from{opacity:0}to{opacity:1}}
+.td-ring{width:150px;height:150px;border-radius:50%;border:2px solid var(--accent);box-shadow:0 0 40px rgba(var(--arg),.5),inset 0 0 30px rgba(var(--arg),.35);
+  animation:tdPulse 1s ease-in-out infinite}
+@keyframes tdPulse{0%,100%{transform:scale(.92);opacity:.7}50%{transform:scale(1.05);opacity:1}}
+.td-kicker{font-family:var(--sans);font-weight:700;letter-spacing:.4em;font-size:22px;color:#fff;text-shadow:0 0 18px rgba(var(--arg),.8)}
+.td-label{font-family:var(--sans);font-size:16px;color:var(--ink);min-height:1em}
+.td-actions{display:flex;gap:10px}
+.td-actions .tbtn{font-size:13px;padding:9px 16px}
+@media (prefers-reduced-motion:reduce){.td-ring{animation:none}.note-list li{animation:none}}

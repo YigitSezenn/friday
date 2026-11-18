@@ -134,6 +134,7 @@ class JarvisLive:
         self.webcam = WebcamStreamer()
         ui.on_text_command = self._on_text_command
         ui.on_pause_toggle = self._on_pause_toggle
+        ui.speak_note = self.nudge
         ui.on_webcam_toggle = self._on_webcam_toggle
         ui.on_settings_saved = self.request_reconnect
 
@@ -561,12 +562,15 @@ class JarvisLive:
                     group.create_task(self._preview_webcam())
                     group.create_task(self._watch_reconnect())
                     group.create_task(self._watch_stall())
+                self.session = None
             except Reconnect:
+                self.session = None
                 self.set_speaking(False)
                 if not self._paused:
                     self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
                 continue
             except Exception as exc:
+                self.session = None
                 if _reconnect_error(exc):
                     self.set_speaking(False)
                     if not self._paused:
@@ -597,7 +601,12 @@ class JarvisLive:
         asyncio.run_coroutine_threadsafe(self._nudge(text), loop)
 
     async def _nudge(self, text: str) -> None:
-        await self._send_user_text(f"[Sistem notu, sesli ve kisa soyle] {text}")
+        if self.session is None:
+            return
+        try:
+            await self._send_user_text(f"[Sistem notu, sesli ve kisa soyle] {text}")
+        except Exception:
+            pass  # oturum o anda kapanıyorsa sessizce vazgeç
 
     async def _watch_reconnect(self) -> None:
         await self._reconnect.wait()
