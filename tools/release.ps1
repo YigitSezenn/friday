@@ -33,7 +33,7 @@ function Fail([string]$msg) {
 }
 function Info([string]$msg) { Write-Host ("INFO: {0}" -f $msg) }
 
-if ($Version -notmatch '^\d+\.\d+') { Fail "Version must look like N.M (got '$Version')" }
+if ($Version -notmatch '^\d+\.\d+(\.\d+)?$') { Fail "Version must look like N.M or N.M.P (got '$Version')" }
 
 $Site = Join-Path $Root "site"
 $Indir = Join-Path $Site "public\indir"
@@ -92,12 +92,12 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($false))
 }
 Write-Utf8NoBom $init ((Get-Content $init -Raw) -replace '__version__\s*=\s*"[^"]+"', ('__version__ = "{0}"' -f $Version))
-Write-Utf8NoBom $iss ((Get-Content $iss -Raw) -replace 'AppVersion=\d+\.\d+', ('AppVersion={0}' -f $Version))
+Write-Utf8NoBom $iss ((Get-Content $iss -Raw) -replace 'AppVersion=\d+\.\d+(\.\d+)?', ('AppVersion={0}' -f $Version))
 Write-Utf8NoBom $gradleKts ((Get-Content $gradleKts -Raw) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version))
 # HTML: only query/version labels, not SVG path numbers like 10.5 4.4
 $htmlRaw = [System.IO.File]::ReadAllText($html, [System.Text.UTF8Encoding]::new($false))
-$htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+', ('?v={0}' -f $Version))
-$htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+', ('Sürüm {0}' -f $Version))
+$htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+(?:\.\d+)?', ('?v={0}' -f $Version))
+$htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+(?:\.\d+)?', ('Sürüm {0}' -f $Version))
 Write-Utf8NoBom $html $htmlRaw
 Info "bumped __init__.py friday.iss build.gradle.kts index.html (surum.txt untouched)"
 # --- tests ---
