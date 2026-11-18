@@ -55,9 +55,19 @@ def _letter_rule(key: str) -> str:
     return f"[YAZI] Yanıtını {word} yaz ve o dilin harflerini olduğu gibi bırak.\n"
 
 
+def _clarity_rule(key: str) -> str:
+    base = (
+        "[ANLAŞILMAYAN SES] Söylenen net anlaşılmadıysa (gürültü, kesik ya da belirsiz ses) tahmin yürütme, komut uydurma ve başka bir dile çevirme. "
+        "Kullanıcının diliyle tek kısa cümleyle tekrar etmesini rica et. Çince, Japonca, Korece, Rusça gibi bir dilde asla yazma ya da konuşma.\n"
+    )
+    if key == "auto":
+        return base + "[VARSAYILAN DİL] Kullanıcı büyük olasılıkla Türkçe konuşur; başka bir dil açıkça duyulmadıkça Türkçe anla ve Türkçe yanıtla.\n"
+    return base
+
+
 def instruction(config: dict | None = None) -> str:
     key = current(config)
-    letters = _letter_rule(key)
+    letters = _letter_rule(key) + _clarity_rule(key)
     if key == "auto":
         return letters
     _label, _bcp, _speech, word, toward = LANGUAGES[key]

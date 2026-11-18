@@ -29,7 +29,10 @@ h1{letter-spacing:.28em;font-weight:500;font-size:18px}
 p{color:#b7a98a;line-height:1.45}
 button,input{font:inherit}
 button{background:#e6c98a;color:#1a140c;border:0;border-radius:999px;padding:14px 18px;letter-spacing:.08em}
-input{width:100%;box-sizing:border-box;background:#100e0a;color:#fff;border:1px solid rgba(230,201,138,.35);border-radius:12px;padding:12px;margin:8px 0 14px}
+input{width:100%;box-sizing:border-box;background:#100e0a;color:#fff;border:0;border-radius:12px;padding:12px;margin:8px 0 14px}
+.keyrow{display:flex;gap:8px;align-items:center;margin:14px 0}
+.keyrow code{flex:1;min-width:0;padding:12px;border-radius:12px;background:#100e0a;color:#fff;word-break:break-all;font-size:14px}
+.keyrow button{margin:0;white-space:nowrap}
 .mic{width:100%;margin:18px 0}
 .mic[aria-pressed=true]{background:#8fd6a0}
 #heard{min-height:1.2em}
@@ -37,6 +40,8 @@ input{width:100%;box-sizing:border-box;background:#100e0a;color:#fff;border:1px 
 <main>
 <h1>FRIDAY</h1>
 <p>Aynı Wi-Fi. Konuşman ve yazdığın komut bu bilgisayarda çalışır. “Bilgisayarda aç” dersen uygulama bilgisayarda açılır.</p>
+<p>Kapı anahtarı yalnız bu bilgisayara özeldir. Siteye yapıştırmak için kopyala.</p>
+<div class="keyrow"><code id="gate-key"><!--gate--></code><button type="button" id="copy-key">KOPYALA</button></div>
 <button class="mic" id="mic" type="button" aria-pressed="false">MİKROFONU AÇ</button>
 <p id="heard">Mikrofon kapalı</p>
 <form id="say"><input name="text" placeholder="Bilgisayara yaz" autocomplete="off"><button type="submit">GÖNDER</button></form>
@@ -63,6 +68,12 @@ async function micOn(){
 }
 function micOff(){ on = false; mic.setAttribute("aria-pressed","false"); heard.textContent = "Mikrofon kapalı"; try{node.disconnect();}catch(e){} }
 mic.onclick = () => on ? micOff() : micOn().catch(() => { heard.textContent = "Mikrofon izni gerekli"; });
+document.getElementById("copy-key").onclick = async () => {
+  const text = document.getElementById("gate-key").textContent.trim();
+  if (!text || text === "Henüz yok") return;
+  try { await navigator.clipboard.writeText(text); } catch (e) {}
+  document.getElementById("copy-key").textContent = "KOPYALANDI";
+};
 document.getElementById("say").onsubmit = async (ev) => {
   ev.preventDefault();
   const text = new FormData(ev.target).get("text");
@@ -91,11 +102,14 @@ setInterval(async () => {
 
 JOIN_PAGE = """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FRIDAY telefon</title>
-<style>body{margin:0;background:#070605;color:#f3e6c8;font-family:Segoe UI,sans-serif}main{max-width:420px;margin:0 auto;padding:32px 20px}a,button{display:block;text-align:center;margin:12px 0;padding:14px;border-radius:999px;text-decoration:none}a.apk{background:#e6c98a;color:#1a140c}a.go{border:1px solid rgba(230,201,138,.4);color:#f3e6c8}</style>
+<style>body{margin:0;background:#070605;color:#f3e6c8;font-family:Segoe UI,sans-serif}main{max-width:420px;margin:0 auto;padding:32px 20px}a,button{display:block;text-align:center;margin:12px 0;padding:14px;border-radius:999px;text-decoration:none;border:0}a.apk{background:#e6c98a;color:#1a140c}a.go{border:0;background:#1a140c;color:#f3e6c8}.keyrow{display:flex;gap:8px;align-items:center}.keyrow code{flex:1;min-width:0;padding:12px;border-radius:12px;background:#100e0a;color:#fff;word-break:break-all}.keyrow button{margin:0;white-space:nowrap}</style>
 <main><h1>FRIDAY</h1><p>Android’de uygulamayı indir, kur, sonra bu sayfadaki bağlantıyla aç. Aynı Wi-Fi gerekir.</p>
+<p>Kapı anahtarı yalnız bu bilgisayara özeldir.</p>
+<div class="keyrow"><code id="gate-key"><!--gate--></code><button type="button" id="copy-key">KOPYALA</button></div>
 <a class="apk" href="/friday.apk">UYGULAMAYI İNDİR</a>
 <a class="go" id="open" href="/">TARAYICIDA AÇ</a>
-<script>const t=new URLSearchParams(location.search).get("token")||"";document.getElementById("open").href="/?token="+encodeURIComponent(t);</script>
+<script>const t=new URLSearchParams(location.search).get("token")||"";document.getElementById("open").href="/?token="+encodeURIComponent(t);
+document.getElementById("copy-key").onclick=async()=>{const text=document.getElementById("gate-key").textContent.trim();if(!text||text==="Henüz yok")return;try{await navigator.clipboard.writeText(text);}catch(e){}document.getElementById("copy-key").textContent="KOPYALANDI";};</script>
 </main>
 """
 
@@ -220,6 +234,15 @@ def apk_path() -> Path:
     return candidates[0]
 
 
+def _with_gate_key(page: str) -> str:
+    from html import escape
+
+    from jarvis.gate_client import gate_key
+
+    shown = escape(gate_key()) or "Henüz yok"
+    return page.replace("<!--gate-->", shown)
+
+
 def handle_phone_request(method: str, path: str, body: bytes, on_text) -> tuple[int, bytes, str]:
     parsed = urlparse(path)
     query = parse_qs(parsed.query)
@@ -233,7 +256,7 @@ def handle_phone_request(method: str, path: str, body: bytes, on_text) -> tuple[
     if given != phone_token():
         return 403, "Yetkisiz.".encode("utf-8"), "text/plain; charset=utf-8"
     if route in {"/", "/join"} and method == "GET":
-        page = JOIN_PAGE if route == "/join" else PHONE_PAGE
+        page = _with_gate_key(JOIN_PAGE if route == "/join" else PHONE_PAGE)
         return 200, page.encode("utf-8"), "text/html; charset=utf-8"
     if route == "/mic" and method == "POST":
         relay_phone_audio(body)

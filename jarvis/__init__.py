@@ -1,3 +1,3 @@
-"""JARVIS — Windows sesli kişisel asistan (V3 davranışının yeniden düzenlenmiş hali)."""
+"""JARVIS â€” Windows sesli kiÅŸisel asistan (V3 davranÄ±ÅŸÄ±nÄ±n yeniden dÃ¼zenlenmiÅŸ hali)."""
 
-__version__ = "4.4"
+__version__ = "4.6"

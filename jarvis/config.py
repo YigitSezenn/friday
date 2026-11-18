@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from jarvis.gemini_errors import clean_api_key
+
 import json
 import os
 from pathlib import Path
@@ -17,10 +19,9 @@ UI_COLORS = {
 }
 ADDRESS_PRESETS = ("adınla", "efendim", "komutanım", "dostum", "patron")
 PANEL_KEYS = ("time", "system", "timer", "notes", "weather", "calendar", "reminders", "map")
-LIVE_MODELS = (
-    "models/gemini-2.5-flash-native-audio-latest",
-    "models/gemini-3.8-live",
-)
+LIVE_MODELS = ("models/gemini-3.8-live",)
+# Google 2.5 native-audio önizlemesini 17 Kasım 2026'da kapatıyor; eski seçim yeni modele taşınır.
+RETIRED_LIVE_MODELS = {"models/gemini-2.5-flash-native-audio-latest": "models/gemini-3.8-live"}
 LANGUAGES = ("auto", "tr", "en", "fr", "ar", "az")
 
 DEFAULT_CONFIG = {
@@ -77,6 +78,7 @@ def load_app_config() -> dict:
         return config
     if isinstance(raw, dict):
         config.update(raw)
+    config["gemini_api_key"] = clean_api_key(config.get("gemini_api_key"))
     config["voice"] = _clean_voice(config.get("voice"))
     config["assistant_name"] = _clean_name(config.get("assistant_name"))
     config["address_as"] = _clean_address(config.get("address_as"))
@@ -153,7 +155,7 @@ def _clean_panels(value) -> list[str]:
 
 
 def _clean_model(value) -> str:
-    model = str(value or LIVE_MODELS[0]).strip()
+    model = RETIRED_LIVE_MODELS.get(str(value or "").strip(), str(value or LIVE_MODELS[0]).strip())
     return model if model in LIVE_MODELS else LIVE_MODELS[0]
 
 
@@ -194,10 +196,12 @@ def persona_note(config: dict | None = None) -> str:
     current = config or load_app_config()
     name = _clean_name(current.get("assistant_name"))
     address = address_phrase(current)
+    names = name if name.lower() == address.lower() else f"{name} veya {address}"
     return (
         "\nKİMLİK:\n"
         f"- Görünen adın {name}. Kendini bu adla tanıt.\n"
-        f"- Kullanıcı sana «{address}» diye hitap eder. Bu hitabı kabul et ve aynı sıcaklıkta yanıt ver.\n"
+        f"- Kullanıcı sana «{names}» diye seslenebilir. İkisini de kendi adın say ve hemen yanıt ver.\n"
+        "- Adın geçmeyen normal istekleri de yanıtla. Sesli konuşmayı yok sayma.\n"
     )
 
 
@@ -237,4 +241,4 @@ def get_app_config_value(key: str, default=None):
 
 
 def has_gemini_api_key() -> bool:
-    return bool(str(get_app_config_value("gemini_api_key", "") or "").strip())
+    return bool(clean_api_key(get_app_config_value("gemini_api_key", "")))
