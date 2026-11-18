@@ -55,6 +55,12 @@ DEFAULT_CONFIG = {
     "story_enabled": False,
     "proactive_enabled": False,
     "quiet_minutes": 20,
+    # Mail tarayıcıdan gönderilirken kullanılacak servis ve Outlook hesabı türü.
+    "mail_web": "gmail",
+    # Arka planda (pencere açmadan) Gmail gönderimi: Google hesabındaki 16 haneli uygulama şifresi.
+    "gmail_address": "",
+    "gmail_app_password": "",
+    "outlook_web_host": "outlook.live.com",
     "water_enabled": False,
     "break_enabled": False,
     "event_alerts": False,
@@ -113,6 +119,10 @@ def load_app_config() -> dict:
     config["break_enabled"] = _clean_bool(config.get("break_enabled"), False)
     config["event_alerts"] = _clean_bool(config.get("event_alerts"), False)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
+    config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
+    config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
+    config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
+    config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     return config
 
 
@@ -248,6 +258,10 @@ def _save_app_config(updates: dict) -> dict:
     config["phone_autostart"] = _clean_bool(config.get("phone_autostart"), False)
     config["start_with_windows"] = _clean_bool(config.get("start_with_windows"), False)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
+    config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
+    config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
+    config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
+    config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     from jarvis.atomic import write_text

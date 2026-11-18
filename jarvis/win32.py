@@ -30,6 +30,18 @@ def _lib():
         user32.GetWindowTextLengthW.restype = ctypes.c_int
         user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
         user32.GetWindowTextW.restype = ctypes.c_int
+        user32.EnumWindows.argtypes = [ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM), wintypes.LPARAM]
+        user32.EnumWindows.restype = wintypes.BOOL
+        user32.IsWindowVisible.argtypes = [wintypes.HWND]
+        user32.IsWindowVisible.restype = wintypes.BOOL
+        user32.IsIconic.argtypes = [wintypes.HWND]
+        user32.IsIconic.restype = wintypes.BOOL
+        user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+        user32.ShowWindow.restype = wintypes.BOOL
+        user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+        user32.SetForegroundWindow.restype = wintypes.BOOL
+        user32.BringWindowToTop.argtypes = [wintypes.HWND]
+        user32.BringWindowToTop.restype = wintypes.BOOL
         user32.keybd_event.argtypes = [wintypes.BYTE, wintypes.BYTE, wintypes.DWORD, ctypes.c_size_t]
         user32.keybd_event.restype = None
         kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
@@ -96,3 +108,48 @@ def press_keys(*codes: int) -> None:
         user32.keybd_event(code, 0, 0, 0)
     for code in reversed(codes):
         user32.keybd_event(code, 0, 2, 0)
+
+
+def find_window(marker: str) -> int:
+    """Başlığında `marker` geçen görünür üst düzey pencereyi bulur (0: yok)."""
+    if not available() or not marker:
+        return 0
+    ctypes, user32, _kernel32 = _lib()
+    from ctypes import wintypes
+
+    needle = marker.casefold()
+    found = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _lparam):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length <= 0:
+            return True
+        buffer = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, buffer, length + 1)
+        if needle in buffer.value.casefold():
+            found.append(hwnd)
+            return False
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return int(found[0]) if found else 0
+
+
+def bring_to_front(hwnd: int) -> bool:
+    """Pencereyi öne getirir. Windows yalnızca öndeki sürecin bunu yapmasına izin verir; FRIDAY
+    o an öndeyse çalışır. Kısa bir Alt basışı, kilit takılırsa izni açar."""
+    if not available() or not hwnd:
+        return False
+    _ctypes, user32, _kernel32 = _lib()
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+    else:
+        user32.ShowWindow(hwnd, 5)  # SW_SHOW
+    if not user32.SetForegroundWindow(hwnd):
+        press_keys(0x12)  # Alt: ön plan kilidini açar
+        user32.SetForegroundWindow(hwnd)
+    user32.BringWindowToTop(hwnd)
+    return int(user32.GetForegroundWindow() or 0) == int(hwnd)

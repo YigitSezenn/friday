@@ -155,7 +155,7 @@ window.hud = {
       applyLanguage(next);
       send("settings", {values: {language: value}});
     }, uiPack.langNames || {});
-    for (const key of ["gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes"]) {
+    for (const key of ["gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password"]) {
       if (form[key]) form[key].value = data.config[key] || "";
     }
     if (form.voice_volume) {
