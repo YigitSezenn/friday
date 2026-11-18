@@ -166,7 +166,8 @@ class MailTest(unittest.TestCase):
         from jarvis.config import save_app_config
         from tools.actions import mail
 
-        save_app_config({"gmail_address": "ben@gmail.com", "gmail_app_password": "abcd efgh ijkl mnop"})
+        fake = "x" * 16  # sahte uygulama şifresi (gerçek değil; gizli bilgi tarayıcıları kalıbı yakalamasın)
+        save_app_config({"gmail_address": "ornek@example.com", "gmail_app_password": " ".join(fake[i:i + 4] for i in range(0, 16, 4))})
         self.assertEqual(mail.choose_provider("auto"), "smtp")
         sent = []
 
@@ -185,13 +186,13 @@ class MailTest(unittest.TestCase):
             with mock.patch.object(confirm, "MIN_WAIT", 0):
                 self.assertIn("arka planda", mail.send_email("a@b.co", "Konu", "Merhaba", confirm_send=True))
             browser.assert_not_called()
-        self.assertEqual(sent, [("smtp.gmail.com", 465), ("login", "ben@gmail.com", "abcdefghijklmnop"), ("send", "a@b.co", "ben@gmail.com", "Konu")])
+        self.assertEqual(sent, [("smtp.gmail.com", 465), ("login", "ornek@example.com", fake), ("send", "a@b.co", "ornek@example.com", "Konu")])
 
     def test_smtp_needs_full_settings(self):
         from jarvis.config import save_app_config
         from tools.actions import mail
 
-        save_app_config({"gmail_address": "ben@gmail.com", "gmail_app_password": "kisa"})
+        save_app_config({"gmail_address": "ornek@example.com", "gmail_app_password": "kisa"})
         self.assertEqual(mail.smtp_settings(), ("", ""))
 
     def test_new_outlook_uses_outlook_web(self):
