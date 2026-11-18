@@ -58,3 +58,13 @@ needs_gate = unittest.skipUnless((ROOT / "gate" / "logic.py").exists(), "Kapı s
 
 live_api = unittest.skipUnless(os.environ.get("FRIDAY_TEST_GEMINI_KEY"), "FRIDAY_TEST_GEMINI_KEY verilmedi")
 
+
+
+def decode_qr(image) -> str:
+    """cv2'nin varsayılan okuyucusu rastgele kodların ~%5'ini okuyamıyor; varsa Aruco okuyucu kullanılır."""
+    import cv2
+    import numpy as np
+
+    detector = cv2.QRCodeDetectorAruco() if hasattr(cv2, "QRCodeDetectorAruco") else cv2.QRCodeDetector()
+    value, _points, _ = detector.detectAndDecode(np.array(image))
+    return value
