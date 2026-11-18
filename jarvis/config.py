@@ -58,8 +58,6 @@ DEFAULT_CONFIG = {
     "water_enabled": False,
     "break_enabled": False,
     "event_alerts": False,
-    # Ayarlar › SES › YANKI ENGELLEME. Açıkken mikrofon Windows Voice Capture DSP'sinden gelir.
-    "aec_enabled": True,
 }
 
 
@@ -114,7 +112,6 @@ def load_app_config() -> dict:
     config["water_enabled"] = _clean_bool(config.get("water_enabled"), False)
     config["break_enabled"] = _clean_bool(config.get("break_enabled"), False)
     config["event_alerts"] = _clean_bool(config.get("event_alerts"), False)
-    config["aec_enabled"] = _clean_bool(config.get("aec_enabled"), True)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
     return config
 
@@ -248,7 +245,6 @@ def _save_app_config(updates: dict) -> dict:
     config["water_enabled"] = _clean_bool(config.get("water_enabled"), False)
     config["break_enabled"] = _clean_bool(config.get("break_enabled"), False)
     config["event_alerts"] = _clean_bool(config.get("event_alerts"), False)
-    config["aec_enabled"] = _clean_bool(config.get("aec_enabled"), True)
     config["phone_autostart"] = _clean_bool(config.get("phone_autostart"), False)
     config["start_with_windows"] = _clean_bool(config.get("start_with_windows"), False)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))

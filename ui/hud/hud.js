@@ -506,7 +506,6 @@ window.hud = {
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
     $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
     $("set-patient").setAttribute("aria-checked", data.config.patient_listening === false ? "false" : "true");
-    setSwitch("set-aec", data.config.aec_enabled !== false);
     setSwitch("set-story", data.config.story_enabled);
     setSwitch("set-proactive", data.config.proactive_enabled);
     setSwitch("set-water", data.config.water_enabled);
@@ -653,7 +652,7 @@ function openPhone() {
   send("phone");
 }
 $("t-phone").addEventListener("click", openPhone);
-for (const id of ["set-story", "set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-aec", "set-windows"]) {
+for (const id of ["set-story", "set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-windows"]) {
   $(id).addEventListener("click", () => $(id).setAttribute("aria-checked", $(id).getAttribute("aria-checked") === "true" ? "false" : "true"));
 }
 document.querySelectorAll("#quiet-seg button").forEach(button => {
@@ -980,7 +979,6 @@ $("settings-form").addEventListener("submit", event => {
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
   values.music = $("set-music").getAttribute("aria-checked") === "true";
   values.patient_listening = $("set-patient").getAttribute("aria-checked") !== "false";
-  values.aec_enabled = $("set-aec").getAttribute("aria-checked") !== "false";
   values.story_enabled = $("set-story").getAttribute("aria-checked") === "true";
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";
   values.water_enabled = $("set-water").getAttribute("aria-checked") === "true";

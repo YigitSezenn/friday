@@ -33,9 +33,9 @@ def run_selftest() -> int:
     check("prompt", lambda: "Windows" if "Windows" in __import__("jarvis.prompt", fromlist=["load_system_prompt"]).load_system_prompt() else (_ for _ in ()).throw(RuntimeError("Windows notu yok")))
     check("ayar yazma", _write_probe)
     check("API anahtari", lambda: "var" if has_gemini_api_key() else "yok (uygulamadan gir)")
-    check("sistem", lambda: __import__("jarvis.actions.system", fromlist=["sys_info"]).sys_info("time"))
-    check("takvim", lambda: __import__("jarvis.actions.calendar", fromlist=["get_calendar_events"]).get_calendar_events("today"))
-    check("powershell", lambda: __import__("jarvis.actions.shell", fromlist=["shell_run"]).shell_run("Write-Output tamam"))
+    check("sistem", lambda: __import__("tools.actions.system", fromlist=["sys_info"]).sys_info("time"))
+    check("takvim", lambda: __import__("tools.actions.calendar", fromlist=["get_calendar_events"]).get_calendar_events("today"))
+    check("powershell", lambda: __import__("tools.actions.shell", fromlist=["shell_run"]).shell_run("Write-Output tamam"))
 
     lines.append(f"\nSONUC: {ok} basarili, {bad} hatali")
     report = "\n".join(lines)

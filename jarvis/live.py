@@ -458,9 +458,6 @@ class JarvisLive:
                 chunk = await self.audio_in_queue.get()
                 self.set_speaking(True)
                 heard = self._scale_output(chunk)
-                capture = getattr(self, "_capture", None)
-                if capture is not None:
-                    capture.note_playback(heard)
                 from jarvis.phone_server import publish_speaker
 
                 publish_speaker(heard)
@@ -475,9 +472,6 @@ class JarvisLive:
         level = int(get_app_config_value("voice_volume", 100) or 100)
         level = max(0, min(150, level))
         factor = level / 100
-        capture = getattr(self, "_capture", None)
-        if capture is not None and capture.ducked:
-            factor *= 0.35
         if factor == 1 or not chunk:
             return chunk
         import array
