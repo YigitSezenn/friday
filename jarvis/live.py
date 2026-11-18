@@ -4,11 +4,15 @@ import asyncio
 import datetime
 import re
 import threading
+import time
 import traceback
 
 from tools.actions.webcam import WebcamStreamer
+from jarvis.audio.barge import peak
 from jarvis.config import get_app_config_value
-from jarvis.language import live_speech_code, speech_codes
+from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
+from jarvis.heard import REPEAT_NOTE, RepeatPolicy, StallWatch, usable_transcript
+from jarvis.language import current as current_language, live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
 from jarvis.textfix import repair_text
@@ -17,7 +21,10 @@ from tools.dispatch import TOOL_DECLARATIONS, execute_tool, looks_like_error
 def current_live_model() -> str:
     from jarvis.config import LIVE_MODELS
 
+    from jarvis.config import RETIRED_LIVE_MODELS
+
     chosen = str(get_app_config_value("live_model", LIVE_MODELS[0]) or LIVE_MODELS[0]).strip()
+    chosen = RETIRED_LIVE_MODELS.get(chosen, chosen)
     return chosen if chosen in LIVE_MODELS else LIVE_MODELS[0]
 
 
@@ -76,6 +83,21 @@ class JarvisLive:
         ui.on_webcam_toggle = self._on_webcam_toggle
         ui.on_settings_saved = self.request_reconnect
 
+    @property
+    def rejections(self) -> RejectionBudget:
+        budget = self.__dict__.get("_rejections")
+        if budget is None:
+            budget = self.__dict__["_rejections"] = RejectionBudget()
+        return budget
+
+    @property
+    def stall(self) -> StallWatch:
+        return self.__dict__.setdefault("_stall", StallWatch())
+
+    @property
+    def repeat(self) -> RepeatPolicy:
+        return self.__dict__.setdefault("_repeat", RepeatPolicy())
+
     def request_reconnect(self) -> None:
         loop = self._loop
         event = self._reconnect
@@ -84,6 +106,7 @@ class JarvisLive:
 
     def _on_pause_toggle(self, paused: bool) -> None:
         self._paused = paused
+        self.rejections.reset()
         self.request_reconnect()
 
     def _on_webcam_toggle(self, activate: bool) -> None:
@@ -97,6 +120,7 @@ class JarvisLive:
             self.ui.set_webcam_active(False)
 
     def _on_text_command(self, text: str) -> None:
+        self.rejections.reset()
         if self._paused:
             return
         text = repair_text(str(text or "")).strip()
@@ -245,6 +269,7 @@ class JarvisLive:
                         paused=bool(self._paused),
                     )
                     if frame:
+                        self.stall.voice(time.monotonic(), peak(pcm))
                         await self.out_queue.put(frame)
         finally:
             close = getattr(stream, "close", None)
@@ -256,23 +281,32 @@ class JarvisLive:
     async def _receive_audio(self) -> None:
         out_buf, in_buf = [], []
         output_noise = False
+        misheard = False
+        got_audio = False
+        idle_rounds = 0
         while True:
+            produced = False
             async for response in self.session.receive():
+                produced = True
+                self.stall.server_event()
                 if response.data:
+                    got_audio = True
                     self.audio_in_queue.put_nowait(response.data)
                 content = response.server_content
                 if content:
                     if content.output_transcription and content.output_transcription.text:
                         self.set_speaking(True)
                         text, noisy = clean_transcript(content.output_transcription.text)
-                        output_noise = output_noise or noisy
+                        text, rejected = usable_transcript(text, current_language())
+                        output_noise = output_noise or noisy or rejected
                         if text:
                             out_buf.append(text)
                     if content.input_transcription and content.input_transcription.text:
-                        heard = content.input_transcription.text.strip()
+                        heard, rejected = usable_transcript(content.input_transcription.text, current_language())
+                        misheard = misheard or rejected
                         if heard:
                             in_buf.append(heard)
-                            self.ui.last_heard = __import__("time").time()
+                            self.ui.last_heard = time.time()
                     if content.turn_complete:
                         self.set_speaking(False)
                         heard = repair_text(" ".join(in_buf).strip())
@@ -286,13 +320,46 @@ class JarvisLive:
                         elif output_noise and not self._said_result:
                             self.ui.write_log("ERR: JARVIS sesli yanitini cozumlerken bir hata olustu.")
                             self.ui.set_state("ERROR")
+                        await self._after_turn(bool(heard), bool(spoken) or got_audio, misheard)
                         in_buf, out_buf, output_noise = [], [], False
+                        misheard = got_audio = False
                         self._said_result = False
                 if response.tool_call:
                     responses = []
                     for function_call in response.tool_call.function_calls:
                         responses.append(await self._execute(function_call))
                     await self.session.send_tool_response(function_responses=responses)
+            # receive() hiç yanıt vermeden bittiyse oturum kopmuştur. Boşa dönüp olay döngüsünü kilitlemek yerine yeniden bağlan.
+            if produced:
+                idle_rounds = 0
+                continue
+            idle_rounds += 1
+            if idle_rounds >= 3:
+                raise Reconnect()
+            await asyncio.sleep(0.2)
+
+    async def _after_turn(self, heard: bool, answered: bool, misheard: bool) -> None:
+        """Konuştun ama model yanıt vermediyse ya da döküm bozuksa, tahmin ettirmeden tekrar iste."""
+        voiced = self.stall.take_voice()
+        if answered or self._said_result:
+            self.repeat.understood()
+            return
+        if not (misheard or (voiced and not heard)):
+            return
+        if self.ui.muted or self._paused or not self.repeat.should_ask(time.monotonic()):
+            return
+        await self._nudge(REPEAT_NOTE)
+
+    async def _watch_stall(self) -> None:
+        """Konuşuldu ama yanıt hiç gelmediyse bağlantıyı yenile; yoksa uygulama sonsuza dek dinliyor görünür."""
+        while True:
+            await asyncio.sleep(1)
+            idle = bool(self._is_speaking or self.ui.muted or self._paused)
+            if self.stall.stalled(time.monotonic(), idle=idle):
+                self.stall.reset()
+                self.ui.write_log("SYS: Yanıt gelmedi, bağlantı yenileniyor.")
+                if self._reconnect is not None:
+                    self._reconnect.set()
 
     async def _play_audio(self) -> None:
         import pyaudio
@@ -371,11 +438,12 @@ class JarvisLive:
         from google import genai
 
         attempts = 0
+        without_proxy_for_google()
         while True:
             if self._paused:
                 await asyncio.sleep(0.4)
                 continue
-            key = str(get_app_config_value("gemini_api_key", "") or "").strip()
+            key = clean_api_key(get_app_config_value("gemini_api_key", ""))
             if not key:
                 self.ui.set_state("ERROR")
                 if not getattr(self, "_missing_key_logged", False):
@@ -384,6 +452,10 @@ class JarvisLive:
                 await asyncio.sleep(2)
                 continue
             self._missing_key_logged = False
+            if self.rejections.should_wait(key):
+                self.ui.set_state("ERROR")
+                await asyncio.sleep(1)
+                continue
             if self._reconnect is None:
                 self._reconnect = asyncio.Event()
             try:
@@ -397,6 +469,7 @@ class JarvisLive:
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=8)
                     attempts = 0
+                    self.rejections.success()
                     self.ui.set_state("LISTENING")
                     if not getattr(self, "_ready_announced", False):
                         self._ready_announced = True
@@ -408,6 +481,7 @@ class JarvisLive:
                     group.create_task(self._stream_webcam())
                     group.create_task(self._preview_webcam())
                     group.create_task(self._watch_reconnect())
+                    group.create_task(self._watch_stall())
             except Reconnect:
                 self.set_speaking(False)
                 if not self._paused:
@@ -426,7 +500,11 @@ class JarvisLive:
                     self.ui.set_webcam_active(False)
                 attempts += 1
                 self.ui.set_state("ERROR")
-                message = _public_connect_error(exc, key)
+                issue = classify(exc, key)
+                self.rejections.note(issue, key)
+                message = issue.message
+                if self.rejections.should_wait(key) and issue.rejection:
+                    message += " Yeniden denemek için bir şey yaz, mikrofona bas ya da anahtarı değiştir."
                 if message != getattr(self, "_last_connect_error", ""):
                     self._last_connect_error = message
                     self.ui.write_log(message)

@@ -256,6 +256,31 @@ def spotify_now() -> dict:
     return current if isinstance(current, dict) else {}
 
 
+def track_is_playing(current, uri: str, name: str) -> bool:
+    """Calan parca istenenle ayni mi? Spotify bazen parcayi baska bir uri ile (ayni sarki, farkli surum) bildirir;
+    bu yuzden uri tutmasa da adi tutuyorsa dogru sayilir."""
+    if not isinstance(current, dict) or not current.get("is_playing"):
+        return False
+    if current.get("uri") == uri:
+        return True
+    wanted = _fold_name(name)
+    shown = _fold_name(str(current.get("description") or current.get("name") or ""))
+    return bool(wanted) and wanted in shown
+
+
+def wait_until_playing(uri: str, name: str, poll=None, sleep=None, delays=(0.8, 1.0, 1.4, 2.0, 2.5)) -> tuple[bool, dict]:
+    """Parca calana kadar ~8 sn bekler. (dogrulandi mi, son durum) dondurur."""
+    read = poll or spotify_now
+    pause = sleep or time.sleep
+    current: dict = {}
+    for delay in delays:
+        pause(delay)
+        current = read() or {}
+        if track_is_playing(current, uri, name):
+            return True, current
+    return False, current
+
+
 def _play_spotify(query: str, spotify: Path) -> str:
     if spotify_cli_path() is None:
         return _open_spotify_search(query, spotify)
@@ -277,15 +302,12 @@ def _play_spotify(query: str, spotify: Path) -> str:
         played = _spotify_run(["play", uri], timeout=20)
         if isinstance(played, dict) and played.get("error"):
             return f"Spotify'da acilamadi: {str(played['error'])[:160]}"
-        current = {}
-        for _ in range(4):
-            time.sleep(0.8)
-            current = spotify_now()
-            if current.get("uri") == uri and current.get("is_playing"):
-                break
-        if current.get("uri") != uri or not current.get("is_playing"):
-            return f"Spotify'da '{query}' arandi ama parca acilmadi."
-        return f"Spotify'da caliyor: {current.get('description') or track.get('name') or query} ({uri})"
+        name = str(track.get("name") or query)
+        confirmed, current = wait_until_playing(uri, name)
+        label = current.get("description") or name
+        if confirmed:
+            return f"Spotify'da caliyor: {label} ({uri})"
+        return f"Spotify'a '{query}' icin calma komutu gonderildi ({uri}); calan parcayi dogrulayamadim."
     except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
         return f"Spotify'da calinamadi: {exc}"
 

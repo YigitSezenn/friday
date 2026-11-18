@@ -247,3 +247,7 @@ body[data-sleep="1"] #bloom{opacity:.1}
 #phone-url{word-break:break-all;user-select:text}
 #phone-qr{width:180px;height:180px;background:#fff;border-radius:12px;padding:8px;margin-top:12px}
 .setfoot{display:flex;justify-content:flex-end;gap:8px;padding-top:12px}
+
+.perm .perm-state{margin-left:auto;font-size:12px;letter-spacing:.16em;color:var(--dim)}
+.perm .perm-state[data-state=granted]{color:var(--c)}
+.perm .perm-state[data-state=denied]{color:var(--accent,#e7a0ae)}
