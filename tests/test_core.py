@@ -85,7 +85,7 @@ class JarvisTestCase(unittest.TestCase):
         saved = save_app_config({"assistant_name": "  Cuma\n", "address_as": "komutanım", "ui_color": "nope"})
         self.assertEqual(saved["assistant_name"], "Cuma")
         self.assertEqual(saved["address_as"], "komutanım")
-        self.assertEqual(saved["ui_color"], "gold")
+        self.assertEqual(saved["ui_color"], "teal")
         self.assertEqual(address_phrase(saved), "komutanım")
         saved = save_app_config({"ui_color": "cyan", "assistant_name": "X" * 40, "address_as": ""})
         self.assertEqual(saved["ui_color"], "cyan")
