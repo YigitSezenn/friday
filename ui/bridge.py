@@ -319,6 +319,8 @@ class JarvisUI:
         self.set_state(self._state)
         threading.Thread(target=self._refresh_loop, name="jarvis-hud", daemon=True).start()
         threading.Thread(target=self._load_remote, name="jarvis-remote", daemon=True).start()
+        # Açılış sesi (+ ayar açıksa arka plan müziği). push_settings effects/music'i yükledikten sonra.
+        self.play_startup_sfx()
 
     def push_settings(self) -> None:
         from jarvis.config import ADDRESS_PRESETS, LIVE_MODELS, PANEL_KEYS, UI_COLORS, address_phrase, persona_palette

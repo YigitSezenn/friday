@@ -28,5 +28,21 @@ class SoundAssetsTest(unittest.TestCase):
         self.assertFalse(sounds.play("yok-boyle-ses"))
 
 
+    def test_startup_sound_is_wired_into_boot(self):
+        import inspect
+
+        from ui.bridge import JarvisUI
+
+        self.assertIn("self.play_startup_sfx()", inspect.getsource(JarvisUI._boot))
+
+    def test_close_paths_use_farewell(self):
+        import inspect
+
+        from ui.bridge import JarvisUI
+
+        self.assertIn("begin_farewell", inspect.getsource(JarvisUI._on_closing))
+        self.assertIn("begin_farewell", inspect.getsource(JarvisUI.quit_app))
+
+
 if __name__ == "__main__":
     unittest.main()

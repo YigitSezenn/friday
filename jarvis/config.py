@@ -217,6 +217,13 @@ def persona_note(config: dict | None = None) -> str:
 
 
 def save_app_config(updates: dict) -> dict:
+    from jarvis.atomic import LOCK
+
+    with LOCK:
+        return _save_app_config(updates)
+
+
+def _save_app_config(updates: dict) -> dict:
     config = load_app_config()
     config.pop("_config_error", None)
     for key, value in (updates or {}).items():
@@ -247,7 +254,9 @@ def save_app_config(updates: dict) -> dict:
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, indent=4, ensure_ascii=False), encoding="utf-8")
+    from jarvis.atomic import write_text
+
+    write_text(path, json.dumps(config, indent=4, ensure_ascii=False))
     return config
 
 
