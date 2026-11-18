@@ -295,7 +295,16 @@ document.querySelectorAll(".perm-open").forEach(button => {
 window.hud = {
   permissions(data) { paintPermissions(data); },
   // Sesli komutla uyutma: FRIDAY "iyi geceler" desin diye kısa gecikme.
-  sleep(asleep, delayMs) { setTimeout(() => setSleep(asleep), Math.max(0, Number(delayMs) || 0)); },
+  sleep(asleep, delayMs) {
+    // Uyurken önce vedanın bitmesini bekle (en çok 10 sn), sonra uyu.
+    const started = Date.now();
+    const tick = () => {
+      const talking = document.body.dataset.state === "speaking";
+      if (asleep && talking && Date.now() - started < 10000) return setTimeout(tick, 300);
+      setSleep(asleep);
+    };
+    setTimeout(tick, Math.max(0, Number(delayMs) || 0));
+  },
   state(name) {
     document.body.dataset.state = name || "idle";
     $("t-state").textContent = LABEL[name] || name;

@@ -74,6 +74,44 @@ class LiveSendTest(unittest.TestCase):
         self.assertNotIn("media", kw)
 
 
+class SafeStreamTest(unittest.TestCase):
+    def test_close_waits_for_inflight_write(self):
+        import threading
+        import time as _t
+
+        from jarvis.live import SafeStream
+
+        events = []
+
+        class Stream:
+            def write(self, data):
+                events.append("write-start")
+                _t.sleep(0.2)
+                events.append("write-end")
+
+            def stop_stream(self):
+                events.append("stop")
+
+            def close(self):
+                events.append("close")
+
+        class Audio:
+            def terminate(self):
+                events.append("terminate")
+
+        safe = SafeStream(Audio(), Stream())
+        worker = threading.Thread(target=safe.write, args=(b"x",))
+        worker.start()
+        _t.sleep(0.05)
+        safe.close()  # yazma bitmeden kapanmamalı
+        worker.join()
+        self.assertEqual(events, ["write-start", "write-end", "stop", "close", "terminate"])
+        safe.write(b"y")
+        self.assertEqual(safe.read(4), b"")
+        safe.close()
+        self.assertEqual(events.count("close"), 1)
+
+
 class ListeningConfigTest(unittest.TestCase):
     def test_patient_mode_waits_for_pause(self):
         from jarvis.live import listening_config
