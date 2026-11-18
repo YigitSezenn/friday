@@ -148,6 +148,37 @@ class MailTest(unittest.TestCase):
         with mock.patch.object(mail, "outlook_available", return_value=False):
             self.assertIn("Klasik Outlook kullanilmiyor", mail.send_email("a@b.co", "K", "B", provider="outlook"))
 
+    def test_gmail_web_autosend_needs_confirm_then_presses(self):
+        from tools.actions import mail
+
+        calls = []
+        with mock.patch.object(mail, "outlook_available", return_value=False), \
+                mock.patch.object(mail, "_web_autosend", return_value=True), \
+                mock.patch.object(mail, "gmail_web_send", lambda *a: calls.append(a) or "sent"):
+            first = mail.send_email("a@b.co", "K", "B")
+            self.assertIn("ONAY GEREKLI", first)
+            self.assertIn("Gmail (tarayici)", first)
+            self.assertEqual(calls, [])
+            with mock.patch.object(confirm, "MIN_WAIT", 0):
+                self.assertIn("gonderildi", mail.send_email("a@b.co", "K", "B", confirm_send=True))
+        self.assertEqual(calls, [("a@b.co", "K", "B")])
+
+    def test_gmail_web_send_safety(self):
+        from tools.actions import mail
+
+        pressed = []
+        nap = lambda _s: None
+        with mock.patch.object(mail, "_open_gmail_web"):
+            # Gmail hiç öne gelmezse tuşa basılmaz.
+            out = mail.gmail_web_send("a@b.co", "K", "B", title=lambda: "Teams", press=lambda: pressed.append(1), sleep=nap, wait=2)
+            self.assertEqual(out, "opened")
+            self.assertEqual(pressed, [])
+            # Gmail önde: basılır; başlık değişirse gönderildi sayılır.
+            titles = iter(["Gmail", "Yeni ileti - Gmail", "Gelen Kutusu - Gmail"])
+            out = mail.gmail_web_send("a@b.co", "K", "B", title=lambda: next(titles), press=lambda: pressed.append(1), sleep=nap)
+            self.assertEqual(out, "sent")
+            self.assertEqual(pressed, [1])
+
     def test_mime_utf8(self):
         from tools.actions.mail import build_message
 

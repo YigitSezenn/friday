@@ -213,6 +213,20 @@ def _lookup(name: str) -> dict | None:
     return best if score else None
 
 
+def _web_autosend() -> bool:
+    """Onaydan sonra tarayıcıdaki Gmail'den kendisi göndersin mi (varsayılan açık)."""
+    import sys
+
+    if sys.platform != "win32":
+        return False
+    try:
+        from jarvis.config import load_app_config
+
+        return bool(load_app_config().get("mail_web_autosend", True))
+    except Exception:
+        return True
+
+
 def outlook_available() -> bool:
     """Klasik Outlook gerçekten kullanılabilir mi?
 
@@ -287,6 +301,57 @@ def _open_draft(address: str, subject: str, body: str) -> None:
     webbrowser.open(f"mailto:{urllib.parse.quote(address, safe='@')}?{query}")
 
 
+def _foreground_title() -> str:
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    hwnd = user32.GetForegroundWindow()
+    length = user32.GetWindowTextLengthW(hwnd)
+    buffer = ctypes.create_unicode_buffer(length + 1)
+    user32.GetWindowTextW(hwnd, buffer, length + 1)
+    return buffer.value
+
+
+def _press_ctrl_enter() -> None:
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    user32.keybd_event(0x11, 0, 0, 0)  # Ctrl
+    user32.keybd_event(0x0D, 0, 0, 0)  # Enter
+    user32.keybd_event(0x0D, 0, 2, 0)
+    user32.keybd_event(0x11, 0, 2, 0)
+
+
+def gmail_web_send(address: str, subject: str, body: str, title=None, press=None, sleep=None,
+                   wait: float = 15.0, settle: float = 3.0) -> str:
+    """Gmail'i tarayıcıda doldurulmuş açar ve Ctrl+Enter ile gönderir.
+
+    Güvenlik: tuş yalnızca öndeki pencerenin başlığında 'Gmail' varken basılır; aksi halde
+    hiçbir tuşa basılmaz ve ileti taslak olarak açık bırakılır (başka bir uygulamaya
+    yanlışlıkla Ctrl+Enter gitmesin diye).
+    """
+    title = title or _foreground_title
+    press = press or _press_ctrl_enter
+    sleep = sleep or time.sleep
+    _open_gmail_web(address, subject, body)
+    waited = 0.0
+    while waited < wait:
+        sleep(0.5)
+        waited += 0.5
+        if "gmail" in str(title() or "").casefold():
+            break
+    else:
+        return "opened"
+    sleep(settle)  # yeni ileti alanlarının yüklenmesi için
+    before = str(title() or "")
+    if "gmail" not in before.casefold():
+        return "opened"
+    press()
+    sleep(2.5)
+    after = str(title() or "")
+    return "sent" if after != before else "pressed"
+
+
 def choose_provider(provider: str = "auto") -> str:
     """auto: Gmail bağlıysa Gmail, değilse klasik Outlook, o da yoksa taslak."""
     key = (provider or "auto").strip().casefold()
@@ -321,7 +386,7 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     if not (body or "").strip():
         return "E-posta metni bos olamaz."
     route = choose_provider(provider)
-    if route == "gmail_web":
+    if route == "gmail_web" and not _web_autosend():
         try:
             _open_gmail_web(address, subject, body)
         except Exception as exc:
@@ -338,12 +403,19 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     parts = (route, address.lower(), subject, body)
     if confirm.required():
         if not confirm_send:
-            via = "Gmail" if route == "gmail" else "Outlook"
+            via = {"gmail": "Gmail", "gmail_web": "Gmail (tarayici)"}.get(route, "Outlook")
             return confirm.ask("mail", parts, f"E-posta taslagi ({via}) — Kime: {label} <{address}>, Konu: {subject or '(konusuz)'}, Metin: {body.strip()[:300]}.")
         problem = confirm.check("mail", parts)
         if problem:
             return problem
     try:
+        if route == "gmail_web":
+            outcome = gmail_web_send(address, subject, body)
+            if outcome == "sent":
+                return f"E-posta Gmail (tarayici) ile {label} kisisine gonderildi."
+            if outcome == "pressed":
+                return f"Gmail'de {label} icin Gonder komutu verildi; sayfa degismedi, Gonderilenler'den kontrol etmeni oneririm."
+            return f"Gmail acildi ama pencere one gelmedigi icin otomatik gonderemedim; ileti dolu bekliyor, Gonder'e bas."
         if route == "outlook":
             _send_outlook(address, subject, body)
             return f"E-posta Outlook ile {label} kisisine gonderildi."
