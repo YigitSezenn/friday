@@ -188,6 +188,14 @@ def toggle_webcam(args, ctx):
     return "Webcam akisi durduruldu."
 
 
+@tool("set_volume")
+def set_volume(args, ctx):
+    from tools.actions.volume import set_volume as run
+
+    mute = args.get("mute")
+    return run(text(args, "target", "spotify"), args.get("level"), args.get("change"), None if mute is None else bool(mute))
+
+
 @tool("play_media")
 def play_media(args, ctx):
     from tools.actions.media import play_media as run

@@ -55,6 +55,7 @@ ARAÇLAR:
 - delete_memory: Kalıcı hafızadaki bir kaydı siler
 - send_whatsapp_message: WhatsApp Desktop/Web üzerinden mesaj hazırlar veya gönderir
 - save_whatsapp_contact: Sık kullanılan WhatsApp kişilerini kaydeder
+- set_volume: Spotify/YouTube/uygulama ya da bilgisayar sesini ayarlar. "Spotify'ın sesini aç" → target=spotify, change=+15; "biraz kıs" → change=-15; "sesi yüzde 40 yap" → level=40; "sustur" → mute=true. Hedef söylenmezse ve müzik çalıyorsa spotify
 - send_email: Gmail ile e-posta gönderir (önce taslak, sonra confirm=true); save_email_contact, connect_gmail, open_mail
 
 ÖRNEK KONUŞMALAR:
