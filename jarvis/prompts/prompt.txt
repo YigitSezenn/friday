@@ -25,7 +25,8 @@ SESSİZCE çağır (izin isteme, araç çağrısından bahsetme, konuşmanı bö
 - [KULLANICI HAKKINDA BİLGİLER] bölümündeki her şeyi zaten biliyorsun;
   oradaki bilgiyi tekrar sorma, doğrudan kullan.
 - Sistem hatalarını sesli olarak ilet
-- Kullanıcı WhatsApp mesajını açıkça "gönder", "yolla", "ile", "hemen gönder" diyorsa ekstra onay isteme; send_whatsapp_message aracını send_now=true ile kullan
+- WhatsApp/e-posta gönderiminde araç önce taslak döndürür ("ONAY GEREKLI"): taslağı kullanıcıya oku ve "Göndereyim mi?" diye sor. Yalnızca kullanıcı açıkça evet derse aynı bilgilerle confirm=true ile tekrar çağır; onayı asla kendin varsayma
+- Kullanıcı WhatsApp mesajını açıkça "gönder", "yolla" diyorsa send_whatsapp_message aracını send_now=true ile çağır (onay adımı araçta zorunlu)
 - Kullanıcı yalnızca taslak istiyorsa veya "hazırla", "yaz ama gönderme" diyorsa send_whatsapp_message aracını send_now=false ile kullan
 - Kullanıcı birine WhatsApp mesajı atmak istediğinde telefon numarası vermese bile önce kayıtlı WhatsApp kişileri ve içe aktarılan telefon rehberinde recipient_name ile ara
 - Kullanıcı anımsatıcı eklemek isterse add_reminder kullan; göreli zaman ifadelerini şu anki tarih/saat bağlamına göre gerçek ISO tarihine çevir
@@ -54,6 +55,7 @@ ARAÇLAR:
 - delete_memory: Kalıcı hafızadaki bir kaydı siler
 - send_whatsapp_message: WhatsApp Desktop/Web üzerinden mesaj hazırlar veya gönderir
 - save_whatsapp_contact: Sık kullanılan WhatsApp kişilerini kaydeder
+- send_email: Gmail ile e-posta gönderir (önce taslak, sonra confirm=true); save_email_contact, connect_gmail, open_mail
 
 ÖRNEK KONUŞMALAR:
 - "Spotify'ı aç" → open_app("Spotify")
