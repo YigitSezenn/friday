@@ -28,7 +28,14 @@ class HudBridge:
     def post(self, kind: str, data: dict | None = None) -> dict:
         try:
             return self._dispatch(kind, data or {})
-        except Exception:
+        except Exception as exc:  # arayüz çökmesin, ama hata görünür olsun
+            import traceback
+
+            traceback.print_exc()
+            try:
+                self.ui.write_log(f"ERR: Arayüz işlemi ({kind}) başarısız: {exc}")
+            except Exception:
+                pass
             return {"ok": False}
 
 
@@ -200,25 +207,9 @@ def _open_allowed(url: str) -> None:
 
 
 def _copy_text(text: str) -> None:
-    if not text:
-        return
-    import ctypes
+    from jarvis.win32 import set_clipboard
 
-    user32 = ctypes.windll.user32
-    kernel32 = ctypes.windll.kernel32
-    if not user32.OpenClipboard(None):
-        return
-    try:
-        user32.EmptyClipboard()
-        encoded = text.encode("utf-16-le") + b"\x00\x00"
-        handle = kernel32.GlobalAlloc(0x0002, len(encoded))
-        locked = kernel32.GlobalLock(handle)
-        ctypes.memmove(locked, encoded, len(encoded))
-        kernel32.GlobalUnlock(handle)
-        if not user32.SetClipboardData(13, handle):
-            kernel32.GlobalFree(handle)
-    finally:
-        user32.CloseClipboard()
+    set_clipboard(text)
 
 
 def _settings_phone(status: dict, qr_fn) -> dict:

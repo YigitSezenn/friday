@@ -197,10 +197,11 @@ def send_whatsapp_message(
 
 
 def _press_enter() -> None:
-    import ctypes
     import time
 
+    from jarvis.win32 import available, press_keys
+
+    if not available():
+        raise OSError("Yalnızca Windows'ta")
     time.sleep(1.2)
-    user32 = ctypes.windll.user32
-    user32.keybd_event(0x0D, 0, 0, 0)
-    user32.keybd_event(0x0D, 0, 2, 0)
+    press_keys(0x0D)
