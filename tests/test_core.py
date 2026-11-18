@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests._env import needs_gate, needs_module, windows_only
+from tests._env import decode_qr, needs_gate, needs_module, windows_only
 
 
 class JarvisTestCase(unittest.TestCase):
@@ -592,13 +592,11 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn('id="uninstall"', hud)
 
 
-    @needs_module("qrcode")
+    @needs_module("qrcode", "cv2")
     def test_missing_gate_key_is_created_once_and_qr_matches(self):
         import base64
         import io
 
-        import cv2
-        import numpy as np
         from PIL import Image
 
         from jarvis.gate_client import ensure_gate_key, gate_key
@@ -615,7 +613,7 @@ class JarvisTestCase(unittest.TestCase):
 
         encoded = phone_qr_data_url(gate_join_url(first)).split(",", 1)[1]
         image = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
-        value, _points, _straight = cv2.QRCodeDetector().detectAndDecode(np.array(image))
+        value = decode_qr(image)
         code = pair_code(first)
         self.assertTrue(value.startswith("https://site-seven-bay-75.vercel.app/#k="))
         self.assertTrue(first in value)

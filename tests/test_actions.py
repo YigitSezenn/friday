@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from tests._env import live_api, needs_module, needs_network, windows_only
+from tests._env import decode_qr, live_api, needs_module, needs_network, windows_only
 
 
 class ActionTests(unittest.TestCase):
@@ -159,8 +159,6 @@ class ActionTests(unittest.TestCase):
 
     @needs_module("qrcode", "cv2")
     def test_phone_qr_decodes_to_the_pairing_url(self):
-        import cv2
-        import numpy as np
         from PIL import Image
 
         from jarvis.config import save_app_config
@@ -170,7 +168,7 @@ class ActionTests(unittest.TestCase):
         payload = phone_qr_payload()
         encoded = phone_qr_data_url(payload).split(",", 1)[1]
         image = Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
-        value, _points, _straight = cv2.QRCodeDetector().detectAndDecode(np.array(image))
+        value = decode_qr(image)
         self.assertEqual(value, payload)
         self.assertTrue(value.startswith("http://127.0.0.1:8766/join?token="))
         self.assertGreater(len(value.split("token=", 1)[1]), 8)

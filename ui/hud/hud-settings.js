@@ -36,6 +36,25 @@ function paintGate(qr, code) {
   }
   if (digits) digits.textContent = /^\d{6}$/.test(String(code || "")) ? String(code) : "------";
 }
+// Telefona indir: sitenin indirme bölümüne giden QR (telefon kamerası okur).
+function paintSiteQr(qr, url) {
+  const image = $("site-qr");
+  if (image) {
+    image.hidden = !qr;
+    if (qr) image.src = qr;
+  }
+  const label = $("site-url");
+  if (label) label.textContent = url ? url.replace(/^https:\/\//, "").replace(/[?#].*$/, "") : "";
+  const copy = $("site-copy");
+  if (copy) copy.dataset.url = url || "";
+}
+$("site-copy")?.addEventListener("click", event => {
+  const button = event.currentTarget;
+  if (!button.dataset.url) return;
+  send("copy", {text: button.dataset.url});
+  button.textContent = "Kopyalandı";
+  setTimeout(() => { button.textContent = "Bağlantıyı kopyala"; }, 1600);
+});
 function showPhone(_data) {}
 function paintStory(story) {
   const note = $("story-note");

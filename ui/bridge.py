@@ -163,7 +163,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         from jarvis.config import ADDRESS_PRESETS, LIVE_MODELS, PANEL_KEYS, UI_COLORS, address_phrase, persona_palette
         from jarvis.language import choices, ui_language
         from jarvis.memory_store import load_memory
-        from jarvis.gate_client import ensure_gate_key, gate_join_url, pair_code
+        from jarvis.gate_client import ensure_gate_key, gate_join_url, pair_code, site_download_url
         from jarvis.phone_server import phone_qr_data_url, phone_status
         from jarvis.story import view
 
@@ -196,6 +196,8 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
                 "memories": memories[:40],
                 "phone": _settings_phone(phone_status(), phone_qr_data_url),
                 "gateKeyQr": phone_qr_data_url(gate_join_url(ensure_gate_key())),
+                "siteQr": phone_qr_data_url(site_download_url()),
+                "siteUrl": site_download_url(),
                 "pairCode": pair_code(ensure_gate_key()),
                 "languages": choices(),
                 "uiLanguage": ui_language(config),

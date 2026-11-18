@@ -51,6 +51,11 @@ def _write_gate_key() -> str:
 SITE = "https://site-seven-bay-75.vercel.app"
 
 
+def site_download_url() -> str:
+    """Telefonla okutulan QR'ın açtığı sayfa: sitedeki indirme bölümü (Android APK)."""
+    return f"{SITE}/?kaynak=uygulama#indir"
+
+
 def pair_code(key: str) -> str:
     total = 0
     for index, char in enumerate(key):
