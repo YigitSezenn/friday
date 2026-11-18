@@ -17,7 +17,7 @@ class ActionTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
 
     def test_spotify_opens_the_track(self):
-        from jarvis.actions.media import control_media, play_media, spotify_cli_path, spotify_now
+        from tools.actions.media import control_media, play_media, spotify_cli_path, spotify_now
 
         self.assertIsNotNone(spotify_cli_path(), "spotify_cli.exe yok")
         result = play_media("Blinding Lights", provider="spotify")
@@ -33,7 +33,7 @@ class ActionTests(unittest.TestCase):
         self.assertFalse(spotify_now().get("is_playing"))
 
     def test_profile_album_request_opens_the_users_item(self):
-        from jarvis.actions.media import play_saved_collection
+        from tools.actions.media import play_saved_collection
 
         saved_uri = "spotify:playlist:fixtureefkar"
         calls = []
@@ -60,7 +60,7 @@ class ActionTests(unittest.TestCase):
         self.assertIsNone(play_saved_collection("Blinding Lights", run))
 
     def test_youtube_opens_a_real_video(self):
-        from jarvis.actions.browser import browser_control
+        from tools.actions.browser import browser_control
 
         result = browser_control("play_youtube", query="never gonna give you up")
         self.assertIn("https://www.youtube.com/watch?v=", result)
@@ -76,7 +76,7 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(page.json().get("title"))
 
     def test_browser_search_opens_google(self):
-        from jarvis.actions.browser import browser_control
+        from tools.actions.browser import browser_control
 
         result = browser_control("search", query="jarvis rebuild ankara")
         self.assertIn("https://www.google.com/search?q=", result)
@@ -88,7 +88,7 @@ class ActionTests(unittest.TestCase):
         self.assertLess(page.status_code, 500)
 
     def test_whatsapp_draft_uses_real_chat_link(self):
-        from jarvis.actions.whatsapp import send_whatsapp_message
+        from tools.actions.whatsapp import send_whatsapp_message
 
         result = send_whatsapp_message("merhaba jarvis", "0555 111 22 33", send_now=False)
         self.assertIn("905551112233", result)
@@ -99,7 +99,7 @@ class ActionTests(unittest.TestCase):
     def test_open_notepad_creates_a_process(self):
         import psutil
 
-        from jarvis.actions.apps import open_app
+        from tools.actions.apps import open_app
 
         before = {proc.pid for proc in psutil.process_iter(["name"]) if (proc.info["name"] or "").lower() == "notepad.exe"}
         result = open_app("not defteri")
@@ -112,8 +112,8 @@ class ActionTests(unittest.TestCase):
             proc.terminate()
 
     def test_reminder_is_stored_and_listed(self):
-        from jarvis.actions.calendar_store import load_store
-        from jarvis.actions.reminders import add_reminder, complete_reminder, delete_reminder, get_reminders
+        from tools.actions.calendar_store import load_store
+        from tools.actions.reminders import add_reminder, complete_reminder, delete_reminder, get_reminders
 
         saved = add_reminder("Dis fircasi", "2099-01-02T09:30", notes="test")
         self.assertIn("Dis fircasi", saved)
@@ -130,14 +130,14 @@ class ActionTests(unittest.TestCase):
         self.assertNotIn("Dis fircasi", [item["title"] for item in load_store()["reminders"]])
 
     def test_web_search_returns_a_summary(self):
-        from jarvis.actions.search import web_search
+        from tools.actions.search import web_search
 
         result = web_search("Albert Einstein")
         self.assertNotIn("yapilamadi", result.lower())
         self.assertGreater(len(result.strip()), 20)
 
     def test_folder_list_shows_created_file(self):
-        from jarvis.actions.files import list_user_files
+        from tools.actions.files import list_user_files
 
         root = Path(self._tmp.name)
         desktop = root / "Desktop"
@@ -169,7 +169,7 @@ class ActionTests(unittest.TestCase):
     def test_screen_analysis_describes_the_window(self):
         import json
 
-        from jarvis.actions.screen import analyze_screen
+        from tools.actions.screen import analyze_screen
         from jarvis.config import has_gemini_api_key, save_app_config
 
         real = Path(r"C:\Users\yigit\Desktop\jarvis-rebuild\data\config\api_keys.json")

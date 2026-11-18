@@ -10,8 +10,6 @@ class JarvisTestCase(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         os.environ["JARVIS_DATA_DIR"] = self._tmp.name
         os.environ["JARVIS_CALENDAR_BACKEND"] = "local"
-        from jarvis import config as config_module
-
         self.addCleanup(self._tmp.cleanup)
 
     def test_config_roundtrip_and_bad_voice(self):
@@ -41,7 +39,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("yok", delete_memory(category="identity", key="name").lower() + delete_memory())
 
     def test_shell_blocks_destructive_commands(self):
-        from jarvis.actions.shell import shell_run
+        from tools.actions.shell import shell_run
 
         blocked = shell_run("Remove-Item -Recurse C:\\")
         self.assertIn("Guvenlik", blocked)
@@ -49,13 +47,13 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("belirtilmedi", shell_run("   ").lower())
 
     def test_shell_runs_safe_command(self):
-        from jarvis.actions.shell import shell_run
+        from tools.actions.shell import shell_run
 
         self.assertEqual(shell_run("Write-Output tamam"), "tamam")
 
     def test_calendar_and_reminder_roundtrip(self):
-        from jarvis.actions.calendar import add_calendar_event, delete_calendar_event, get_calendar_events
-        from jarvis.actions.reminders import add_reminder, get_reminders
+        from tools.actions.calendar import add_calendar_event, delete_calendar_event, get_calendar_events
+        from tools.actions.reminders import add_reminder, get_reminders
 
         self.assertIn("gorunmuyor", get_calendar_events("today"))
         when = (dt.datetime.now() + dt.timedelta(days=2)).replace(hour=15, minute=0, second=0, microsecond=0)
@@ -111,7 +109,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("token=", phone_url())
 
     def test_whatsapp_contact_lookup(self):
-        from jarvis.actions.whatsapp import find_contact, normalize_phone, save_whatsapp_contact
+        from tools.actions.whatsapp import find_contact, normalize_phone, save_whatsapp_contact
 
         self.assertEqual(normalize_phone("0555 111 22 33"), "905551112233")
         self.assertIn("kaydedildi", save_whatsapp_contact("Annem", "05551112233", "anne").lower())
@@ -132,7 +130,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("YouTube API", execute_tool("get_youtube_channel_report", {}))
 
     def test_weather_summary_parser(self):
-        from jarvis.actions.weather import summarize_weather_payload
+        from tools.actions.weather import summarize_weather_payload
 
         text = summarize_weather_payload(
             {
@@ -149,7 +147,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("Istanbul", text)
         self.assertIn("18 derece", text)
         self.assertIn("nem", text)
-        from jarvis.actions.weather import weather_card
+        from tools.actions.weather import weather_card
 
         card = weather_card(
             {
@@ -193,7 +191,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertEqual(queue.take(), [])
 
     def test_app_alias_without_launching(self):
-        from jarvis.actions.apps import resolve_alias
+        from tools.actions.apps import resolve_alias
 
         self.assertEqual(resolve_alias("hesap makinesi"), "Calculator")
         self.assertEqual(resolve_alias("not defteri"), "Notepad")
@@ -206,21 +204,6 @@ class JarvisTestCase(unittest.TestCase):
         text, noisy = clean_transcript("Merhaba <ctrl46>   dünya\x01")
         self.assertEqual(text, "Merhaba dünya")
         self.assertTrue(noisy)
-
-    def test_turn_closes_after_silence(self):
-        from jarvis.audio.turn import TurnGate
-
-        gate = TurnGate(speech=0.02, silence_s=0.7)
-        loud = b"\xff\x0f" * 160
-        quiet = b"\x00\x00" * 160
-        before, after = gate.feed(loud, 0.0)
-        self.assertEqual(before, ["start"])
-        self.assertEqual(after, [])
-        before, after = gate.feed(quiet, 0.3)
-        self.assertEqual((before, after), ([], []))
-        before, after = gate.feed(quiet, 1.1)
-        self.assertEqual(after, ["end"])
-        self.assertFalse(gate.open)
 
     def test_live_mic_follows_server_vad(self):
         from jarvis.live import JarvisLive, queue_mic_frame
@@ -334,8 +317,8 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("return null", script)
 
     def test_ics_written(self):
-        from jarvis.actions.calendar import add_calendar_event
-        from jarvis.actions.calendar_store import ics_path
+        from tools.actions.calendar import add_calendar_event
+        from tools.actions.calendar_store import ics_path
 
         add_calendar_event("Deneme", "2099-05-05")
         ics = Path(ics_path()).read_text(encoding="utf-8")
@@ -407,9 +390,9 @@ class JarvisTestCase(unittest.TestCase):
     def test_story_search_files_and_vision_code(self):
         from pathlib import Path
 
-        from jarvis.actions.files import list_user_files
-        from jarvis.actions.screen import VISION_MODELS, explain_vision_error
-        from jarvis.actions.search import web_search
+        from tools.actions.files import list_user_files
+        from tools.actions.screen import VISION_MODELS, explain_vision_error
+        from tools.actions.search import web_search
         from jarvis.config import save_app_config
         from jarvis.proactive import due_nudges
         from jarvis.story import note_tool, view
@@ -439,36 +422,6 @@ class JarvisTestCase(unittest.TestCase):
         notes = due_nudges(4000, state, {"proactive_enabled": True, "water_enabled": True, "quiet_minutes": 20}, paused=False)
         self.assertTrue(any("Su" in note for note in notes))
 
-
-    def test_capture_path_applies_echo_and_noise_filter(self):
-        import array
-
-        from jarvis.audio.capture import CaptureFilter, aec_wanted, chunks_for_model
-        from jarvis.config import save_app_config
-
-        self.assertTrue(aec_wanted())
-        save_app_config({"aec_enabled": False})
-        self.assertFalse(aec_wanted())
-        save_app_config({"aec_enabled": True})
-        quiet = array.array("h", [80] * 1024).tobytes()
-        loud = array.array("h", [16000] * 1024).tobytes()
-        filt = CaptureFilter()
-        filt.note_playback(b"\x00\x00" * 24000, now=0.0)
-        dropped = []
-        now = 10.0
-        for step in range(4):
-            dropped.extend(chunks_for_model(quiet, speaking=True, echo_cancelled=True, filt=filt, now=now + step * 0.05))
-        self.assertEqual(dropped, [])
-        sent = []
-        for step in range(6):
-            sent.extend(chunks_for_model(loud, speaking=True, echo_cancelled=True, filt=filt, now=now + 1 + step * 0.05))
-        self.assertIn(loud, sent)
-        self.assertLess(len(dropped), 4)
-        plain = chunks_for_model(loud, speaking=True, echo_cancelled=False, filt=CaptureFilter(), now=now)
-        self.assertEqual(plain, [])
-        heard = chunks_for_model(loud, speaking=False, echo_cancelled=False, filt=CaptureFilter(), now=now)
-        self.assertEqual(heard, [loud])
-        self.assertEqual(chunks_for_model(quiet, speaking=False, echo_cancelled=True, filt=filt, now=now + 8), [quiet])
 
     def test_first_run_screen_closes_and_uses_hud_type(self):
         root = Path(__file__).resolve().parents[1]

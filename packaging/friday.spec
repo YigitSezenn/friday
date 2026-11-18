@@ -25,7 +25,7 @@ hidden = [
 ]
 hidden += collect_submodules("tools.actions")
 hidden += collect_submodules("jarvis")
-hidden += collect_submodules("jarvis.actions")
+
 
 for package in ("webview", "google.genai", "cv2", "PIL", "mss", "qrcode", "pyttsx3", "pycaw", "comtypes"):
     extra_datas, extra_binaries, extra_hidden = collect_all(package)
