@@ -74,5 +74,21 @@ class LiveSendTest(unittest.TestCase):
         self.assertNotIn("media", kw)
 
 
+class ListeningConfigTest(unittest.TestCase):
+    def test_patient_mode_waits_for_pause(self):
+        from jarvis.live import listening_config
+
+        cfg = listening_config(True)
+        self.assertEqual(cfg["end_of_speech_sensitivity"], "END_SENSITIVITY_LOW")
+        self.assertEqual(cfg["start_of_speech_sensitivity"], "START_SENSITIVITY_HIGH")
+        self.assertTrue(500 <= cfg["silence_duration_ms"] <= 1200)
+        self.assertIsNone(listening_config(False))
+
+    def test_default_on(self):
+        from jarvis.config import DEFAULT_CONFIG
+
+        self.assertTrue(DEFAULT_CONFIG["patient_listening"])
+
+
 if __name__ == "__main__":
     unittest.main()

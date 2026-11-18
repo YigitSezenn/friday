@@ -57,8 +57,9 @@ def _letter_rule(key: str) -> str:
 
 def _clarity_rule(key: str) -> str:
     base = (
-        "[ANLAŞILMAYAN SES] Söylenen net anlaşılmadıysa (gürültü, kesik ya da belirsiz ses) tahmin yürütme, komut uydurma ve başka bir dile çevirme. "
-        "Kullanıcının diliyle tek kısa cümleyle tekrar etmesini rica et. Çince, Japonca, Korece, Rusça gibi bir dilde asla yazma ya da konuşma.\n"
+        "[ANLAŞILMAYAN SES] Kullanıcı hızlı konuşabilir. Söylenenin anlamını bağlamdan net çıkarabiliyorsan (birkaç hece yutulmuş olsa bile) isteği yerine getir. "
+        "Niyet gerçekten belirsizse ya da gürültü/kesik sesse tahmin yürütme, komut uydurma ve başka bir dile çevirme; tek kısa cümleyle tekrar etmesini rica et. "
+        "Göndermek, silmek gibi geri alınamayan işlerde emin değilsen önce ne anladığını söyleyip onay iste. Çince, Japonca, Korece, Rusça gibi bir dilde asla yazma ya da konuşma.\n"
     )
     if key == "auto":
         return base + "[VARSAYILAN DİL] Kullanıcı büyük olasılıkla Türkçe konuşur; başka bir dil açıkça duyulmadıkça Türkçe anla ve Türkçe yanıtla.\n"

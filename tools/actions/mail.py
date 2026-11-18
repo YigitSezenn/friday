@@ -214,7 +214,12 @@ def _lookup(name: str) -> dict | None:
 
 
 def outlook_available() -> bool:
-    """Klasik Outlook (COM) kurulu mu? Yeni Outlook (olk.exe) COM desteklemez."""
+    """Klasik Outlook gerçekten kullanılabilir mi?
+
+    Yeni Outlook (olk.exe) COM desteklemez. Klasik Outlook kurulu olsa bile kullanıcı
+    yeni Outlook'a geçtiyse (UseNewOutlook=1) ya da klasikte hiç profil yoksa
+    kullanılmaz; aksi halde boş kurulum sihirbazı açılırdı.
+    """
     import sys
 
     if sys.platform != "win32":
@@ -223,7 +228,26 @@ def outlook_available() -> bool:
         import winreg
 
         with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"Outlook.Application\CLSID"):
-            return True
+            pass
+    except OSError:
+        return False
+    return _classic_outlook_in_use()
+
+
+def _classic_outlook_in_use() -> bool:
+    import winreg
+
+    base = r"Software\Microsoft\Office\16.0\Outlook"
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, base + r"\Preferences") as key:
+            value, _kind = winreg.QueryValueEx(key, "UseNewOutlook")
+            if int(value) == 1:
+                return False
+    except (OSError, ValueError):
+        pass
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, base + r"\Profiles") as key:
+            return winreg.QueryInfoKey(key)[0] > 0
     except OSError:
         return False
 
@@ -288,7 +312,7 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     if route == "none-gmail":
         return "Gmail bagli degil. Once 'Gmail'i bagla' de ya da Outlook'tan gondermemi iste."
     if route == "none-outlook":
-        return "Bu bilgisayarda klasik Outlook bulunamadi (yeni Outlook desteklenmiyor). Gmail bagla ya da taslak olarak acayim."
+        return "Klasik Outlook kullanilmiyor (yeni Outlook dogrudan gonderimi desteklemiyor). Taslak olarak acayim mi, yoksa Gmail mi baglayalim?"
     if route == "draft":
         try:
             _open_draft(address, subject, body)
