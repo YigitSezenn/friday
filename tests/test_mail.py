@@ -144,11 +144,102 @@ class MailTest(unittest.TestCase):
                 self.assertIn("Outlook ile", mail.send_email("a@b.co", "K", "B", confirm_send=True))
         self.assertEqual(sent, [("a@b.co", "K", "B")])
 
-    def test_explicit_outlook_missing(self):
+    def test_web_send_brings_background_browser_to_front(self):
         from tools.actions import mail
 
+        state = {"front": "FRIDAY"}
+        pressed, raised = [], []
+        nap = lambda _s: None
+
+        def front(hwnd):
+            raised.append(hwnd)
+            state["front"] = "Deneme - Gmail"
+            return True
+
+        titles = lambda: state["front"]
+        with mock.patch.object(mail, "_open_gmail_web"):
+            out = mail.web_send("gmail_web", "a@b.co", "K", "B", title=titles, press=lambda: (pressed.append(1), state.update(front="Gelen - Gmail")),
+                                sleep=nap, find=lambda m: 42 if m == "gmail" else 0, front=front)
+        self.assertEqual(raised[:1], [42])
+        self.assertEqual(pressed, [1])
+        self.assertEqual(out, "sent")
+
+    def test_smtp_app_password_sends_in_background(self):
+        from jarvis.config import save_app_config
+        from tools.actions import mail
+
+        save_app_config({"gmail_address": "ben@gmail.com", "gmail_app_password": "abcd efgh ijkl mnop"})
+        self.assertEqual(mail.choose_provider("auto"), "smtp")
+        sent = []
+
+        class FakeSMTP:
+            def __init__(self, host, port, context=None, timeout=0):
+                sent.append((host, port))
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def login(self, user, password): sent.append(("login", user, password))
+            def send_message(self, message): sent.append(("send", message["To"], message["From"], message["Subject"]))
+
+        with mock.patch("smtplib.SMTP_SSL", FakeSMTP), mock.patch.object(mail.webbrowser, "open") as browser:
+            first = mail.send_email("a@b.co", "Konu", "Merhaba")
+            self.assertIn("Gmail (arka planda)", first)
+            self.assertEqual(sent, [])
+            with mock.patch.object(confirm, "MIN_WAIT", 0):
+                self.assertIn("arka planda", mail.send_email("a@b.co", "Konu", "Merhaba", confirm_send=True))
+            browser.assert_not_called()
+        self.assertEqual(sent, [("smtp.gmail.com", 465), ("login", "ben@gmail.com", "abcdefghijklmnop"), ("send", "a@b.co", "ben@gmail.com", "Konu")])
+
+    def test_smtp_needs_full_settings(self):
+        from jarvis.config import save_app_config
+        from tools.actions import mail
+
+        save_app_config({"gmail_address": "ben@gmail.com", "gmail_app_password": "kisa"})
+        self.assertEqual(mail.smtp_settings(), ("", ""))
+
+    def test_new_outlook_uses_outlook_web(self):
+        from tools.actions import mail
+
+        sent = []
+        with mock.patch.object(mail, "outlook_available", return_value=False), \
+                mock.patch.object(mail, "_web_autosend", return_value=True), \
+                mock.patch.object(mail, "web_send", lambda route, *a: sent.append((route, *a)) or "sent"):
+            first = mail.send_email("a@b.co", "K", "B", provider="outlook")
+            self.assertIn("ONAY GEREKLİ", first)
+            self.assertIn("Outlook (tarayıcı)", first)
+            with mock.patch.object(confirm, "MIN_WAIT", 0):
+                self.assertIn("Outlook (tarayıcı) ile", mail.send_email("a@b.co", "K", "B", provider="outlook", confirm_send=True))
+        self.assertEqual(sent, [("outlook_web", "a@b.co", "K", "B")])
+
+    def test_outlook_compose_url(self):
+        from tools.actions import mail
+
+        url = mail.outlook_compose_url("a@b.co", "Konu ş", "Merhaba dünya")
+        self.assertTrue(url.startswith("https://outlook.live.com/mail/0/deeplink/compose?to=a%40b.co"))
+        self.assertIn("subject=Konu%20%C5%9F", url)
+        from jarvis.config import save_app_config
+
+        save_app_config({"outlook_web_host": "outlook.office.com"})
+        self.assertTrue(mail.outlook_compose_url("a@b.co", "", "").startswith("https://outlook.office.com/mail/deeplink/compose?"))
+
+    def test_auto_prefers_outlook_web_when_chosen(self):
+        from jarvis.config import save_app_config
+        from tools.actions import mail
+
+        save_app_config({"mail_web": "outlook"})
         with mock.patch.object(mail, "outlook_available", return_value=False):
-            self.assertIn("Klasik Outlook kullanılmıyor", mail.send_email("a@b.co", "K", "B", provider="outlook"))
+            self.assertEqual(mail.choose_provider("auto"), "outlook_web")
+
+    def test_web_send_presses_only_when_outlook_is_front(self):
+        from tools.actions import mail
+
+        pressed = []
+        nap = lambda _s: None
+        with mock.patch.object(mail, "_open_web"):
+            self.assertEqual(mail.web_send("outlook_web", "a@b.co", "K", "B", title=lambda: "Gmail", press=lambda: pressed.append(1), sleep=nap, wait=2), "opened")
+            self.assertEqual(pressed, [])
+            titles = iter(["Outlook", "Yeni ileti - Outlook", "Gelen Kutusu - Outlook"])
+            self.assertEqual(mail.web_send("outlook_web", "a@b.co", "K", "B", title=lambda: next(titles), press=lambda: pressed.append(1), sleep=nap), "sent")
+        self.assertEqual(pressed, [1])
 
     def test_gmail_web_autosend_needs_confirm_then_presses(self):
         from tools.actions import mail
