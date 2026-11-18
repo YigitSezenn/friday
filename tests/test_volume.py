@@ -64,7 +64,13 @@ class VolumeTest(unittest.TestCase):
         self.assertEqual(vol.muted, 1)
 
     def test_no_backend_is_graceful(self):
-        self.assertIn("kullanilamiyor", set_volume("spotify", change=10))
+        # pycaw kurulu Windows'ta gerçek sese dokunmasın: arka uç kurulamıyormuş gibi yap.
+        from unittest import mock
+
+        from tools.actions import volume
+
+        with mock.patch.object(volume, "_Backend", side_effect=ImportError("pycaw yok")):
+            self.assertIn("kullanilamiyor", set_volume("spotify", change=10))
 
 
 if __name__ == "__main__":
