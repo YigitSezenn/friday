@@ -136,7 +136,16 @@ class JarvisLive:
         asyncio.run_coroutine_threadsafe(self._send_text(text), self._loop)
 
     async def _send_text(self, text: str) -> None:
-        await self.session.send_client_content(turns={"parts": [{"text": text}]}, turn_complete=True)
+        await self._send_user_text(text)
+
+    async def _send_user_text(self, text: str) -> None:
+        """Yeni canlı modeller (3.x) oturum ortasında send_client_content'i reddeder
+        (1007 invalid argument); metin send_realtime_input(text=) ile gider.
+        Eski SDK'da `text` parametresi yoksa eski yola düşer."""
+        try:
+            await self.session.send_realtime_input(text=text)
+        except TypeError:
+            await self.session.send_client_content(turns={"parts": [{"text": text}]}, turn_complete=True)
 
     def set_speaking(self, value: bool) -> None:
         with self._speaking_lock:
@@ -212,7 +221,17 @@ class JarvisLive:
             if mime.startswith("image/"):
                 await self._send_media(message["data"], mime)
                 continue
-            await self.session.send_realtime_input(media={"data": message["data"], "mime_type": "audio/pcm"})
+            await self._send_audio(message["data"])
+
+    async def _send_audio(self, data: bytes) -> None:
+        """`media=` kullanımdan kalktı ve 3.x canlı modellerde bağlantıyı 1007 ile düşürür;
+        mikrofon sesi `audio=` Blob'u ve açık örnekleme hızıyla gider."""
+        from google.genai import types
+
+        try:
+            await self.session.send_realtime_input(audio=types.Blob(data=data, mime_type=f"audio/pcm;rate={SEND_RATE}"))
+        except TypeError:
+            await self.session.send_realtime_input(media={"data": data, "mime_type": "audio/pcm"})
 
     async def _send_media(self, data: bytes, mime: str) -> None:
         from google.genai import types
@@ -517,12 +536,7 @@ class JarvisLive:
         asyncio.run_coroutine_threadsafe(self._nudge(text), loop)
 
     async def _nudge(self, text: str) -> None:
-        from google.genai import types
-
-        await self.session.send_client_content(
-            turns=types.Content(role="user", parts=[types.Part(text=f"[Sistem notu, sesli ve kisa soyle] {text}")]),
-            turn_complete=True,
-        )
+        await self._send_user_text(f"[Sistem notu, sesli ve kisa soyle] {text}")
 
     async def _watch_reconnect(self) -> None:
         await self._reconnect.wait()
