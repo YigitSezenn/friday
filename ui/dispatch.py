@@ -234,6 +234,7 @@ def _open_allowed(url: str) -> None:
         "https://aistudio.google.com/apikey",
         "https://youtu.be/VZl5uBT4a60",
         "https://ai.studio/projects",
+        "https://myaccount.google.com/apppasswords",
     }
     if url in allowed or url.startswith("https://aistudio.google.com/apikey"):
         webbrowser.open(url)

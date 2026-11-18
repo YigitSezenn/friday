@@ -294,8 +294,34 @@ def gmail_compose_url(address: str, subject: str, body: str) -> str:
     return f"https://mail.google.com/mail/?{query}"
 
 
+def outlook_compose_url(address: str, subject: str, body: str) -> str:
+    """Tarayıcıda açık Outlook (yeni Outlook ile aynı hesap) oturumuyla dolu yeni ileti.
+
+    Kişisel hesap: outlook.live.com; iş/okul hesabı için ayar outlook_web_host=outlook.office.com.
+    """
+    from jarvis.config import load_app_config
+
+    host = str(load_app_config().get("outlook_web_host") or "outlook.live.com").strip()
+    if host not in {"outlook.live.com", "outlook.office.com"}:
+        host = "outlook.live.com"
+    path = "/mail/0/deeplink/compose" if host == "outlook.live.com" else "/mail/deeplink/compose"
+    query = urllib.parse.urlencode({"to": address, "subject": subject, "body": body}, quote_via=urllib.parse.quote)
+    return f"https://{host}{path}?{query}"
+
+
+# Tarayıcı yolları: (görünen ad, adres üretici, pencere başlığında aranacak kelime)
+WEB_ROUTES = {
+    "gmail_web": ("Gmail", gmail_compose_url, "gmail"),
+    "outlook_web": ("Outlook", outlook_compose_url, "outlook"),
+}
+
+
 def _open_gmail_web(address: str, subject: str, body: str) -> None:
     webbrowser.open(gmail_compose_url(address, subject, body))
+
+
+def _open_web(route: str, address: str, subject: str, body: str) -> None:
+    webbrowser.open(WEB_ROUTES[route][1](address, subject, body))
 
 
 def _open_draft(address: str, subject: str, body: str) -> None:
@@ -317,27 +343,53 @@ def _press_ctrl_enter() -> None:
 
 def gmail_web_send(address: str, subject: str, body: str, title=None, press=None, sleep=None,
                    wait: float = 15.0, settle: float = 3.0) -> str:
-    """Gmail'i tarayıcıda doldurulmuş açar ve Ctrl+Enter ile gönderir.
+    return web_send("gmail_web", address, subject, body, title, press, sleep, wait, settle)
 
-    Güvenlik: tuş yalnızca öndeki pencerenin başlığında 'Gmail' varken basılır; aksi halde
-    hiçbir tuşa basılmaz ve ileti taslak olarak açık bırakılır (başka bir uygulamaya
-    yanlışlıkla Ctrl+Enter gitmesin diye).
+
+def _find_window(marker: str) -> int:
+    from jarvis.win32 import find_window
+
+    return find_window(marker)
+
+
+def _bring_to_front(hwnd: int) -> bool:
+    from jarvis.win32 import bring_to_front
+
+    return bring_to_front(hwnd)
+
+
+def web_send(route: str, address: str, subject: str, body: str, title=None, press=None, sleep=None,
+             wait: float = 15.0, settle: float = 3.0, find=None, front=None) -> str:
+    """Web postasını (Gmail/Outlook) tarayıcıda doldurulmuş açar ve Ctrl+Enter ile gönderir.
+
+    Güvenlik: tuş yalnızca öndeki pencerenin başlığında servis adı (Gmail/Outlook) varken basılır;
+    aksi halde hiçbir tuşa basılmaz ve ileti dolu bekler (başka bir uygulamaya yanlışlıkla
+    Ctrl+Enter gitmesin diye).
     """
+    marker = WEB_ROUTES[route][2]
     title = title or _foreground_title
     press = press or _press_ctrl_enter
     sleep = sleep or time.sleep
-    _open_gmail_web(address, subject, body)
+    if route == "gmail_web":
+        _open_gmail_web(address, subject, body)
+    else:
+        _open_web(route, address, subject, body)
     waited = 0.0
     while waited < wait:
         sleep(0.5)
         waited += 0.5
-        if "gmail" in str(title() or "").casefold():
+        if marker in str(title() or "").casefold():
             break
+        # Tarayıcı açıldı ama FRIDAY (tam ekran) önde kaldıysa pencereyi bulup öne getir.
+        if waited >= 2.0:
+            hwnd = (find or _find_window)(marker)
+            if hwnd:
+                (front or _bring_to_front)(hwnd)
     else:
         return "opened"
     sleep(settle)  # yeni ileti alanlarının yüklenmesi için
     before = str(title() or "")
-    if "gmail" not in before.casefold():
+    if marker not in before.casefold():
         return "opened"
     press()
     sleep(2.5)
@@ -345,22 +397,62 @@ def gmail_web_send(address: str, subject: str, body: str, title=None, press=None
     return "sent" if after != before else "pressed"
 
 
+def smtp_settings() -> tuple[str, str]:
+    """Gmail uygulama şifresiyle SMTP (arka planda, pencere açmadan). Ayarlı değilse ("", "")."""
+    try:
+        from jarvis.config import load_app_config
+
+        config = load_app_config()
+    except Exception:
+        return "", ""
+    address = str(config.get("gmail_address") or "").strip()
+    password = "".join(str(config.get("gmail_app_password") or "").split())
+    if EMAIL_RE.match(address) and len(password) >= 16:
+        return address, password
+    return "", ""
+
+
+def _send_smtp(sender: str, password: str, address: str, subject: str, body: str) -> None:
+    import smtplib
+    import ssl
+
+    message = build_message(address, subject, body)
+    message["From"] = sender
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=20) as server:
+        server.login(sender, password)
+        server.send_message(message)
+
+
+def _preferred_web() -> str:
+    try:
+        from jarvis.config import load_app_config
+
+        return "outlook" if str(load_app_config().get("mail_web") or "gmail") == "outlook" else "gmail"
+    except Exception:
+        return "gmail"
+
+
 def choose_provider(provider: str = "auto") -> str:
     """auto: Gmail bağlıysa Gmail, değilse klasik Outlook, o da yoksa taslak."""
     key = (provider or "auto").strip().casefold()
     if key in {"gmail", "google"}:
+        if smtp_settings()[0]:
+            return "smtp"
         return "gmail" if gmail_connected() else "gmail_web"
-    if key in {"outlook", "office", "hotmail"}:
-        return "outlook" if outlook_available() else "none-outlook"
+    if key in {"outlook", "office", "hotmail", "outlook_web"}:
+        # Klasik Outlook kuruluysa onu, değilse (yeni Outlook) aynı hesabı tarayıcıda kullan.
+        return "outlook" if key != "outlook_web" and outlook_available() else "outlook_web"
     if key in {"taslak", "draft", "mailto"}:
         return "draft"
     if key in {"gmail_web", "web", "tarayici"}:
         return "gmail_web"
+    if smtp_settings()[0] and _preferred_web() == "gmail":
+        return "smtp"
     if gmail_connected():
         return "gmail"
     if outlook_available():
         return "outlook"
-    return "gmail_web"
+    return "outlook_web" if _preferred_web() == "outlook" else "gmail_web"
 
 
 def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: str = "", confirm_send: bool = False, provider: str = "auto") -> str:
@@ -379,14 +471,16 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     if not (body or "").strip():
         return "E-posta metni boş olamaz."
     route = choose_provider(provider)
-    if route == "gmail_web" and not _web_autosend():
+    if route in WEB_ROUTES and not _web_autosend():
+        name = WEB_ROUTES[route][0]
         try:
-            _open_gmail_web(address, subject, body)
+            if route == "gmail_web":
+                _open_gmail_web(address, subject, body)
+            else:
+                _open_web(route, address, subject, body)
         except Exception as exc:
-            return f"Gmail tarayıcıda açılamadı: {exc}"
-        return f"Gmail tarayıcıda {label} için doldurulmuş yeni ileti olarak açıldı; kontrol edip Gönder'e bas."
-    if route == "none-outlook":
-        return "Klasik Outlook kullanılmıyor (yeni Outlook doğrudan gönderimi desteklemiyor). Taslak olarak açayım mi, yoksa Gmail mi bağlayalım?"
+            return f"{name} tarayıcıda açılamadı: {exc}"
+        return f"{name} tarayıcıda {label} için doldurulmuş yeni ileti olarak açıldı; kontrol edip Gönder'e bas."
     if route == "draft":
         try:
             _open_draft(address, subject, body)
@@ -396,19 +490,24 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     parts = (route, address.lower(), subject, body)
     if confirm.required():
         if not confirm_send:
-            via = {"gmail": "Gmail", "gmail_web": "Gmail (tarayıcı)"}.get(route, "Outlook")
+            via = {"gmail": "Gmail", "smtp": "Gmail (arka planda)", "gmail_web": "Gmail (tarayıcı)", "outlook_web": "Outlook (tarayıcı)"}.get(route, "Outlook")
             return confirm.ask("mail", parts, f"E-posta taslağı ({via}) — Kime: {label} <{address}>, Konu: {subject or '(konusuz)'}, Metin: {body.strip()[:300]}.")
         problem = confirm.check("mail", parts)
         if problem:
             return problem
     try:
-        if route == "gmail_web":
-            outcome = gmail_web_send(address, subject, body)
+        if route == "smtp":
+            sender, password = smtp_settings()
+            _send_smtp(sender, password, address, subject, body)
+            return f"E-posta arka planda Gmail ile {label} kişisine gönderildi."
+        if route in WEB_ROUTES:
+            name = WEB_ROUTES[route][0]
+            outcome = gmail_web_send(address, subject, body) if route == "gmail_web" else web_send(route, address, subject, body)
             if outcome == "sent":
-                return f"E-posta Gmail (tarayıcı) ile {label} kişisine gönderildi."
+                return f"E-posta {name} (tarayıcı) ile {label} kişisine gönderildi."
             if outcome == "pressed":
-                return f"Gmail'de {label} için Gönder komutu verildi; sayfa değişmedi, Gönderilenler'den kontrol etmeni öneririm."
-            return "Gmail açıldı ama pencere öne gelmediği için otomatik gönderemedim; ileti dolu bekliyor, Gönder'e bas."
+                return f"{name}'da {label} için Gönder komutu verildi; sayfa değişmedi, Gönderilenler'den kontrol etmeni öneririm."
+            return f"{name} açıldı ama pencere öne gelmediği için otomatik gönderemedim; ileti dolu bekliyor, Gönder'e bas."
         if route == "outlook":
             _send_outlook(address, subject, body)
             return f"E-posta Outlook ile {label} kişisine gönderildi."
@@ -420,6 +519,10 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
         with urllib.request.urlopen(req, timeout=20) as resp:
             json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
+        import smtplib
+
+        if isinstance(exc, smtplib.SMTPAuthenticationError):
+            return "E-posta gönderilemedi: Gmail uygulama şifresi kabul edilmedi. Ayarlar › Ses › Arka planda Gmail bölümündeki adresi ve 16 haneli şifreyi kontrol et."
         return f"E-posta gönderilemedi: {exc}"
     return f"E-posta {label} kişisine gönderildi."
 
@@ -429,10 +532,16 @@ def open_mail(provider: str = "auto") -> str:
 
     key = (provider or "auto").strip().casefold()
     if key in {"outlook", "office"} or (key == "auto" and not gmail_connected() and outlook_available()):
-        try:
-            os.startfile("outlook.exe")  # type: ignore[attr-defined]
-            return "Outlook açıldı."
-        except OSError:
-            pass
+        if outlook_available():
+            try:
+                os.startfile("outlook.exe")  # type: ignore[attr-defined]
+                return "Outlook açıldı."
+            except OSError:
+                pass
+        webbrowser.open(outlook_compose_url("", "", "").split("/deeplink")[0])
+        return "Outlook tarayıcıda açıldı."
+    if key == "auto" and _preferred_web() == "outlook":
+        webbrowser.open(outlook_compose_url("", "", "").split("/deeplink")[0])
+        return "Outlook tarayıcıda açıldı."
     webbrowser.open("https://mail.google.com/mail/u/0/#inbox")
     return "Gmail gelen kutusu tarayıcıda açıldı."
