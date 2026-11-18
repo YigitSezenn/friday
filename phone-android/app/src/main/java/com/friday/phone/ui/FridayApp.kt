@@ -32,6 +32,7 @@ data class PlatformActions(
     val scanQr: () -> Unit,
     val listen: () -> Unit,
     val openSite: () -> Unit,
+    val toggleLanMic: () -> Unit,
     val versionName: String,
 )
 
@@ -79,9 +80,14 @@ fun FridayApp(vm: FridayViewModel, actions: PlatformActions) {
                 PairScreen(state, onScan = actions.scanQr, onConfirm = vm::confirmCode, onCancel = vm::cancelPairing)
             } else {
                 when (tab) {
-                    Tab.COMMAND -> CommandScreen(state, onSend = vm::send, onListen = actions.listen)
+                    Tab.COMMAND -> CommandScreen(
+                        state,
+                        onSend = vm::send,
+                        onListen = actions.listen,
+                        onToggleLanMic = actions.toggleLanMic,
+                    )
                     Tab.WAKE -> WakeScreen(state, onWake = vm::wake)
-                    Tab.SETTINGS -> SettingsScreen(state, actions, onForget = vm::forgetPairing)
+                    Tab.SETTINGS -> SettingsScreen(state, actions, onForget = vm::forgetPairing, onForgetLan = vm::forgetLan)
                 }
             }
         }

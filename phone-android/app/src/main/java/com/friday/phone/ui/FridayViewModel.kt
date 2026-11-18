@@ -10,10 +10,13 @@ import com.friday.phone.domain.HistoryItem
 import com.friday.phone.domain.WakeResult
 import com.friday.phone.domain.codeMatches
 import com.friday.phone.domain.gateKeyFrom
+import com.friday.phone.domain.LanLink
 import com.friday.phone.domain.isPairingLink
+import com.friday.phone.domain.lanLinkFrom
 import com.friday.phone.domain.pairCode
 import com.friday.phone.domain.withNewest
 import com.friday.phone.net.GateClient
+import com.friday.phone.net.LanBridge
 import com.friday.phone.net.WakeOnLan
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,28 +34,34 @@ data class UiState(
     val wake: WakeConfig = WakeConfig(),
     val waking: Boolean = false,
     val message: String? = null,
+    val lanHost: String = "",
+    val lanMic: Boolean = false,
 )
 
 class FridayViewModel(app: Application) : AndroidViewModel(app) {
     private val store = FridayStore(app)
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+    private var bridge: LanBridge? = null
 
     private fun initialState(): UiState {
         val key = store.gateKey
+        val lan = store.lan
         return UiState(
             paired = key.isNotEmpty(),
             pairingCode = if (key.isNotEmpty()) pairCode(key) else "",
             history = store.history(),
             wake = store.wake,
+            lanHost = lan?.host.orEmpty(),
         )
     }
 
     // ---- Eşleştirme ----
 
-    /** QR'dan ya da açılış bağlantısından gelen metin. Anahtarı hemen kaydetmez: önce ekrandaki kod doğrulanır. */
+    /** QR'dan ya da açılış bağlantısından gelen metin. Yerel (/join) bağlantı hemen kaydedilir; site anahtarı önce ekrandaki kodla doğrulanır. */
     fun onLink(text: String) {
         val link = text.trim()
+        lanLinkFrom(link)?.let { return linkLan(it) }
         if (!isPairingLink(link)) return say("Bu bir FRIDAY QR kodu değil.")
         val key = gateKeyFrom(link)
         if (key.isEmpty()) return say("QR kodunda anahtar yok. FRIDAY ekranındaki kodu yeniden okut.")
@@ -70,6 +79,40 @@ class FridayViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun cancelPairing() = _state.update { it.copy(pendingKey = "", pairError = null) }
+
+    // ---- Yerel köprü (aynı Wi-Fi: telefon mikrofonu ve hoparlörü) ----
+
+    private fun linkLan(link: LanLink) {
+        setLanMic(false)
+        store.lan = link
+        _state.update { it.copy(lanHost = link.host, message = "Yerel bağlantı kaydedildi: ${link.host}") }
+    }
+
+    /** İzin çağıran tarafta (MainActivity) alınmış olmalı. */
+    fun setLanMic(on: Boolean) {
+        val link = store.lan
+        if (!on) {
+            bridge?.stop()
+            bridge = null
+            return _state.update { it.copy(lanMic = false) }
+        }
+        if (link == null) return say("Önce bilgisayardaki QR kodu okut.")
+        val next = LanBridge(link, viewModelScope)
+        bridge = next
+        next.start { error -> viewModelScope.launch { say(error); setLanMic(false) } }
+        _state.update { it.copy(lanMic = true, message = "Telefon mikrofonu açık.") }
+    }
+
+    fun forgetLan() {
+        setLanMic(false)
+        store.lan = null
+        _state.update { it.copy(lanHost = "", message = "Yerel bağlantı silindi.") }
+    }
+
+    override fun onCleared() {
+        bridge?.stop()
+        super.onCleared()
+    }
 
     fun forgetPairing() {
         store.clearGateKey()
