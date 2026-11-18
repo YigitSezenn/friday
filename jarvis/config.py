@@ -35,6 +35,7 @@ DEFAULT_CONFIG = {
     "ui_color": "teal",
     "voice_volume": 100,
     "effects": True,
+    "music": False,
     "panels_off": [],
     "youtube_api_key": "",
     "youtube_channel_handle": "",
@@ -88,6 +89,7 @@ def load_app_config() -> dict:
     config["ui_color"] = _clean_color(config.get("ui_color"))
     config["voice_volume"] = _clean_volume(config.get("voice_volume"))
     config["effects"] = _clean_bool(config.get("effects"), True)
+    config["music"] = _clean_bool(config.get("music"), False)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     backend = str(config.get("calendar_backend", "auto") or "auto").strip().lower()
     if backend not in {"auto", "outlook", "local"}:
@@ -221,6 +223,7 @@ def save_app_config(updates: dict) -> dict:
     config["ui_color"] = _clean_color(config.get("ui_color"))
     config["voice_volume"] = _clean_volume(config.get("voice_volume"))
     config["effects"] = _clean_bool(config.get("effects"), True)
+    config["music"] = _clean_bool(config.get("music"), False)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     config["live_model"] = _clean_model(config.get("live_model"))
     config["language"] = _clean_language(config.get("language"))

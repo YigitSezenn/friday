@@ -240,7 +240,7 @@ function paintIdentity(name) {
   assistantName = name || "FRIDAY";
   $("mark").textContent = assistantName;
   document.title = assistantName;
-  const model = window.__liveModel || "models/gemini-2.5-flash-native-audio-latest";
+  const model = window.__liveModel || "models/gemini-3.8-live";
   $("model-blurb").textContent = `${assistantName} arayüzü açık. Ses: Gemini Live, ${model}.`;
   const about = $("about-blurb");
   if (about) {
@@ -388,7 +388,7 @@ window.hud = {
       button.type = "button";
       button.textContent = (uiPack.colors && uiPack.colors[item.id]) || item.label;
       button.dataset.color = item.id;
-      button.setAttribute("aria-checked", item.id === (data.config.ui_color || "gold") ? "true" : "false");
+      button.setAttribute("aria-checked", item.id === (data.config.ui_color || "teal") ? "true" : "false");
       button.addEventListener("click", () => {
         form.ui_color.value = item.id;
         colors.querySelectorAll("button").forEach(node => node.setAttribute("aria-checked", node === button ? "true" : "false"));
@@ -418,6 +418,7 @@ window.hud = {
       $("vol-label").textContent = "%" + form.voice_volume.value;
     }
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
+    $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
     setSwitch("set-aec", data.config.aec_enabled !== false);
     setSwitch("set-story", data.config.story_enabled);
     setSwitch("set-proactive", data.config.proactive_enabled);
@@ -583,6 +584,7 @@ document.querySelectorAll(".stab").forEach(button => {
     if (button.dataset.tab === "izinler") send("permissions");
   });
 });
+$("set-music").addEventListener("click", () => $("set-music").setAttribute("aria-checked", $("set-music").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-sfx").addEventListener("click", () => $("set-sfx").setAttribute("aria-checked", $("set-sfx").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-mic").addEventListener("click", () => { toggleMic(); $("set-mic").setAttribute("aria-checked", $("t-mic").dataset.on === "1" ? "true" : "false"); });
 const volume = document.querySelector("[name=voice_volume]");
@@ -867,6 +869,7 @@ $("settings-form").addEventListener("submit", event => {
   for (const key of ["gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes"]) values[key] = form[key].value.trim();
   values.voice_volume = Number(form.voice_volume.value);
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
+  values.music = $("set-music").getAttribute("aria-checked") === "true";
   values.aec_enabled = $("set-aec").getAttribute("aria-checked") !== "false";
   values.story_enabled = $("set-story").getAttribute("aria-checked") === "true";
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";

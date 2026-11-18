@@ -120,10 +120,10 @@
       <div class="field"><input name="address_as" list="address-list" maxlength="32" autocomplete="off"></div>
       <datalist id="address-list"></datalist>
       <div class="row2"><div>RENK<small>Halkanın, yazıların ve haritanın rengi.</small></div></div>
-      <input type="hidden" name="ui_color" value="gold">
+      <input type="hidden" name="ui_color" value="teal">
       <div class="seg" id="color-seg"></div>
       <div class="row2"><div>CANLI MODEL<small>Sesli oturumun modeli. Kayıt, seçilene yeniden bağlar.</small></div></div>
-      <input type="hidden" name="live_model" value="models/gemini-2.5-flash-native-audio-latest">
+      <input type="hidden" name="live_model" value="models/gemini-3.8-live">
       <div class="seg" id="model-seg"></div>
       <div class="row2"><div data-i18n="langTitle">DİL<small data-i18n="langHelp">Seçtiğin dil arayüzü ve yanıtları değiştirir.</small></div></div>
       <input type="hidden" name="language" value="auto">
@@ -174,8 +174,10 @@
         <input name="voice_volume" type="range" min="0" max="150" step="5" value="100"></div>
       <div class="row2"><div>YANKI ENGELLEME<small>Açıkken hoparlör yankısı ve konuşma sırasındaki ortam gürültüsü mikrofona karışmadan önce silinir. Mikrofon düzgün çalışmıyorsa kapat.</small></div>
         <button type="button" class="switch" id="set-aec" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>SES EFEKTLERİ<small>Onay sesi.</small></div>
+      <div class="row2"><div>SES EFEKTLERİ<small>Açılış, kapanış ve onay sesleri.</small></div>
         <button type="button" class="switch" id="set-sfx" aria-checked="true"></button></div>
+      <div class="row2"><div>ARKA PLAN MÜZİĞİ<small>Sakin ortam müziği. Mikrofon yankısı yaşarsan kapat.</small></div>
+        <button type="button" class="switch" id="set-music" role="switch" aria-checked="false"></button></div>
     </section>
     <section class="pane" data-pane="hafiza">
       <p class="whisper">Bu bilgisayarda tutulan kayıtlar. Bir satırı silmek yalnızca onu unutturur.</p>
@@ -201,7 +203,7 @@
         <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
     </section>
     <section class="pane" data-pane="hakkinda">
-      <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
+      <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-3.8-live.</p>
       <button type="button" class="btn ghost" id="app-update" hidden>Güncelle</button>
       <button type="button" class="btn ghost" id="open-data">KAYIT KLASÖRÜNÜ AÇ</button>
       <button type="button" class="btn ghost" id="uninstall">FRIDAY'İ KALDIR</button>
@@ -287,11 +289,12 @@
 <div class="overlay" id="ov-models" hidden>
   <div class="sheet">
     <h2 data-i18n="models">AI MODELLERİ</h2>
-    <p class="whisper" id="model-blurb">FRIDAY arayüzü açık. Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
+    <p class="whisper" id="model-blurb">FRIDAY arayüzü açık. Ses: Gemini Live, models/gemini-3.8-live.</p>
     <div class="row"><button type="button" id="mod-close" data-i18n="close">KAPAT</button></div>
   </div>
 </div>
 <script src="i18n.js"></script>
 <script src="hud.js"></script>
+<script src="core3d.js"></script>
 </body>
 </html>
