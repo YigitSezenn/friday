@@ -139,13 +139,13 @@ class JarvisLive:
         await self._send_user_text(text)
 
     async def _send_user_text(self, text: str) -> None:
-        """Yeni canlı modeller (3.x) oturum ortasında send_client_content'i reddeder
-        (1007 invalid argument); metin send_realtime_input(text=) ile gider.
-        Eski SDK'da `text` parametresi yoksa eski yola düşer."""
+        """3.x canlı modeller oturum ortasında send_client_content'i 1007 ile kapatır
+        (S-022'de yeniden üretildi). Metin yalnızca send_realtime_input(text=) ile gider;
+        eski yola düşmek oturumu kopardığı için geri dönüş yok."""
         try:
             await self.session.send_realtime_input(text=text)
         except TypeError:
-            await self.session.send_client_content(turns={"parts": [{"text": text}]}, turn_complete=True)
+            self.ui.write_log("ERR: Yazılı mesaj gönderilemedi: Gemini kütüphanesi eski. FRIDAY'i güncelle.")
 
     def set_speaking(self, value: bool) -> None:
         with self._speaking_lock:
@@ -513,6 +513,7 @@ class JarvisLive:
                         self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
                     continue
                 traceback.print_exc()
+                _log_error(exc, key)
                 self.set_speaking(False)
                 if self.webcam.is_active:
                     self.webcam.stop()
@@ -541,6 +542,25 @@ class JarvisLive:
     async def _watch_reconnect(self) -> None:
         await self._reconnect.wait()
         raise Reconnect()
+
+
+def _log_error(exc: BaseException, key: str) -> None:
+    """Bağlantı hatalarını data/logs/live-errors.log'a yazar (anahtar silinir, 256 KB'de döner)."""
+    try:
+        from jarvis.paths import data_path
+
+        path = data_path("logs", "live-errors.log")
+        if path.exists() and path.stat().st_size > 256 * 1024:
+            path.replace(path.with_suffix(".log.1"))
+        text = "".join(traceback.format_exception(exc))
+        secret = str(key or "").strip()
+        if secret:
+            text = text.replace(secret, "***")
+        stamp = datetime.datetime.now().isoformat(timespec="seconds")
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(f"--- {stamp} model={current_live_model()}\n{text}\n")
+    except Exception:
+        pass
 
 
 def _public_connect_error(exc: BaseException, key: str) -> str:

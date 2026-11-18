@@ -213,7 +213,63 @@ def _lookup(name: str) -> dict | None:
     return best if score else None
 
 
-def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: str = "", confirm_send: bool = False) -> str:
+def outlook_available() -> bool:
+    """Klasik Outlook (COM) kurulu mu? Yeni Outlook (olk.exe) COM desteklemez."""
+    import sys
+
+    if sys.platform != "win32":
+        return False
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"Outlook.Application\CLSID"):
+            return True
+    except OSError:
+        return False
+
+
+def _send_outlook(address: str, subject: str, body: str) -> None:
+    import pythoncom
+    import win32com.client
+
+    pythoncom.CoInitialize()
+    try:
+        app = win32com.client.Dispatch("Outlook.Application")
+        item = app.CreateItem(0)  # olMailItem
+        item.To = address
+        item.Subject = subject
+        item.Body = body
+        item.Send()
+        try:
+            app.Session.SendAndReceive(False)
+        except Exception:
+            pass
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def _open_draft(address: str, subject: str, body: str) -> None:
+    query = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
+    webbrowser.open(f"mailto:{urllib.parse.quote(address, safe='@')}?{query}")
+
+
+def choose_provider(provider: str = "auto") -> str:
+    """auto: Gmail bağlıysa Gmail, değilse klasik Outlook, o da yoksa taslak."""
+    key = (provider or "auto").strip().casefold()
+    if key in {"gmail", "google"}:
+        return "gmail" if gmail_connected() else "none-gmail"
+    if key in {"outlook", "office", "hotmail"}:
+        return "outlook" if outlook_available() else "none-outlook"
+    if key in {"taslak", "draft", "mailto"}:
+        return "draft"
+    if gmail_connected():
+        return "gmail"
+    if outlook_available():
+        return "outlook"
+    return "draft"
+
+
+def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: str = "", confirm_send: bool = False, provider: str = "auto") -> str:
     address = (to or "").strip()
     label = address
     if not address and recipient_name.strip():
@@ -228,16 +284,29 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
         return "Gecersiz konu veya adres."
     if not (body or "").strip():
         return "E-posta metni bos olamaz."
-    if not gmail_connected():
-        return "Gmail bagli degil. Once 'Gmail'i bagla' de."
-    parts = (address.lower(), subject, body)
+    route = choose_provider(provider)
+    if route == "none-gmail":
+        return "Gmail bagli degil. Once 'Gmail'i bagla' de ya da Outlook'tan gondermemi iste."
+    if route == "none-outlook":
+        return "Bu bilgisayarda klasik Outlook bulunamadi (yeni Outlook desteklenmiyor). Gmail bagla ya da taslak olarak acayim."
+    if route == "draft":
+        try:
+            _open_draft(address, subject, body)
+        except Exception as exc:
+            return f"E-posta taslagi acilamadi: {exc}"
+        return f"E-posta taslagi {label} icin mail uygulamasinda acildi; gondermek icin Gonder'e bas."
+    parts = (route, address.lower(), subject, body)
     if confirm.required():
         if not confirm_send:
-            return confirm.ask("mail", parts, f"E-posta taslagi — Kime: {label} <{address}>, Konu: {subject or '(konusuz)'}, Metin: {body.strip()[:300]}.")
+            via = "Gmail" if route == "gmail" else "Outlook"
+            return confirm.ask("mail", parts, f"E-posta taslagi ({via}) — Kime: {label} <{address}>, Konu: {subject or '(konusuz)'}, Metin: {body.strip()[:300]}.")
         problem = confirm.check("mail", parts)
         if problem:
             return problem
     try:
+        if route == "outlook":
+            _send_outlook(address, subject, body)
+            return f"E-posta Outlook ile {label} kisisine gonderildi."
         raw = base64.urlsafe_b64encode(build_message(address, subject, body).as_bytes()).decode()
         req = urllib.request.Request(
             SEND_URL, data=json.dumps({"raw": raw}).encode(),
@@ -250,6 +319,15 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     return f"E-posta {label} kisisine gonderildi."
 
 
-def open_mail() -> str:
+def open_mail(provider: str = "auto") -> str:
+    import os
+
+    key = (provider or "auto").strip().casefold()
+    if key in {"outlook", "office"} or (key == "auto" and not gmail_connected() and outlook_available()):
+        try:
+            os.startfile("outlook.exe")  # type: ignore[attr-defined]
+            return "Outlook acildi."
+        except OSError:
+            pass
     webbrowser.open("https://mail.google.com/mail/u/0/#inbox")
     return "Gmail gelen kutusu tarayicida acildi."

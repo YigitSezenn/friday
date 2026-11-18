@@ -46,7 +46,7 @@ class MailTest(unittest.TestCase):
 
         self.assertIn("Gecersiz", send_email("yanlis", "s", "b"))
         self.assertIn("Gecersiz", send_email("a@b.co", "s\nBcc: x@y.z", "b"))
-        self.assertIn("bagli degil", send_email("a@b.co", "s", "b"))
+        self.assertIn("bagli degil", send_email("a@b.co", "s", "b", provider="gmail"))
 
     def test_draft_then_confirm_sends_once(self):
         from tools.actions import mail
@@ -111,6 +111,33 @@ class MailTest(unittest.TestCase):
 
         with mock.patch.object(mail, "_search_dirs", return_value=[]):
             self.assertFalse(mail.import_client_file())
+
+    def test_auto_route_falls_back_to_draft(self):
+        from tools.actions import mail
+
+        with mock.patch.object(mail, "outlook_available", return_value=False), mock.patch.object(mail.webbrowser, "open") as opened:
+            out = mail.send_email("a@b.co", "Konu ş", "Merhaba dünya")
+        self.assertIn("taslagi", out)
+        url = opened.call_args[0][0]
+        self.assertTrue(url.startswith("mailto:a@b.co?"))
+        self.assertIn("subject=Konu%20%C5%9F", url)
+
+    def test_outlook_route_needs_confirm_then_sends(self):
+        from tools.actions import mail
+
+        sent = []
+        with mock.patch.object(mail, "outlook_available", return_value=True), mock.patch.object(mail, "_send_outlook", lambda *a: sent.append(a)):
+            self.assertIn("Outlook", mail.send_email("a@b.co", "K", "B"))
+            self.assertEqual(sent, [])
+            with mock.patch.object(confirm, "MIN_WAIT", 0):
+                self.assertIn("Outlook ile", mail.send_email("a@b.co", "K", "B", confirm_send=True))
+        self.assertEqual(sent, [("a@b.co", "K", "B")])
+
+    def test_explicit_outlook_missing(self):
+        from tools.actions import mail
+
+        with mock.patch.object(mail, "outlook_available", return_value=False):
+            self.assertIn("klasik Outlook bulunamadi", mail.send_email("a@b.co", "K", "B", provider="outlook"))
 
     def test_mime_utf8(self):
         from tools.actions.mail import build_message
