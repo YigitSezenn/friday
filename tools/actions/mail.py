@@ -24,8 +24,7 @@ EMAIL_RE = re.compile(r"^[^@\s,;<>]+@[^@\s,;<>]+\.[^@\s,;<>]+$")
 
 
 def _client_file():
-    """Beklenen dosya; Windows gizli uzantı yüzünden .json.json ya da Google'ın
-    indirdiği client_secret_*.json adıyla da kaydedilmiş olabilir."""
+    """Kurulu veri klasöründeki istemci dosyası (yoksa beklenen yol)."""
     wanted = data_path("gmail_client_secret.json")
     if wanted.exists():
         return wanted
@@ -37,6 +36,47 @@ def _client_file():
 
 def _token_file():
     return data_path("memory", "gmail_token.json")
+
+
+def _search_dirs() -> list:
+    from pathlib import Path
+
+    home = Path.home()
+    dirs = [home / "Downloads", home / "Desktop", home / "Documents"]
+    for base in (home / "Desktop", home / "Downloads"):
+        dirs.append(base / "jarvis-rebuild" / "data")
+    return dirs
+
+
+def _valid_client(path) -> bool:
+    raw = _read_json(path)
+    info = raw.get("installed") or raw.get("web") or {}
+    return bool(info.get("client_id")) and bool(info.get("client_secret"))
+
+
+def import_client_file() -> bool:
+    """Kullanıcıyı uğraştırmamak için: istemci JSON'u Downloads/Masaüstü gibi
+    yerlerde otomatik bulunur, doğrulanır ve veri klasörüne kopyalanır."""
+    import shutil
+
+    target = data_path("gmail_client_secret.json")
+    if _valid_client(_client_file()):
+        if not target.exists():
+            shutil.copyfile(_client_file(), target)
+        return True
+    patterns = ("client_secret*.json", "gmail_client_secret.json*")
+    candidates = []
+    for folder in _search_dirs():
+        try:
+            for pattern in patterns:
+                candidates.extend(f for f in folder.glob(pattern) if f.is_file())
+        except OSError:
+            continue
+    for found in sorted(candidates, key=lambda f: f.stat().st_mtime, reverse=True):
+        if _valid_client(found):
+            shutil.copyfile(found, target)
+            return True
+    return False
 
 
 def _read_json(path) -> dict:
@@ -64,11 +104,12 @@ def gmail_connected() -> bool:
 
 
 def connect_gmail() -> str:
+    import_client_file()
     client = _client()
     if not client.get("client_id"):
         return (
-            "Gmail kurulumu icin once Google Cloud'da 'Masaustu uygulamasi' turunde bir OAuth istemcisi olusturup "
-            f"indirdigin JSON dosyasini su adla kaydet: {_client_file()} . Sonra bana 'Gmail'i bagla' de."
+            "Google Cloud'da 'Masaustu uygulamasi' turunde OAuth istemcisi olusturup JSON'u indir (Downloads klasorune "
+            "inmesi yeterli); ben kendim bulurum. Sonra tekrar 'Gmail'i bagla' de."
         )
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
