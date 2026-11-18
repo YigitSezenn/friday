@@ -65,6 +65,8 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
 
                 apply_windows_startup(bool(saved.get("start_with_windows")))
             ui.effects = bool(load_app_config().get("effects", True))
+            ui.music = bool(load_app_config().get("music", False))
+            ui.sync_music()
             ui.push_settings()
             ui.write_log("SYS: Ayarlar kaydedildi. Ses karakteri yeniden baglaniyor.")
             if ui.on_settings_saved:
@@ -245,6 +247,8 @@ class JarvisUI:
         self.muted = False
         self.paused = False
         self.effects = True
+        self.music = False
+        self._farewell = False
         self.last_heard = time.time()
         self._map_city = ""
         self._state = "INITIALISING"
@@ -319,7 +323,8 @@ class JarvisUI:
 
         config = load_app_config()
         self.effects = bool(config.get("effects", True))
-        keys = ("gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "aec_enabled", "live_model", "language", "story_enabled", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "start_with_windows")
+        self.music = bool(config.get("music", False))
+        keys = ("gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "aec_enabled", "live_model", "language", "story_enabled", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "start_with_windows")
         safe = {key: config.get(key, "") for key in keys}
         memories = []
         for category, items in load_memory().items():
@@ -525,21 +530,74 @@ class JarvisUI:
     def play_success_sfx(self) -> None:
         if not self.effects:
             return
+        from jarvis import sounds
+
+        if sounds.play("success", volume=700):
+            return
         try:
             import winsound
 
             winsound.Beep(740, 80)
-        except RuntimeError:
+        except (ImportError, RuntimeError):
             pass
 
+    def play_startup_sfx(self) -> None:
+        if self._smoke or not self.effects:
+            return
+        from jarvis import sounds
+
+        if not sounds.play("startup"):
+            try:
+                import winsound
+
+                winsound.Beep(523, 80)
+                winsound.Beep(784, 140)
+            except (ImportError, RuntimeError):
+                pass
+        self.sync_music()
+
+    def sync_music(self) -> None:
+        """Arka plan müziği: yalnızca ayar açıksa ve ses efektleri aktifse döner."""
+        if self._smoke:
+            return
+        from jarvis import sounds
+
+        if self.music and self.effects and not self._quitting:
+            sounds.play("ambient", loop=True, volume=260)
+        else:
+            sounds.stop("ambient")
+
     def play_close_sfx(self) -> None:
+        """Kapanış sesini bitene kadar çalar (çağıran iş parçacığını bekletir)."""
+        if not self.effects:
+            return
+        from jarvis import sounds
+
+        sounds.stop("ambient")
+        if sounds.play("shutdown", wait=True):
+            return
         try:
             import winsound
 
             winsound.Beep(523, 70)
             winsound.Beep(349, 160)
-        except RuntimeError:
+        except (ImportError, RuntimeError):
             pass
+
+    def begin_farewell(self) -> None:
+        """HUD'da kapanış animasyonu + kapanış sesi, sonra gerçek kapanış."""
+        if self._quitting or self._farewell:
+            return
+        self._farewell = True
+
+        def run() -> None:
+            self._js("document.body.dataset.shutdown='1'")
+            try:
+                self.play_close_sfx()
+            finally:
+                self.close()
+
+        threading.Thread(target=run, name="friday-farewell", daemon=True).start()
 
     def mark_user_activity(self, _active: bool = True) -> None:
         return
@@ -559,13 +617,9 @@ class JarvisUI:
 
         if self._quitting or installer_is_running():
             return True
-        self.play_close_sfx()
-        self._quitting = True
-        self._closed = True
-        tray = getattr(self, "_tray", None)
-        if tray is not None:
-            tray.stop()
-        return True
+        # Pencere kapanmadan önce kapanış animasyonu/sesi oynar; close() sonunda kapatır.
+        self.begin_farewell()
+        return False
 
     def _minimize_after_close(self) -> None:
         time.sleep(0.12)
@@ -582,8 +636,7 @@ class JarvisUI:
     def quit_app(self) -> None:
         if self._quitting:
             return
-        self.play_close_sfx()
-        self.close()
+        self.begin_farewell()
 
     def minimize_to_taskbar(self) -> None:
         window = self._window
