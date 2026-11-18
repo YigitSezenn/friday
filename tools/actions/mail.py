@@ -24,7 +24,15 @@ EMAIL_RE = re.compile(r"^[^@\s,;<>]+@[^@\s,;<>]+\.[^@\s,;<>]+$")
 
 
 def _client_file():
-    return data_path("gmail_client_secret.json")
+    """Beklenen dosya; Windows gizli uzantı yüzünden .json.json ya da Google'ın
+    indirdiği client_secret_*.json adıyla da kaydedilmiş olabilir."""
+    wanted = data_path("gmail_client_secret.json")
+    if wanted.exists():
+        return wanted
+    for pattern in ("gmail_client_secret.json.json", "client_secret*.json"):
+        for found in sorted(wanted.parent.glob(pattern)):
+            return found
+    return wanted
 
 
 def _token_file():

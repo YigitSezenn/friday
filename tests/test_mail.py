@@ -85,6 +85,12 @@ class MailTest(unittest.TestCase):
         self.assertIn("ONAY GEREKLI", out)
         opened.assert_not_called()
 
+    def test_client_file_name_variants(self):
+        from tools.actions import mail
+
+        (mail.data_path("gmail_client_secret.json.json")).write_text("{}", encoding="utf-8")
+        self.assertTrue(str(mail._client_file()).endswith("gmail_client_secret.json.json"))
+
     def test_mime_utf8(self):
         from tools.actions.mail import build_message
 
