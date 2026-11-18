@@ -154,7 +154,9 @@ def connect_gmail() -> str:
                 "code": result["code"], "code_verifier": verifier, "grant_type": "authorization_code", "redirect_uri": redirect,
             })
             if token.get("refresh_token"):
-                _token_file().write_text(json.dumps({"refresh_token": token["refresh_token"]}), encoding="utf-8")
+                from jarvis.atomic import write_text
+
+                write_text(_token_file(), json.dumps({"refresh_token": token["refresh_token"]}))
         except Exception:
             pass
 

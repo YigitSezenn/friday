@@ -103,8 +103,34 @@ def _dispatch(self, kind: str, payload: dict) -> dict:
                 ui.write_log("SYS: " + choose(ending))
             ui._call("story", view())
         elif kind == "note":
-            lines = [str(line).strip() for line in payload.get("lines") or [] if str(line).strip()]
-            data_path("memory", "notes.txt").write_text("\n".join(lines), encoding="utf-8")
+            from jarvis import notes
+
+            notes.save(payload.get("lines") or [])
+        elif kind == "note_delete":
+            from jarvis import notes
+
+            lines, _removed = notes.remove(str(int(payload.get("index", -1)) + 1))
+            ui._call("notes", lines)
+        elif kind == "note_edit":
+            from jarvis import notes
+
+            lines, _old = notes.edit(str(int(payload.get("index", -1)) + 1), str(payload.get("text") or ""))
+            ui._call("notes", lines)
+        elif kind == "timer":
+            action = str(payload.get("action") or "")
+            seconds = int(payload.get("seconds") or 0)
+            if action == "set":
+                ui.timer_set(seconds, str(payload.get("label") or ""))
+            elif action == "add":
+                ui.timer_add(seconds)
+            elif action == "cancel":
+                ui.timer_cancel()
+            elif action == "watch":
+                ui.timer_watch(str(payload.get("watch") or "toggle"))
+            elif action == "dismiss":
+                from jarvis import sounds
+
+                sounds.stop("alarm")
         elif kind == "beep":
             ui.play_success_sfx()
         elif kind == "minimize":
@@ -316,9 +342,12 @@ class JarvisUI:
             self._js(script)
         self.push_settings()
         self._call("notes", self._notes())
+        self.timer_push()
         self.set_state(self._state)
         threading.Thread(target=self._refresh_loop, name="jarvis-hud", daemon=True).start()
         threading.Thread(target=self._load_remote, name="jarvis-remote", daemon=True).start()
+        # Açılış sesi (+ ayar açıksa arka plan müziği). push_settings effects/music'i yükledikten sonra.
+        self.play_startup_sfx()
 
     def push_settings(self) -> None:
         from jarvis.config import ADDRESS_PRESETS, LIVE_MODELS, PANEL_KEYS, UI_COLORS, address_phrase, persona_palette
@@ -497,10 +526,73 @@ class JarvisUI:
             return
 
     def _notes(self) -> list[str]:
-        try:
-            return [line.strip() for line in data_path("memory", "notes.txt").read_text(encoding="utf-8").splitlines() if line.strip()]
-        except OSError:
-            return []
+        from jarvis import notes
+
+        return notes.load()
+
+    # ---- Zamanlayıcı / kronometre (durum Python'da; HUD ve sesli komut aynı sayacı görür) ----
+
+    @property
+    def timer(self):
+        from jarvis.timer import TimerState
+
+        state = self.__dict__.get("_timer")
+        if state is None:
+            state = self.__dict__["_timer"] = TimerState()
+            threading.Thread(target=self._timer_loop, name="friday-timer", daemon=True).start()
+        return state
+
+    def timer_push(self) -> None:
+        self._call("timer", self.timer.snapshot(time.time()))
+
+    def timer_set(self, seconds: int, label: str = "") -> None:
+        self.timer.set(seconds, label, time.time())
+        self.timer_push()
+
+    def timer_add(self, seconds: int) -> bool:
+        running = self.timer.add(seconds, time.time())
+        self.timer_push()
+        return running
+
+    def timer_cancel(self) -> bool:
+        active = self.timer.cancel()
+        self.timer_push()
+        return active
+
+    def timer_watch(self, action: str) -> float:
+        elapsed = self.timer.watch(action, time.time())
+        self.timer_push()
+        return elapsed
+
+    def _timer_loop(self) -> None:
+        while not self._closed:
+            time.sleep(0.25)
+            label = self.timer.due(time.time())
+            if label is not None:
+                self._timer_fire(label)
+
+    def _timer_fire(self, label: str) -> None:
+        from jarvis import sounds
+
+        self.timer_push()
+        self._call("timerDone", label)
+        self.write_log("SYS: Süre doldu" + (f": {label}" if label else "."))
+        if not sounds.play("alarm", loop=True):
+            try:
+                import winsound
+
+                for _ in range(3):
+                    winsound.Beep(880, 220)
+                    winsound.Beep(660, 220)
+            except (ImportError, RuntimeError):
+                pass
+        else:
+            # Alarm en çok 20 sn çalar; kullanıcı ekrandaki uyarıyı kapatırsa hemen susar.
+            threading.Timer(20, lambda: sounds.stop("alarm")).start()
+        speak = getattr(self, "speak_note", None)
+        if callable(speak):
+            what = f"'{label}' zamanlayıcısı" if label else "Zamanlayıcı"
+            speak(f"{what} doldu. Kullanıcıya kısaca ve net haber ver.")
 
     def write_log(self, text: str) -> None:
         from jarvis.textfix import repair_text
