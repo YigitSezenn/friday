@@ -21,7 +21,10 @@ from tools.dispatch import TOOL_DECLARATIONS, execute_tool, looks_like_error
 def current_live_model() -> str:
     from jarvis.config import LIVE_MODELS
 
+    from jarvis.config import RETIRED_LIVE_MODELS
+
     chosen = str(get_app_config_value("live_model", LIVE_MODELS[0]) or LIVE_MODELS[0]).strip()
+    chosen = RETIRED_LIVE_MODELS.get(chosen, chosen)
     return chosen if chosen in LIVE_MODELS else LIVE_MODELS[0]
 
 

@@ -7,6 +7,13 @@ class TranscriptTests(unittest.TestCase):
 
         self.assertEqual(usable_transcript("Merhaba, saat kaç şimdi?"), ("Merhaba, saat kaç şimdi?", False))
 
+    def test_fragmented_turkish_is_treated_as_misheard(self):
+        from jarvis.heard import usable_transcript
+
+        self.assertEqual(usable_transcript("Spo tif y 'dan E vergün'i düşürdü maç."), ("", True))
+        self.assertEqual(usable_transcript("Spotify'dan Evergreen'i düşür")[1], False)
+        self.assertEqual(usable_transcript("Saat kaç o zaman a")[1], False)
+
     def test_chinese_only_text_is_rejected(self):
         from jarvis.heard import usable_transcript
 

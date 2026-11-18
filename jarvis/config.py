@@ -19,10 +19,9 @@ UI_COLORS = {
 }
 ADDRESS_PRESETS = ("adınla", "efendim", "komutanım", "dostum", "patron")
 PANEL_KEYS = ("time", "system", "timer", "notes", "weather", "calendar", "reminders", "map")
-LIVE_MODELS = (
-    "models/gemini-2.5-flash-native-audio-latest",
-    "models/gemini-3.8-live",
-)
+LIVE_MODELS = ("models/gemini-3.8-live",)
+# Google 2.5 native-audio önizlemesini 17 Kasım 2026'da kapatıyor; eski seçim yeni modele taşınır.
+RETIRED_LIVE_MODELS = {"models/gemini-2.5-flash-native-audio-latest": "models/gemini-3.8-live"}
 LANGUAGES = ("auto", "tr", "en", "fr", "ar", "az")
 
 DEFAULT_CONFIG = {
@@ -156,7 +155,7 @@ def _clean_panels(value) -> list[str]:
 
 
 def _clean_model(value) -> str:
-    model = str(value or LIVE_MODELS[0]).strip()
+    model = RETIRED_LIVE_MODELS.get(str(value or "").strip(), str(value or LIVE_MODELS[0]).strip())
     return model if model in LIVE_MODELS else LIVE_MODELS[0]
 
 
