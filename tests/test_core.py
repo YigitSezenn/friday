@@ -234,10 +234,14 @@ class JarvisTestCase(unittest.TestCase):
         self.assertNotIn("activity", frame)
         live = JarvisLive.__new__(JarvisLive)
         config = live._build_config()
-        self.assertIsNone(getattr(config, "realtime_input_config", None))
+        # Sunucu VAD'ı yönetir: yalnızca hassasiyeti ayarlanabilir, asla kapatılmaz ve elle ActivityEnd yollanmaz.
+        rt = getattr(config, "realtime_input_config", None)
+        detection = getattr(rt, "automatic_activity_detection", None) if rt else None
+        self.assertFalse(bool(getattr(detection, "disabled", False)))
         source = (Path(__file__).resolve().parents[1] / "jarvis" / "live.py").read_text(encoding="utf-8")
-        self.assertNotIn("automatic_activity_detection", source)
         self.assertNotIn("ActivityEnd", source)
+        self.assertNotIn("activity_end", source)
+        self.assertNotIn('"disabled"', source)
 
     def test_gate_urlencoded_command_reaches_the_computer(self):
         import sys
