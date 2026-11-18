@@ -9,9 +9,12 @@ export const SCENE_ID = "friday-hud-reactor";
 // Palette taken from the desktop HUD (ui/hud/hud.css): gold #e6c98a, rose accent #e7a0ae.
 // Dark values are multiplied so the bloom pass makes them glow; light values stay readable on cream.
 const BG = { dark: new THREE.Color("#05060a"), light: new THREE.Color("#f6f1e6") };
-const GOLD = { dark: new THREE.Color("#e6c98a").multiplyScalar(1.5), light: new THREE.Color("#9a5c1a") };
-const ROSE = { dark: new THREE.Color("#e7a0ae").multiplyScalar(1.4), light: new THREE.Color("#a33d5c") };
-const CORE = { dark: new THREE.Color("#fff4dc").multiplyScalar(2.6), light: new THREE.Color("#c9781f").multiplyScalar(1.4) };
+const GOLD = { dark: new THREE.Color("#e6c98a").multiplyScalar(1.5), light: new THREE.Color("#8a4b12") };
+const ROSE = { dark: new THREE.Color("#e7a0ae").multiplyScalar(1.4), light: new THREE.Color("#9c2a50") };
+const CORE = { dark: new THREE.Color("#fff4dc").multiplyScalar(2.6), light: new THREE.Color("#e08a1e").multiplyScalar(1.3) };
+// Açık modda derinlik için koyu bakır ve sıcak parıltı (krem zeminde ışıma görünmez; kontrast ve gölgeyle derinlik verilir).
+const COPPER = { dark: new THREE.Color("#e6c98a").multiplyScalar(1.2), light: new THREE.Color("#5e2f0a") };
+const EMBER = { dark: new THREE.Color("#ffd9a0").multiplyScalar(1.6), light: new THREE.Color("#d9731a") };
 const FLOOR = { dark: new THREE.Color("#e6c98a"), light: new THREE.Color("#7a4a1a") };
 const DUST = { dark: new THREE.Color("#e6c98a"), light: new THREE.Color("#8a5a2b") };
 
@@ -114,6 +117,80 @@ export function startScene(canvas) {
   orbitB.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), basic(GOLD, 1)));
   orbitB.children[orbitB.children.length - 1].position.set(3.25, 0, 0);
 
+  // Opaklığı temaya göre değişen parçalar: koyu modda ince, açık modda belirgin.
+  const themed = [];
+  const fade = (material, darkOpacity, lightOpacity) => {
+    themed.push({ material, darkOpacity, lightOpacity });
+    return material;
+  };
+
+  // Radyal doku (parıltı / gölge) — tek kanvastan.
+  const radial = (stops) => {
+    const size = 256;
+    const c = document.createElement("canvas");
+    c.width = c.height = size;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    for (const [at, color] of stops) grad.addColorStop(at, color);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    const texture = new THREE.CanvasTexture(c);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  };
+
+  // Çekirdek ışıması: açık modda sıcak turuncu bir hale, koyu modda bloom'a ek yumuşak ışık.
+  const glowMat = fade(tint(new THREE.SpriteMaterial({
+    map: radial([[0, "rgba(255,255,255,1)"], [0.25, "rgba(255,255,255,.75)"], [0.6, "rgba(255,255,255,.18)"], [1, "rgba(255,255,255,0)"]]),
+    transparent: true, depthWrite: false,
+  }), EMBER, 0.35), 0.35, 0.85);
+  const glow = new THREE.Sprite(glowMat);
+  glow.scale.setScalar(2.6);
+  reactor.add(glow);
+
+  // Zemine düşen yumuşak gölge: açık modda reaktörü yüzeyden ayırır.
+  const shadowMat = fade(new THREE.MeshBasicMaterial({
+    map: radial([[0, "rgba(60,30,8,.55)"], [0.5, "rgba(60,30,8,.18)"], [1, "rgba(60,30,8,0)"]]),
+    transparent: true, depthWrite: false,
+  }), 0, 0.9);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(3.4, 64), shadowMat);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = -2.9;
+  world.add(shadow);
+
+  // Masaüstü uygulamadaki gibi parçacık küresi: dönerken derinlik hissi verir.
+  const SPHERE = mobile() ? 260 : 520;
+  const spherePos = new Float32Array(SPHERE * 3);
+  for (let i = 0; i < SPHERE; i++) {
+    const y = 1 - (i / (SPHERE - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const th = i * 2.399963229728653;
+    spherePos.set([Math.cos(th) * r * 0.62, y * 0.62, Math.sin(th) * r * 0.62], i * 3);
+  }
+  const sphereGeo = new THREE.BufferGeometry();
+  sphereGeo.setAttribute("position", new THREE.BufferAttribute(spherePos, 3));
+  const sphere = new THREE.Points(sphereGeo, fade(tint(new THREE.PointsMaterial({ size: 0.028, transparent: true, depthWrite: false }), COPPER, 0.5), 0.45, 0.9));
+  reactor.add(sphere);
+
+  // Jiroskop halkaları: üç eğik tam halka, her birinde bir boncuk.
+  const gyros = [];
+  [[0.98, [1.2, 0.3, 0], 0.7], [1.3, [0.4, 1.1, 0.5], -0.55], [1.86, [1.6, -0.5, 0.9], 0.4]].forEach(([radius, tilt, speed], i) => {
+    const holder = new THREE.Group();
+    holder.rotation.set(tilt[0], tilt[1], tilt[2]);
+    reactor.add(holder);
+    const spin = new THREE.Group();
+    holder.add(spin);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(radius, 0.008 + i * 0.002, 6, 160),
+      fade(basic(i === 1 ? ROSE : COPPER, 0.6), 0.35, 0.85),
+    );
+    spin.add(ring);
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.05 + i * 0.008, 16, 16), fade(basic(i === 1 ? ROSE : EMBER, 1), 0.9, 1));
+    bead.position.set(radius, 0, 0);
+    spin.add(bead);
+    gyros.push({ spin, speed });
+  });
+
   // Perspective floor grid. It sits below the reactor and fades into the fog.
   const floor = new THREE.GridHelper(44, 44);
   floor.material = tint(new THREE.LineBasicMaterial({ transparent: true, depthWrite: false }), FLOOR, 0.22);
@@ -208,6 +285,9 @@ export function startScene(canvas) {
     scene.fog.color.copy(scene.background);
     renderer.setClearColor(scene.background, 1);
     for (const { material, palette } of tinted) material.color.copy(palette.dark).lerp(palette.light, themeMix);
+    for (const { material, darkOpacity, lightOpacity } of themed) material.opacity = darkOpacity + (lightOpacity - darkOpacity) * themeMix;
+    // Açık modda ışıma yerine normal karışım: krem zeminde renkler yıkanmaz.
+    glowMat.blending = themeMix > 0.5 ? THREE.NormalBlending : THREE.AdditiveBlending;
     bloom.threshold = 0.6 + themeMix * 0.3;
     bloom.strength = (0.7 - themeMix * 0.55) * (1 - away * 0.7) * (0.85 + energy * 0.45);
 
@@ -220,6 +300,10 @@ export function startScene(canvas) {
 
     const speedUp = 1 + energy * 2.2;
     for (const { obj, speed } of spinners) obj.rotation.z = time * speed * speedUp;
+    for (const { spin, speed } of gyros) spin.rotation.z = time * speed * speedUp;
+    sphere.rotation.y = time * 0.35 * speedUp;
+    sphere.rotation.x = time * 0.12;
+    glow.scale.setScalar(2.6 * (1 + Math.sin(time * 2.2) * 0.04 + energy * 0.25));
     reactor.rotation.y = Math.sin(time * 0.25) * 0.22 + mouse.sx * 0.4 + scroll * 0.8;
     reactor.rotation.x = -0.18 + mouse.sy * 0.25 + Math.sin(time * 0.3) * 0.05;
 
