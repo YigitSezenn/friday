@@ -107,9 +107,15 @@ body[data-state="speaking"] #vu i,body[data-state="listening"] #vu i{animation:v
 #home-update{display:inline-flex;margin:8px 0 0;padding:8px 14px;border:1px solid rgba(var(--rgb),.45);border-radius:8px;background:rgba(var(--rgb),.14);color:var(--c);cursor:pointer;letter-spacing:.12em}
 #home-update:hover{background:var(--c);color:#1a1408}
 #home-update[hidden]{display:none}
-#br{position:fixed;right:22px;bottom:16px;z-index:70;display:flex;gap:8px}
-#min,#quit{border:1px solid rgba(var(--rgb),.4);border-radius:8px;background:rgba(var(--rgb),.12);color:var(--c);letter-spacing:.16em;padding:8px 14px;cursor:pointer;font-size:16px}
-#min:hover,#quit:hover{background:var(--c);color:#1a1408}
+#br{position:fixed;right:20px;bottom:18px;z-index:70;display:flex;gap:6px;padding:4px;border-radius:999px;
+  background:rgba(0,0,0,.35);border:1px solid rgba(var(--rgb),.14);backdrop-filter:blur(8px);opacity:.55;transition:opacity .25s var(--ease)}
+#br:hover,#br:focus-within{opacity:1}
+#min,#quit{width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--dim);cursor:pointer;
+  transition:background .2s var(--ease),color .2s var(--ease),box-shadow .2s var(--ease)}
+#min svg,#quit svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+#min:hover{background:rgba(var(--rgb),.14);color:var(--c);box-shadow:0 0 14px rgba(var(--rgb),.25)}
+#quit:hover{background:rgba(var(--arg),.16);color:var(--accent);box-shadow:0 0 14px rgba(var(--arg),.35)}
+#min:focus-visible,#quit:focus-visible{outline:1px solid var(--c);outline-offset:2px}
 #uninstall{display:block;margin-top:12px}
 .overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:grid;place-items:center}
 .overlay[hidden]{display:none}

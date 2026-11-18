@@ -188,6 +188,19 @@ def toggle_webcam(args, ctx):
     return "Webcam akisi durduruldu."
 
 
+@tool("sleep_mode")
+def sleep_mode(args, ctx):
+    asleep = bool(args.get("asleep", True))
+    ui = ctx.ui
+    if ui is None or not hasattr(ui, "_js"):
+        return "Uyku modu su an kullanilamiyor."
+    # Kısa gecikme: önce vedalaşma cümlesi söylenir, sonra mikrofon uykuya geçer.
+    ui._js(f"window.hud && window.hud.sleep({'true' if asleep else 'false'}, {2500 if asleep else 0})")
+    if asleep:
+        return "Uyku moduna geciliyor. Kullaniciya kisa bir veda et; uyandirmak icin cekirdege tiklamasini, F4'e basmasini ya da bir sey yazmasini soyle."
+    return "Uyandim."
+
+
 @tool("set_volume")
 def set_volume(args, ctx):
     from tools.actions.volume import set_volume as run
