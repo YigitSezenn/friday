@@ -91,6 +91,27 @@ class MailTest(unittest.TestCase):
         (mail.data_path("gmail_client_secret.json.json")).write_text("{}", encoding="utf-8")
         self.assertTrue(str(mail._client_file()).endswith("gmail_client_secret.json.json"))
 
+    def test_auto_import_from_downloads(self):
+        import pathlib
+
+        from tools.actions import mail
+
+        downloads = pathlib.Path(self.tmp.name) / "Downloads"
+        downloads.mkdir()
+        (downloads / "client_secret_123.json").write_text(json.dumps({"installed": {"client_id": "c", "client_secret": "s"}}), encoding="utf-8")
+        (downloads / "client_secret_bozuk.json").write_text("{}", encoding="utf-8")
+        with mock.patch.object(mail, "_search_dirs", return_value=[downloads]):
+            self.assertTrue(mail.import_client_file())
+        self.assertEqual(mail._client().get("client_id"), "c")
+        with mock.patch.object(mail, "_search_dirs", return_value=[]):
+            self.assertTrue(mail.import_client_file())
+
+    def test_no_client_found(self):
+        from tools.actions import mail
+
+        with mock.patch.object(mail, "_search_dirs", return_value=[]):
+            self.assertFalse(mail.import_client_file())
+
     def test_mime_utf8(self):
         from tools.actions.mail import build_message
 
