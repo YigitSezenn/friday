@@ -137,7 +137,7 @@ class MailTest(unittest.TestCase):
         from tools.actions import mail
 
         with mock.patch.object(mail, "outlook_available", return_value=False):
-            self.assertIn("klasik Outlook bulunamadi", mail.send_email("a@b.co", "K", "B", provider="outlook"))
+            self.assertIn("Klasik Outlook kullanilmiyor", mail.send_email("a@b.co", "K", "B", provider="outlook"))
 
     def test_mime_utf8(self):
         from tools.actions.mail import build_message

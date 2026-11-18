@@ -36,6 +36,20 @@ CHUNK = 1024
 CONTROL_TOKEN_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
 
+def listening_config(patient: bool) -> dict | None:
+    """Sunucu ses algılama ayarı. Gemini Live varsayılanı konuşmayı erken bitmiş sayar
+    (END_SENSITIVITY_HIGH); hızlı ya da duraksayarak konuşanın cümlesi yarıda kesilir.
+    Sabırlı modda konuşma başı kaçırılmaz, bitiş için kısa bir sessizlik beklenir."""
+    if not patient:
+        return None
+    return {
+        "start_of_speech_sensitivity": "START_SENSITIVITY_HIGH",
+        "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
+        "prefix_padding_ms": 200,
+        "silence_duration_ms": 700,
+    }
+
+
 def queue_mic_frame(pcm: bytes, *, speaking: bool, muted: bool, paused: bool) -> dict | None:
     """V3 ile aynı: asistan konuşurken, sessizde ve durakta mikrofon modele gitmez."""
     if speaking or muted or paused or not pcm:
@@ -177,6 +191,12 @@ class JarvisLive:
         )
         if code:
             speech.language_code = code
+        extra = {}
+        listening = listening_config(bool(get_app_config_value("patient_listening", True)))
+        if listening:
+            extra["realtime_input_config"] = types.RealtimeInputConfig(
+                automatic_activity_detection=types.AutomaticActivityDetection(**listening)
+            )
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             output_audio_transcription=spoken,
@@ -184,6 +204,7 @@ class JarvisLive:
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
             speech_config=speech,
+            **extra,
         )
 
     async def _execute(self, function_call):
