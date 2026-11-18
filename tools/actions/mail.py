@@ -388,7 +388,17 @@ def web_send(route: str, address: str, subject: str, body: str, title=None, pres
     else:
         return "opened"
     sleep(settle)  # yeni ileti alanlarının yüklenmesi için
+    # Bekleme sırasında başka bir uygulama (Teams, ekran alıntısı, başka pencere) odağı çalabilir:
+    # tuşa basmadan hemen önce birkaç kez posta penceresini yeniden öne getirmeyi dene.
     before = str(title() or "")
+    for _attempt in range(3):
+        if marker in before.casefold():
+            break
+        hwnd = (find or _find_window)(marker)
+        if hwnd:
+            (front or _bring_to_front)(hwnd)
+        sleep(0.6)
+        before = str(title() or "")
     if marker not in before.casefold():
         return "opened"
     press()
