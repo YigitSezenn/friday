@@ -561,14 +561,14 @@ class JarvisLive:
                 self.session = None
                 self.set_speaking(False)
                 if not self._paused:
-                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
+                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
                 continue
             except Exception as exc:
                 self.session = None
                 if _reconnect_error(exc):
                     self.set_speaking(False)
                     if not self._paused:
-                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
+                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
                     continue
                 traceback.print_exc()
                 _log_error(exc, key)

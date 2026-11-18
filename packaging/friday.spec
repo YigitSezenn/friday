@@ -23,6 +23,7 @@ hidden = [
     "win32com.client",
     "pythoncom",
 ]
+hidden += collect_submodules("ui")
 hidden += collect_submodules("tools.actions")
 hidden += collect_submodules("jarvis")
 
