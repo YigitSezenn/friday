@@ -283,8 +283,11 @@ class JarvisLive:
         output_noise = False
         misheard = False
         got_audio = False
+        idle_rounds = 0
         while True:
+            produced = False
             async for response in self.session.receive():
+                produced = True
                 self.stall.server_event()
                 if response.data:
                     got_audio = True
@@ -326,6 +329,14 @@ class JarvisLive:
                     for function_call in response.tool_call.function_calls:
                         responses.append(await self._execute(function_call))
                     await self.session.send_tool_response(function_responses=responses)
+            # receive() hiç yanıt vermeden bittiyse oturum kopmuştur. Boşa dönüp olay döngüsünü kilitlemek yerine yeniden bağlan.
+            if produced:
+                idle_rounds = 0
+                continue
+            idle_rounds += 1
+            if idle_rounds >= 3:
+                raise Reconnect()
+            await asyncio.sleep(0.2)
 
     async def _after_turn(self, heard: bool, answered: bool, misheard: bool) -> None:
         """Konuştun ama model yanıt vermediyse ya da döküm bozuksa, tahmin ettirmeden tekrar iste."""

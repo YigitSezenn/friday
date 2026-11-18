@@ -243,3 +243,34 @@ class LiveTurnTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SilentSessionTests(unittest.TestCase):
+    def test_a_session_that_ends_quietly_asks_for_reconnect(self):
+        """Oturum sessizce bitince döngü boşa dönüp uygulamayı kilitlememeli; yeniden bağlanmalı."""
+        import asyncio
+
+        from jarvis.live import JarvisLive, Reconnect
+
+        class Session:
+            def __init__(self):
+                self.calls = 0
+
+            async def receive(self):
+                self.calls += 1
+                if False:
+                    yield None  # hiçbir yanıt gelmeden biten oturum
+
+        live = JarvisLive.__new__(JarvisLive)
+        live.session = Session()
+        live.audio_in_queue = asyncio.Queue()
+        live.ui = type("UI", (), {"muted": False, "last_heard": 0, "write_log": lambda s, t: None, "set_state": lambda s, t: None})()
+        live._paused, live._said_result, live._is_speaking = False, False, False
+        live._speaking_lock = __import__("threading").Lock()
+
+        async def run():
+            await asyncio.wait_for(live._receive_audio(), timeout=3)
+
+        with self.assertRaises(Reconnect):
+            asyncio.run(run())
+        self.assertLess(live.session.calls, 20)
