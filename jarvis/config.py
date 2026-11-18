@@ -194,10 +194,12 @@ def persona_note(config: dict | None = None) -> str:
     current = config or load_app_config()
     name = _clean_name(current.get("assistant_name"))
     address = address_phrase(current)
+    names = name if name.lower() == address.lower() else f"{name} veya {address}"
     return (
         "\nKİMLİK:\n"
         f"- Görünen adın {name}. Kendini bu adla tanıt.\n"
-        f"- Kullanıcı sana «{address}» diye hitap eder. Bu hitabı kabul et ve aynı sıcaklıkta yanıt ver.\n"
+        f"- Kullanıcı sana «{names}» diye seslenebilir. İkisini de kendi adın say ve hemen yanıt ver.\n"
+        "- Adın geçmeyen normal istekleri de yanıtla. Sesli konuşmayı yok sayma.\n"
     )
 
 
