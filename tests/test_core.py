@@ -514,7 +514,7 @@ class JarvisTestCase(unittest.TestCase):
         self.assertTrue(installer_is_running(["FRIDAY-Kurulum.exe"]))
         self.assertTrue(installer_is_running(["unins000.exe"]))
         root = Path(__file__).resolve().parents[1]
-        bridge = (root / "ui" / "bridge.py").read_text(encoding="utf-8")
+        bridge = "\n".join(path.read_text(encoding="utf-8") for path in sorted((root / "ui").glob("*.py")))
         html = (root / "ui" / "hud" / "index.html").read_text(encoding="utf-8")
         script = (root / "ui" / "hud" / "hud.js").read_text(encoding="utf-8")
         self.assertIn("events.closing", bridge)
