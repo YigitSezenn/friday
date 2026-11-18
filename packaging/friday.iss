@@ -1,4 +1,4 @@
-; Per-user FRIDAY setup. Python is not required on the target PC.
+﻿; Per-user FRIDAY setup. Python is not required on the target PC.
 #define AppRoot "C:\Users\yigit\Desktop\jarvis-rebuild"
 
 [Setup]
@@ -26,10 +26,10 @@ Source: "{#AppRoot}\dist\FRIDAY\*"; DestDir: "{app}"; Flags: ignoreversion recur
 [Icons]
 Name: "{autodesktop}\FRIDAY"; Filename: "{app}\FRIDAY.exe"; WorkingDir: "{app}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY"; AppUserModelID: "FRIDAY.Rebuild"
 Name: "{userprograms}\FRIDAY"; Filename: "{app}\FRIDAY.exe"; WorkingDir: "{app}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY"; AppUserModelID: "FRIDAY.Rebuild"
-Name: "{userprograms}\FRIDAY kaldÃ„Â±r"; Filename: "{uninstallexe}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY kaldÃ„Â±r"
+Name: "{userprograms}\FRIDAY'ı kaldır"; Filename: "{uninstallexe}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY'ı kaldır"
 
 [Run]
-Filename: "{app}\FRIDAY.exe"; Description: "FRIDAY'i ac"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\FRIDAY.exe"; Description: "FRIDAY'ı aç"; Flags: nowait postinstall skipifsilent
 
 [Code]
 function WebView2Present: Boolean;

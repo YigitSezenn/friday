@@ -88,14 +88,26 @@ $init = Join-Path $Root "jarvis\__init__.py"
 $iss = Join-Path $Root "packaging\friday.iss"
 $gradleKts = Join-Path $Root "phone-android\app\build.gradle.kts"
 $html = Join-Path $Site "index.html"
+# Kodlama: Windows PowerShell 5.1'de Get-Content varsayılan olarak ANSI okur; UTF-8 dosyaları her
+# yayında bozuyordu ("kaldır" -> "kaldÄ±r" -> ...; bozuk kısayol adı kurulumda IPersistFile::Save 0x800706F8).
+# Her dosya açıkça UTF-8 okunur. Inno Setup UTF-8'i yalnızca BOM ile tanır: .iss BOM'lu yazılır.
+function Read-Utf8([string]$Path) {
+  [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
+}
 function Write-Utf8NoBom([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($false))
 }
-Write-Utf8NoBom $init ((Get-Content $init -Raw) -replace '__version__\s*=\s*"[^"]+"', ('__version__ = "{0}"' -f $Version))
-Write-Utf8NoBom $iss ((Get-Content $iss -Raw) -replace 'AppVersion=\d+\.\d+', ('AppVersion={0}' -f $Version))
-Write-Utf8NoBom $gradleKts ((Get-Content $gradleKts -Raw) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version))
+function Write-Utf8Bom([string]$Path, [string]$Text) {
+  [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($true))
+}
+$parts = ($Version -split '\.') + @('0', '0')
+$versionCode = [int]$parts[0] * 10000 + [int]$parts[1] * 100 + [int]$parts[2]
+Write-Utf8NoBom $init ((Read-Utf8 $init) -replace '__version__\s*=\s*"[^"]+"', ('__version__ = "{0}"' -f $Version))
+Write-Utf8Bom $iss ((Read-Utf8 $iss) -replace 'AppVersion=[\d.]+', ('AppVersion={0}' -f $Version))
+$kts = (Read-Utf8 $gradleKts) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version)
+Write-Utf8NoBom $gradleKts ($kts -replace 'versionCode\s*=\s*\d+', ('versionCode = {0}' -f $versionCode))
 # HTML: only query/version labels, not SVG path numbers like 10.5 4.4
-$htmlRaw = Get-Content $html -Raw
+$htmlRaw = Read-Utf8 $html
 $htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+', ('?v={0}' -f $Version))
 $htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+', ('Sürüm {0}' -f $Version))
 Write-Utf8NoBom $html $htmlRaw
