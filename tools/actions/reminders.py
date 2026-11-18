@@ -23,7 +23,7 @@ def _format_due(item: dict, now: dt.datetime) -> str:
         return "zaman atanmamis"
     due = dt.datetime.fromisoformat(item["due_iso"])
     if item.get("all_day"):
-        return f"{store.day_label(due, now)} tum gun"
+        return f"{store.day_label(due, now)} tüm gün"
     return f"{store.day_label(due, now)} {due.strftime('%H:%M')}"
 
 
@@ -32,7 +32,7 @@ def _line(item: dict, now: dt.datetime) -> str:
     if item.get("list_name"):
         parts.append(f"[{item['list_name']}]")
     if item.get("priority") == 1:
-        parts.append("(yuksek oncelik)")
+        parts.append("(yüksek öncelik)")
     return " ".join(parts)
 
 
@@ -71,22 +71,22 @@ def get_reminders(query: str = "upcoming", limit: int = 8, list_name: str = "") 
     selected = selected[:limit]
     if not selected:
         if mode == "today":
-            return "Bugun icin animsatici gorunmuyor."
+            return "Bugün için anımsatıcı görünmüyor."
         if mode == "overdue":
-            return "Geciken animsatici gorunmuyor."
+            return "Geciken anımsatıcı görünmüyor."
         if mode == "next":
-            return "Siradaki animsaticiyi bulamadim."
+            return "Sıradaki anımsatıcıyı bulamadım."
         if mode == "all":
-            return "Kayitli acik animsatici gorunmuyor."
-        return "Yaklasan animsatici gorunmuyor."
+            return "Kayıtlı açık anımsatıcı görünmüyor."
+        return "Yaklaşan anımsatıcı görünmüyor."
     if mode == "next":
-        return f"Siradaki animsatici: {_line(selected[0], now)}."
+        return f"Sıradaki anımsatıcı: {_line(selected[0], now)}."
     headers = {
-        "today": f"Bugun icin {len(selected)} animsatici buldum:",
-        "overdue": f"Gecikmis {len(selected)} animsatici buldum:",
-        "all": f"Acik {len(selected)} animsatici buldum:",
+        "today": f"Bugün için {len(selected)} anımsatıcı buldum:",
+        "overdue": f"Gecikmis {len(selected)} anımsatıcı buldum:",
+        "all": f"Açık {len(selected)} anımsatıcı buldum:",
     }
-    lines = [headers.get(mode, f"Yaklasan {len(selected)} animsatici buldum:")]
+    lines = [headers.get(mode, f"Yaklaşan {len(selected)} anımsatıcı buldum:")]
     lines.extend(f"- {_line(item, now)}" for item in selected)
     return "\n".join(lines)
 
@@ -100,13 +100,13 @@ def add_reminder(
     all_day: bool = False,
 ) -> str:
     if not title or not title.strip():
-        return "Animsatici basligi bos olamaz."
+        return "Anımsatıcı başlığı boş olamaz."
     due_text = ""
     inferred_all_day = False
     if due_iso and due_iso.strip():
         parsed, inferred_all_day = store.parse_iso(due_iso)
         if parsed is None:
-            return "Animsatici tarihi gecersiz. due_iso icin 'YYYY-MM-DD' veya 'YYYY-MM-DDTHH:MM' kullan."
+            return "Anımsatıcı tarihi geçersiz. due_iso için 'YYYY-MM-DD' veya 'YYYY-MM-DDTHH:MM' kullan."
         due_text = parsed.isoformat()
     priority_raw = str(priority or "").strip().lower()
     record = {
@@ -125,7 +125,7 @@ def add_reminder(
         store.save_store(data)
     when = _format_due(record, dt.datetime.now())
     suffix = f" [{record['list_name']}]" if record["list_name"] else ""
-    return f"Animsatici eklendi: {when} - {record['title']}{suffix}"
+    return f"Anımsatıcı eklendi: {when} - {record['title']}{suffix}"
 
 
 def _pick_reminder(items: list[dict], title: str, reminder_id: str) -> tuple[dict | None, str]:
@@ -138,9 +138,9 @@ def _pick_reminder(items: list[dict], title: str, reminder_id: str) -> tuple[dic
         if not found:
             found = [item for item in items if needle in str(item.get("title") or "").casefold()]
     else:
-        return None, "Animsatici basligi veya kimligi gerekli."
+        return None, "Anımsatıcı başlığı veya kimligi gerekli."
     if not found:
-        return None, "Eslesen animsatici bulunamadi."
+        return None, "Eslesen anımsatıcı bulunamadi."
     return found[0], ""
 
 
@@ -152,7 +152,7 @@ def complete_reminder(title: str = "", reminder_id: str = "") -> str:
             return error
         item["completed"] = True
         store.save_store(data)
-    return f"Animsatici tamamlandi: {item['title']}"
+    return f"Anımsatıcı tamamlandi: {item['title']}"
 
 
 def delete_reminder(title: str = "", reminder_id: str = "") -> str:
@@ -163,4 +163,4 @@ def delete_reminder(title: str = "", reminder_id: str = "") -> str:
             return error
         data["reminders"] = [row for row in data["reminders"] if row.get("id") != item.get("id")]
         store.save_store(data)
-    return f"Animsatici silindi: {item['title']}"
+    return f"Anımsatıcı silindi: {item['title']}"

@@ -7,7 +7,7 @@ SEARCH_MODELS = (
     "models/gemini-flash-latest",
 )
 ANSWER_LIMIT = 900
-PROMPT = "Turkce, en fazla uc kisa cumleyle ve guncel bilgiyle yanitla. Sesli okunacak: liste, baslik ve kaynak adresi yazma.\n\nSoru: {query}"
+PROMPT = "Türkçe, en fazla üç kısa cümleyle ve güncel bilgiyle yanıtla. Sesli okunacak: liste, başlık ve kaynak adresi yazma.\n\nSoru: {query}"
 
 
 def _label(model: str) -> str:
@@ -55,7 +55,7 @@ def web_search(query: str, ask=None, fallback=None) -> str:
     """Once Gemini (Google aramasi, uc model sirayla), olmazsa DuckDuckGo. Hicbiri olmazsa nedenleri soyler."""
     text = " ".join(str(query or "").split())
     if not text:
-        return "Arama cumlesi bos."
+        return "Arama cümlesi boş."
     reasons: list[str] = []
     answer = _search_with_gemini(text, ask or _gemini_search, reasons)
     if answer:
@@ -68,9 +68,9 @@ def web_search(query: str, ask=None, fallback=None) -> str:
         if summary:
             return summary
         if not reasons:
-            return f"'{text}' icin kisa bir ozet donmedi. Tarayicida aramayi acmayi onerebilirsin."
-        reasons.append("DuckDuckGo: ozet donmedi")
-    return "Arama yapilamadi: " + "; ".join(reasons)
+            return f"'{text}' için kısa bir özet dönmedi. Tarayıcıda aramayi acmayi onerebilirsin."
+        reasons.append("DuckDuckGo: özet dönmedi")
+    return "Arama yapılamadı: " + "; ".join(reasons)
 
 
 def _search_with_gemini(text: str, ask, reasons: list[str]) -> str:
@@ -92,5 +92,5 @@ def _search_with_gemini(text: str, ask, reasons: list[str]) -> str:
             continue
         if answer:
             return answer
-        reasons.append(f"{_label(model)}: bos yanit")
+        reasons.append(f"{_label(model)}: boş yanıt")
     return ""

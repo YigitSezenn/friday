@@ -108,8 +108,8 @@ def connect_gmail() -> str:
     client = _client()
     if not client.get("client_id"):
         return (
-            "Google Cloud'da 'Masaustu uygulamasi' turunde OAuth istemcisi olusturup JSON'u indir (Downloads klasorune "
-            "inmesi yeterli); ben kendim bulurum. Sonra tekrar 'Gmail'i bagla' de."
+            "Google Cloud'da 'Masaüstü uygulaması' türünde OAuth istemcisi oluşturup JSON'u indir (Downloads klasörüne "
+            "inmesi yeterli); ben kendim bulurum. Sonra tekrar 'Gmail'i bağla' de."
         )
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
@@ -121,9 +121,9 @@ def connect_gmail() -> str:
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             if query.get("state", [""])[0] == state and query.get("code"):
                 result["code"] = query["code"][0]
-                text = "FRIDAY Gmail baglandi. Bu sekmeyi kapatabilirsin."
+                text = "FRIDAY Gmail bağlandı. Bu sekmeyi kapatabilirsin."
             else:
-                text = "Baglanti reddedildi veya gecersiz."
+                text = "Bağlantı reddedildi veya geçersiz."
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
@@ -162,14 +162,14 @@ def connect_gmail() -> str:
 
     threading.Thread(target=finish, name="gmail-oauth", daemon=True).start()
     webbrowser.open(url)
-    return "Tarayicida Google izin ekrani acildi. Yalnizca e-posta GONDERME izni istenir; okuma izni yoktur. Izni verince 'Gmail'i bagla' demen yeterli degil, otomatik baglanir."
+    return "Tarayıcıda Google izin ekrani açıldı. Yalnızca e-posta GONDERME izni istenir; okuma izni yoktur. Izni verince 'Gmail'i bağla' demen yeterli değil, otomatik bağlanır."
 
 
 def _access_token() -> str:
     refresh = _read_json(_token_file()).get("refresh_token")
     client = _client()
     if not refresh or not client.get("client_id"):
-        raise RuntimeError("Gmail bagli degil. Once 'Gmail'i bagla' de.")
+        raise RuntimeError("Gmail bağlı değil. Önce 'Gmail'i bağla' de.")
     token = _post(client.get("token_uri", "https://oauth2.googleapis.com/token"), {
         "client_id": client["client_id"], "client_secret": client.get("client_secret", ""),
         "refresh_token": refresh, "grant_type": "refresh_token",
@@ -189,14 +189,14 @@ def build_message(to: str, subject: str, body: str) -> EmailMessage:
 
 def save_email_contact(display_name: str, email: str, aliases: str = "") -> str:
     if not display_name.strip():
-        return "Kisi adi bos olamaz."
+        return "Kişi adı boş olamaz."
     if not EMAIL_RE.match(email.strip()):
-        return "Gecersiz e-posta adresi."
+        return "Geçersiz e-posta adresi."
     from tools.actions.whatsapp import contact_key
 
     alias_list = [a.strip() for a in aliases.split(",") if a.strip()]
     update_memory({"email_contacts": {contact_key(display_name): {"value": email.strip(), "display_name": display_name.strip(), "aliases": alias_list}}})
-    return f"{display_name.strip()} e-posta kisilerine kaydedildi."
+    return f"{display_name.strip()} e-posta kişilerine kaydedildi."
 
 
 def _lookup(name: str) -> dict | None:
@@ -369,35 +369,35 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
     if not address and recipient_name.strip():
         contact = _lookup(recipient_name)
         if not contact:
-            return f"'{recipient_name}' icin kayitli e-posta bulamadim. Adresi soyle veya kisiyi kaydet."
+            return f"'{recipient_name}' için kayıtlı e-posta bulamadım. Adresi söyle veya kişiyi kaydet."
         address = str(contact.get("value", "")).strip()
         label = str(contact.get("display_name", recipient_name))
     if not EMAIL_RE.match(address):
-        return "Gecersiz veya eksik e-posta adresi."
+        return "Geçersiz veya eksik e-posta adresi."
     if re.search(r"[\r\n]", subject or "") or re.search(r"[\r\n]", address):
-        return "Gecersiz konu veya adres."
+        return "Geçersiz konu veya adres."
     if not (body or "").strip():
-        return "E-posta metni bos olamaz."
+        return "E-posta metni boş olamaz."
     route = choose_provider(provider)
     if route == "gmail_web" and not _web_autosend():
         try:
             _open_gmail_web(address, subject, body)
         except Exception as exc:
-            return f"Gmail tarayicida acilamadi: {exc}"
-        return f"Gmail tarayicida {label} icin doldurulmus yeni ileti olarak acildi; kontrol edip Gonder'e bas."
+            return f"Gmail tarayıcıda açılamadı: {exc}"
+        return f"Gmail tarayıcıda {label} için doldurulmuş yeni ileti olarak açıldı; kontrol edip Gönder'e bas."
     if route == "none-outlook":
-        return "Klasik Outlook kullanilmiyor (yeni Outlook dogrudan gonderimi desteklemiyor). Taslak olarak acayim mi, yoksa Gmail mi baglayalim?"
+        return "Klasik Outlook kullanılmıyor (yeni Outlook doğrudan gönderimi desteklemiyor). Taslak olarak açayım mi, yoksa Gmail mi bağlayalım?"
     if route == "draft":
         try:
             _open_draft(address, subject, body)
         except Exception as exc:
-            return f"E-posta taslagi acilamadi: {exc}"
-        return f"E-posta taslagi {label} icin mail uygulamasinda acildi; gondermek icin Gonder'e bas."
+            return f"E-posta taslağı açılamadı: {exc}"
+        return f"E-posta taslağı {label} için mail uygulamasında açıldı; göndermek için Gönder'e bas."
     parts = (route, address.lower(), subject, body)
     if confirm.required():
         if not confirm_send:
-            via = {"gmail": "Gmail", "gmail_web": "Gmail (tarayici)"}.get(route, "Outlook")
-            return confirm.ask("mail", parts, f"E-posta taslagi ({via}) — Kime: {label} <{address}>, Konu: {subject or '(konusuz)'}, Metin: {body.strip()[:300]}.")
+            via = {"gmail": "Gmail", "gmail_web": "Gmail (tarayıcı)"}.get(route, "Outlook")
+            return confirm.ask("mail", parts, f"E-posta taslağı ({via}) — Kime: {label} <{address}>, Konu: {subject or '(konusuz)'}, Metin: {body.strip()[:300]}.")
         problem = confirm.check("mail", parts)
         if problem:
             return problem
@@ -405,13 +405,13 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
         if route == "gmail_web":
             outcome = gmail_web_send(address, subject, body)
             if outcome == "sent":
-                return f"E-posta Gmail (tarayici) ile {label} kisisine gonderildi."
+                return f"E-posta Gmail (tarayıcı) ile {label} kişisine gönderildi."
             if outcome == "pressed":
-                return f"Gmail'de {label} icin Gonder komutu verildi; sayfa degismedi, Gonderilenler'den kontrol etmeni oneririm."
-            return "Gmail acildi ama pencere one gelmedigi icin otomatik gonderemedim; ileti dolu bekliyor, Gonder'e bas."
+                return f"Gmail'de {label} için Gönder komutu verildi; sayfa değişmedi, Gönderilenler'den kontrol etmeni öneririm."
+            return "Gmail açıldı ama pencere öne gelmediği için otomatik gönderemedim; ileti dolu bekliyor, Gönder'e bas."
         if route == "outlook":
             _send_outlook(address, subject, body)
-            return f"E-posta Outlook ile {label} kisisine gonderildi."
+            return f"E-posta Outlook ile {label} kişisine gönderildi."
         raw = base64.urlsafe_b64encode(build_message(address, subject, body).as_bytes()).decode()
         req = urllib.request.Request(
             SEND_URL, data=json.dumps({"raw": raw}).encode(),
@@ -420,8 +420,8 @@ def send_email(to: str = "", subject: str = "", body: str = "", recipient_name: 
         with urllib.request.urlopen(req, timeout=20) as resp:
             json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
-        return f"E-posta gonderilemedi: {exc}"
-    return f"E-posta {label} kisisine gonderildi."
+        return f"E-posta gönderilemedi: {exc}"
+    return f"E-posta {label} kişisine gönderildi."
 
 
 def open_mail(provider: str = "auto") -> str:
@@ -431,8 +431,8 @@ def open_mail(provider: str = "auto") -> str:
     if key in {"outlook", "office"} or (key == "auto" and not gmail_connected() and outlook_available()):
         try:
             os.startfile("outlook.exe")  # type: ignore[attr-defined]
-            return "Outlook acildi."
+            return "Outlook açıldı."
         except OSError:
             pass
     webbrowser.open("https://mail.google.com/mail/u/0/#inbox")
-    return "Gmail gelen kutusu tarayicida acildi."
+    return "Gmail gelen kutusu tarayıcıda açıldı."

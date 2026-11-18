@@ -19,7 +19,7 @@ class ToolRegistryTests(unittest.TestCase):
         from tools.dispatch import execute_tool
 
         self.assertIn("Bilinmeyen", execute_tool("yok", {}))
-        self.assertIn("kullanilamiyor", execute_tool("toggle_webcam", {"action": "start"}))
+        self.assertIn("kullanılamıyor", execute_tool("toggle_webcam", {"action": "start"}))
 
     def test_int_helper_falls_back(self):
         from tools.handlers import as_int

@@ -33,9 +33,9 @@ def run_selftest() -> int:
     check("prompt", lambda: "Windows" if "Windows" in __import__("jarvis.prompt", fromlist=["load_system_prompt"]).load_system_prompt() else (_ for _ in ()).throw(RuntimeError("Windows notu yok")))
     check("ayar yazma", _write_probe)
     check("API anahtari", lambda: "var" if has_gemini_api_key() else "yok (uygulamadan gir)")
-    check("sistem", lambda: __import__("jarvis.actions.system", fromlist=["sys_info"]).sys_info("time"))
-    check("takvim", lambda: __import__("jarvis.actions.calendar", fromlist=["get_calendar_events"]).get_calendar_events("today"))
-    check("powershell", lambda: __import__("jarvis.actions.shell", fromlist=["shell_run"]).shell_run("Write-Output tamam"))
+    check("sistem", lambda: __import__("tools.actions.system", fromlist=["sys_info"]).sys_info("time"))
+    check("takvim", lambda: __import__("tools.actions.calendar", fromlist=["get_calendar_events"]).get_calendar_events("today"))
+    check("powershell", lambda: __import__("tools.actions.shell", fromlist=["shell_run"]).shell_run("Write-Output tamam"))
 
     lines.append(f"\nSONUC: {ok} basarili, {bad} hatali")
     report = "\n".join(lines)
@@ -60,11 +60,11 @@ def smoke_ui() -> int:
     ui = JarvisUI()
     ui.root.withdraw()
     ui.set_state("LISTENING")
-    ui.write_log("SYS: Arayuz duman testi.")
+    ui.write_log("SYS: Arayüz duman testi.")
     ui.root.update_idletasks()
     ui.root.update()
     ui.root.destroy()
-    print("Arayuz olusturuldu ve kapatildi.")
+    print("Arayüz oluşturuldu ve kapatıldı.")
     return 0
 
 
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     _note_launch()
     _show_event()
     if not _acquire_single_instance():
-        print("JARVIS zaten calisiyor.")
+        print("JARVIS zaten çalışıyor.")
         return 0
 
     from jarvis.live import JarvisLive
@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             ui.write_log(f"ERR: Telefon sunucusu açılamadı. ({exc})")
             return ""
-        ui.write_debug("Telefon ayni Wi-Fi icin hazir. QR Ayarlar icinde, paylasma.")
+        ui.write_debug("Telefon aynı Wi-Fi için hazır. QR Ayarlar içinde, paylaşma.")
         try:
             from jarvis.story import note_phone
 

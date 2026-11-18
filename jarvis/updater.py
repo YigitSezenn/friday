@@ -36,6 +36,6 @@ def download_installer(dest) -> None:
     with urllib.request.urlopen(request, timeout=120) as response:
         payload = response.read()
     if len(payload) < 1_000_000 or not payload.startswith(b"MZ"):
-        raise RuntimeError("kurulum dosyasi olmadi")
+        raise RuntimeError("kurulum dosyası olmadı")
     with open(dest, "wb") as handle:
         handle.write(payload)

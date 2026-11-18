@@ -44,17 +44,17 @@ class MailTest(unittest.TestCase):
     def test_validation(self):
         from tools.actions.mail import send_email
 
-        self.assertIn("Gecersiz", send_email("yanlis", "s", "b"))
-        self.assertIn("Gecersiz", send_email("a@b.co", "s\nBcc: x@y.z", "b"))
-        with mock.patch("webbrowser.open"), mock.patch("tools.actions.mail._web_autosend", return_value=False):
-            self.assertIn("tarayicida", send_email("a@b.co", "s", "b", provider="gmail"))
+        self.assertIn("Geçersiz", send_email("yanlis", "s", "b"))
+        self.assertIn("Geçersiz", send_email("a@b.co", "s\nBcc: x@y.z", "b"))
+        with mock.patch("webbrowser.open"):
+            self.assertIn("tarayıcıda", send_email("a@b.co", "s", "b", provider="gmail"))
 
     def test_draft_then_confirm_sends_once(self):
         from tools.actions import mail
 
         self._connect()
         first = mail.send_email("a@b.co", "Konu", "Merhaba")
-        self.assertIn("ONAY GEREKLI", first)
+        self.assertIn("ONAY GEREKLİ", first)
         sent = []
 
         class Resp:
@@ -67,7 +67,7 @@ class MailTest(unittest.TestCase):
             return Resp()
 
         with mock.patch.object(confirm, "MIN_WAIT", 0), mock.patch.object(mail, "_access_token", return_value="t"), mock.patch.object(mail.urllib.request, "urlopen", fake_urlopen):
-            self.assertIn("gonderildi", mail.send_email("a@b.co", "Konu", "Merhaba", confirm_send=True))
+            self.assertIn("gönderildi", mail.send_email("a@b.co", "Konu", "Merhaba", confirm_send=True))
             self.assertEqual(len(sent), 1)
             self.assertIn("ONAY", mail.send_email("a@b.co", "Konu", "Merhaba", confirm_send=True))
             self.assertEqual(len(sent), 1)
@@ -83,7 +83,7 @@ class MailTest(unittest.TestCase):
 
         with mock.patch("webbrowser.open") as opened:
             out = whatsapp.send_whatsapp_message("selam", "05551112233", send_now=True)
-        self.assertIn("ONAY GEREKLI", out)
+        self.assertIn("ONAY GEREKLİ", out)
         opened.assert_not_called()
 
     def test_client_file_name_variants(self):
@@ -116,12 +116,9 @@ class MailTest(unittest.TestCase):
     def test_auto_route_opens_gmail_web_compose(self):
         from tools.actions import mail
 
-        # Autosend kapalıyken: onay beklemeden Gmail compose URL açılır.
-        with mock.patch.object(mail, "outlook_available", return_value=False), \
-                mock.patch.object(mail, "_web_autosend", return_value=False), \
-                mock.patch.object(mail.webbrowser, "open") as opened:
+        with mock.patch.object(mail, "outlook_available", return_value=False), mock.patch.object(mail.webbrowser, "open") as opened:
             out = mail.send_email("a@b.co", "Konu ş", "Merhaba dünya")
-        self.assertIn("Gonder", out)
+        self.assertIn("Gönder", out)
         url = opened.call_args[0][0]
         self.assertTrue(url.startswith("https://mail.google.com/mail/?view=cm&fs=1&to=a%40b.co"))
         self.assertIn("su=Konu%20%C5%9F", url)
@@ -131,7 +128,7 @@ class MailTest(unittest.TestCase):
         from tools.actions import mail
 
         with mock.patch.object(mail.webbrowser, "open") as opened:
-            self.assertIn("taslagi", mail.send_email("a@b.co", "K", "B", provider="taslak"))
+            self.assertIn("taslağı", mail.send_email("a@b.co", "K", "B", provider="taslak"))
         self.assertTrue(opened.call_args[0][0].startswith("mailto:a@b.co?"))
 
     def test_outlook_route_needs_confirm_then_sends(self):
@@ -149,7 +146,7 @@ class MailTest(unittest.TestCase):
         from tools.actions import mail
 
         with mock.patch.object(mail, "outlook_available", return_value=False):
-            self.assertIn("Klasik Outlook kullanilmiyor", mail.send_email("a@b.co", "K", "B", provider="outlook"))
+            self.assertIn("Klasik Outlook kullanılmıyor", mail.send_email("a@b.co", "K", "B", provider="outlook"))
 
     def test_gmail_web_autosend_needs_confirm_then_presses(self):
         from tools.actions import mail
@@ -159,11 +156,11 @@ class MailTest(unittest.TestCase):
                 mock.patch.object(mail, "_web_autosend", return_value=True), \
                 mock.patch.object(mail, "gmail_web_send", lambda *a: calls.append(a) or "sent"):
             first = mail.send_email("a@b.co", "K", "B")
-            self.assertIn("ONAY GEREKLI", first)
-            self.assertIn("Gmail (tarayici)", first)
+            self.assertIn("ONAY GEREKLİ", first)
+            self.assertIn("Gmail (tarayıcı)", first)
             self.assertEqual(calls, [])
             with mock.patch.object(confirm, "MIN_WAIT", 0):
-                self.assertIn("gonderildi", mail.send_email("a@b.co", "K", "B", confirm_send=True))
+                self.assertIn("gönderildi", mail.send_email("a@b.co", "K", "B", confirm_send=True))
         self.assertEqual(calls, [("a@b.co", "K", "B")])
 
     def test_gmail_web_send_safety(self):

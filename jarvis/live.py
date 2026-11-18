@@ -398,7 +398,7 @@ class JarvisLive:
                         if spoken and not self._said_result:
                             self.ui.write_log(f"JARVIS: {spoken}")
                         elif output_noise and not self._said_result:
-                            self.ui.write_log("ERR: JARVIS sesli yanitini cozumlerken bir hata olustu.")
+                            self.ui.write_log("ERR: JARVIS sesli yanıtını çözümlerken bir hata oluştu.")
                             self.ui.set_state("ERROR")
                         await self._after_turn(bool(heard), bool(spoken) or got_audio, misheard)
                         in_buf, out_buf, output_noise = [], [], False
@@ -458,9 +458,6 @@ class JarvisLive:
                 chunk = await self.audio_in_queue.get()
                 self.set_speaking(True)
                 heard = self._scale_output(chunk)
-                capture = getattr(self, "_capture", None)
-                if capture is not None:
-                    capture.note_playback(heard)
                 from jarvis.phone_server import publish_speaker
 
                 publish_speaker(heard)
@@ -475,9 +472,6 @@ class JarvisLive:
         level = int(get_app_config_value("voice_volume", 100) or 100)
         level = max(0, min(150, level))
         factor = level / 100
-        capture = getattr(self, "_capture", None)
-        if capture is not None and capture.ducked:
-            factor *= 0.35
         if factor == 1 or not chunk:
             return chunk
         import array
@@ -503,7 +497,7 @@ class JarvisLive:
             try:
                 await self._send_media(frame, "image/jpeg")
             except Exception as exc:
-                self.ui.write_log(f"ERR: Kamera karesi gonderilemedi. ({exc})")
+                self.ui.write_log(f"ERR: Kamera karesi gönderilemedi. ({exc})")
             await asyncio.sleep(0.5)
 
     async def _preview_webcam(self) -> None:
@@ -567,14 +561,14 @@ class JarvisLive:
                 self.session = None
                 self.set_speaking(False)
                 if not self._paused:
-                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
+                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
                 continue
             except Exception as exc:
                 self.session = None
                 if _reconnect_error(exc):
                     self.set_speaking(False)
                     if not self._paused:
-                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
+                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
                     continue
                 traceback.print_exc()
                 _log_error(exc, key)
@@ -604,7 +598,7 @@ class JarvisLive:
         if self.session is None:
             return
         try:
-            await self._send_user_text(f"[Sistem notu, sesli ve kisa soyle] {text}")
+            await self._send_user_text(f"[Sistem notu, sesli ve kısa söyle] {text}")
         except Exception:
             pass  # oturum o anda kapanıyorsa sessizce vazgeç
 

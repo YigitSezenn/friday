@@ -61,7 +61,7 @@ class VolumeTest(unittest.TestCase):
     def test_app_at_max_raises_system(self):
         backend = FakeBackend([("spotify.exe", Vol(1.0))])
         out = set_volume("spotify", change=15, backend=backend)
-        self.assertIn("en yuksekteydi", out)
+        self.assertIn("en yüksekteydi", out)
         self.assertAlmostEqual(backend.speakers.v, 0.65)
 
     def test_fraction_levels(self):
@@ -89,7 +89,7 @@ class VolumeTest(unittest.TestCase):
         from tools.actions import volume
 
         with mock.patch.object(volume, "_Backend", side_effect=ImportError("pycaw yok")):
-            self.assertIn("kullanilamiyor", set_volume("spotify", change=10))
+            self.assertIn("kullanılamıyor", set_volume("spotify", change=10))
 
 
 if __name__ == "__main__":
