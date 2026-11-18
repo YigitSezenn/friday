@@ -324,7 +324,7 @@ class JarvisUI:
         config = load_app_config()
         self.effects = bool(config.get("effects", True))
         self.music = bool(config.get("music", False))
-        keys = ("gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "aec_enabled", "live_model", "language", "story_enabled", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "start_with_windows")
+        keys = ("gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "aec_enabled", "live_model", "language", "story_enabled", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "start_with_windows")
         safe = {key: config.get(key, "") for key in keys}
         memories = []
         for category, items in load_memory().items():

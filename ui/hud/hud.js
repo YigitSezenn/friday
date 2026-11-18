@@ -419,6 +419,7 @@ window.hud = {
     }
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
     $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
+    $("set-patient").setAttribute("aria-checked", data.config.patient_listening === false ? "false" : "true");
     setSwitch("set-aec", data.config.aec_enabled !== false);
     setSwitch("set-story", data.config.story_enabled);
     setSwitch("set-proactive", data.config.proactive_enabled);
@@ -584,6 +585,7 @@ document.querySelectorAll(".stab").forEach(button => {
     if (button.dataset.tab === "izinler") send("permissions");
   });
 });
+$("set-patient").addEventListener("click", () => $("set-patient").setAttribute("aria-checked", $("set-patient").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-music").addEventListener("click", () => $("set-music").setAttribute("aria-checked", $("set-music").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-sfx").addEventListener("click", () => $("set-sfx").setAttribute("aria-checked", $("set-sfx").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-mic").addEventListener("click", () => { toggleMic(); $("set-mic").setAttribute("aria-checked", $("t-mic").dataset.on === "1" ? "true" : "false"); });
@@ -870,6 +872,7 @@ $("settings-form").addEventListener("submit", event => {
   values.voice_volume = Number(form.voice_volume.value);
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
   values.music = $("set-music").getAttribute("aria-checked") === "true";
+  values.patient_listening = $("set-patient").getAttribute("aria-checked") !== "false";
   values.aec_enabled = $("set-aec").getAttribute("aria-checked") !== "false";
   values.story_enabled = $("set-story").getAttribute("aria-checked") === "true";
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";
