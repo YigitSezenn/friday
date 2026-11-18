@@ -11,6 +11,9 @@ from jarvis.paths import data_path
 VOICES = ("Charon", "Puck", "Aoede", "Kore", "Fenrir", "Leda", "Orus", "Zephyr")
 
 UI_COLORS = {
+    # J.A.R.V.I.S V3 web arayüzünün teal paleti (renk değerleri). Kaynak: J.A.R.V.I.S V3, Alp Ünlü,
+    # PolyForm Noncommercial 1.0.0 — ticari olmayan kullanım ve atıf şartıyla.
+    "teal": {"label": "Teal (V3)", "c": "#00d4c4", "rgb": "0,212,196", "accent": "#ff4d4d", "arg": "255,77,77", "ink": "#c8f5f0", "dim": "#3a8a82", "faint": "#1d5d57"},
     "gold": {"label": "Altın", "c": "#e6c98a", "rgb": "230,201,138", "accent": "#e7a0ae", "arg": "231,160,174", "ink": "#f6f1e6", "dim": "#b7a27a", "faint": "#6a5a3c"},
     "cyan": {"label": "Camgöbeği", "c": "#5ed8ff", "rgb": "94,216,255", "accent": "#ff8a3c", "arg": "255,138,60", "ink": "#cfe9f7", "dim": "#5e7c8c", "faint": "#2c4453"},
     "crimson": {"label": "Kırmızı", "c": "#ff5a62", "rgb": "255,90,98", "accent": "#ffd0a8", "arg": "255,208,168", "ink": "#ffe8ea", "dim": "#c98a90", "faint": "#6a3a40"},
@@ -30,7 +33,7 @@ DEFAULT_CONFIG = {
     "voice": "Charon",
     "assistant_name": "FRIDAY",
     "address_as": "adınla",
-    "ui_color": "gold",
+    "ui_color": "teal",
     "voice_volume": 100,
     "effects": True,
     "panels_off": [],
@@ -174,8 +177,8 @@ def _clean_quiet(value) -> int:
 
 
 def _clean_color(value) -> str:
-    key = str(value or "gold").strip().lower()
-    return key if key in UI_COLORS else "gold"
+    key = str(value or "teal").strip().lower()
+    return key if key in UI_COLORS else "teal"
 
 
 def address_phrase(config: dict | None = None) -> str:
