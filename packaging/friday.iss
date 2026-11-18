@@ -4,7 +4,7 @@
 [Setup]
 AppId={{8F3A1C2E-6B47-4D19-9A55-F21DA7000001}
 AppName=FRIDAY
-AppVersion=4.7
+AppVersion=4.8
 AppPublisher=FRIDAY
 DefaultDirName={localappdata}\FRIDAY
 DisableDirPage=yes
@@ -26,7 +26,7 @@ Source: "{#AppRoot}\dist\FRIDAY\*"; DestDir: "{app}"; Flags: ignoreversion recur
 [Icons]
 Name: "{autodesktop}\FRIDAY"; Filename: "{app}\FRIDAY.exe"; WorkingDir: "{app}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY"; AppUserModelID: "FRIDAY.Rebuild"
 Name: "{userprograms}\FRIDAY"; Filename: "{app}\FRIDAY.exe"; WorkingDir: "{app}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY"; AppUserModelID: "FRIDAY.Rebuild"
-Name: "{userprograms}\FRIDAY kaldÃ„Â±r"; Filename: "{uninstallexe}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY kaldÃ„Â±r"
+Name: "{userprograms}\FRIDAY kaldÃƒâ€Ã‚Â±r"; Filename: "{uninstallexe}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY kaldÃƒâ€Ã‚Â±r"
 
 [Run]
 Filename: "{app}\FRIDAY.exe"; Description: "FRIDAY'i ac"; Flags: nowait postinstall skipifsilent

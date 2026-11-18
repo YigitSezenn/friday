@@ -1,3 +1,3 @@
-"""JARVIS Ã¢â‚¬â€ Windows sesli kiÃ…Å¸isel asistan (V3 davranÃ„Â±Ã…Å¸Ã„Â±nÃ„Â±n yeniden dÃƒÂ¼zenlenmiÃ…Å¸ hali)."""
+"""JARVIS ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Windows sesli kiÃƒâ€¦Ã…Â¸isel asistan (V3 davranÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸Ãƒâ€Ã‚Â±nÃƒâ€Ã‚Â±n yeniden dÃƒÆ’Ã‚Â¼zenlenmiÃƒâ€¦Ã…Â¸ hali)."""
 
-__version__ = "4.7"
+__version__ = "4.8"
