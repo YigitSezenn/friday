@@ -10,7 +10,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 5
-        versionName = "4.8"
+        versionName = "4.9"
     }
     buildTypes {
         release {
@@ -28,7 +28,7 @@ android {
         compose = true
     }
     composeOptions {
-        // Kotlin 1.9.24 ile eÃƒâ€¦Ã…Â¸leÃƒâ€¦Ã…Â¸en Compose derleyicisi.
+        // Kotlin 1.9.24 ile eÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸leÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸en Compose derleyicisi.
         kotlinCompilerExtensionVersion = "1.5.14"
     }
 }
