@@ -1,10 +1,13 @@
-; Per-user FRIDAY setup. Python is not required on the target PC.
-#define AppRoot "C:\Users\yigit\Desktop\jarvis-rebuild"
+﻿; Per-user FRIDAY setup. Python is not required on the target PC.
+; AppRoot komut satırından verilebilir (yayın hattı: ISCC /DAppRoot=...). Verilmezse geliştirici bilgisayarı.
+#ifndef AppRoot
+  #define AppRoot "C:\Users\yigit\Desktop\jarvis-rebuild"
+#endif
 
 [Setup]
 AppId={{8F3A1C2E-6B47-4D19-9A55-F21DA7000001}
 AppName=FRIDAY
-AppVersion=4.6
+AppVersion=4.10.4
 AppPublisher=FRIDAY
 DefaultDirName={localappdata}\FRIDAY
 DisableDirPage=yes
@@ -26,10 +29,10 @@ Source: "{#AppRoot}\dist\FRIDAY\*"; DestDir: "{app}"; Flags: ignoreversion recur
 [Icons]
 Name: "{autodesktop}\FRIDAY"; Filename: "{app}\FRIDAY.exe"; WorkingDir: "{app}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY"; AppUserModelID: "FRIDAY.Rebuild"
 Name: "{userprograms}\FRIDAY"; Filename: "{app}\FRIDAY.exe"; WorkingDir: "{app}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY"; AppUserModelID: "FRIDAY.Rebuild"
-Name: "{userprograms}\FRIDAY kaldÄ±r"; Filename: "{uninstallexe}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY kaldÄ±r"
+Name: "{userprograms}\FRIDAY'ı kaldır"; Filename: "{uninstallexe}"; IconFilename: "{app}\FRIDAY.exe"; Comment: "FRIDAY'ı kaldır"
 
 [Run]
-Filename: "{app}\FRIDAY.exe"; Description: "FRIDAY'i ac"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\FRIDAY.exe"; Description: "FRIDAY'ı aç"; Flags: nowait postinstall skipifsilent
 
 [Code]
 function WebView2Present: Boolean;

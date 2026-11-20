@@ -11,6 +11,9 @@ from jarvis.paths import data_path
 VOICES = ("Charon", "Puck", "Aoede", "Kore", "Fenrir", "Leda", "Orus", "Zephyr")
 
 UI_COLORS = {
+    # J.A.R.V.I.S V3 web arayüzünün teal paleti (renk değerleri). Kaynak: J.A.R.V.I.S V3, Alp Ünlü,
+    # PolyForm Noncommercial 1.0.0 — ticari olmayan kullanım ve atıf şartıyla.
+    "teal": {"label": "Teal (V3)", "c": "#00d4c4", "rgb": "0,212,196", "accent": "#ff4d4d", "arg": "255,77,77", "ink": "#c8f5f0", "dim": "#3a8a82", "faint": "#1d5d57"},
     "gold": {"label": "Altın", "c": "#e6c98a", "rgb": "230,201,138", "accent": "#e7a0ae", "arg": "231,160,174", "ink": "#f6f1e6", "dim": "#b7a27a", "faint": "#6a5a3c"},
     "cyan": {"label": "Camgöbeği", "c": "#5ed8ff", "rgb": "94,216,255", "accent": "#ff8a3c", "arg": "255,138,60", "ink": "#cfe9f7", "dim": "#5e7c8c", "faint": "#2c4453"},
     "crimson": {"label": "Kırmızı", "c": "#ff5a62", "rgb": "255,90,98", "accent": "#ffd0a8", "arg": "255,208,168", "ink": "#ffe8ea", "dim": "#c98a90", "faint": "#6a3a40"},
@@ -29,9 +32,13 @@ DEFAULT_CONFIG = {
     "voice": "Charon",
     "assistant_name": "FRIDAY",
     "address_as": "adınla",
-    "ui_color": "gold",
+    "ui_color": "teal",
     "voice_volume": 100,
     "effects": True,
+    "music": False,
+    "confirm_send": True,
+    "patient_listening": True,
+    "mail_web_autosend": True,
     "panels_off": [],
     "youtube_api_key": "",
     "youtube_channel_handle": "",
@@ -48,11 +55,15 @@ DEFAULT_CONFIG = {
     "story_enabled": False,
     "proactive_enabled": False,
     "quiet_minutes": 20,
+    # Mail tarayıcıdan gönderilirken kullanılacak servis ve Outlook hesabı türü.
+    "mail_web": "gmail",
+    # Arka planda (pencere açmadan) Gmail gönderimi: Google hesabındaki 16 haneli uygulama şifresi.
+    "gmail_address": "",
+    "gmail_app_password": "",
+    "outlook_web_host": "outlook.live.com",
     "water_enabled": False,
     "break_enabled": False,
     "event_alerts": False,
-    # Ayarlar › SES › YANKI ENGELLEME. Açıkken mikrofon Windows Voice Capture DSP'sinden gelir.
-    "aec_enabled": True,
 }
 
 
@@ -85,6 +96,10 @@ def load_app_config() -> dict:
     config["ui_color"] = _clean_color(config.get("ui_color"))
     config["voice_volume"] = _clean_volume(config.get("voice_volume"))
     config["effects"] = _clean_bool(config.get("effects"), True)
+    config["music"] = _clean_bool(config.get("music"), False)
+    config["confirm_send"] = _clean_bool(config.get("confirm_send"), True)
+    config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
+    config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     backend = str(config.get("calendar_backend", "auto") or "auto").strip().lower()
     if backend not in {"auto", "outlook", "local"}:
@@ -103,8 +118,11 @@ def load_app_config() -> dict:
     config["water_enabled"] = _clean_bool(config.get("water_enabled"), False)
     config["break_enabled"] = _clean_bool(config.get("break_enabled"), False)
     config["event_alerts"] = _clean_bool(config.get("event_alerts"), False)
-    config["aec_enabled"] = _clean_bool(config.get("aec_enabled"), True)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
+    config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
+    config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
+    config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
+    config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     return config
 
 
@@ -173,8 +191,8 @@ def _clean_quiet(value) -> int:
 
 
 def _clean_color(value) -> str:
-    key = str(value or "gold").strip().lower()
-    return key if key in UI_COLORS else "gold"
+    key = str(value or "teal").strip().lower()
+    return key if key in UI_COLORS else "teal"
 
 
 def address_phrase(config: dict | None = None) -> str:
@@ -206,6 +224,13 @@ def persona_note(config: dict | None = None) -> str:
 
 
 def save_app_config(updates: dict) -> dict:
+    from jarvis.atomic import LOCK
+
+    with LOCK:
+        return _save_app_config(updates)
+
+
+def _save_app_config(updates: dict) -> dict:
     config = load_app_config()
     config.pop("_config_error", None)
     for key, value in (updates or {}).items():
@@ -218,6 +243,10 @@ def save_app_config(updates: dict) -> dict:
     config["ui_color"] = _clean_color(config.get("ui_color"))
     config["voice_volume"] = _clean_volume(config.get("voice_volume"))
     config["effects"] = _clean_bool(config.get("effects"), True)
+    config["music"] = _clean_bool(config.get("music"), False)
+    config["confirm_send"] = _clean_bool(config.get("confirm_send"), True)
+    config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
+    config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     config["live_model"] = _clean_model(config.get("live_model"))
     config["language"] = _clean_language(config.get("language"))
@@ -226,13 +255,18 @@ def save_app_config(updates: dict) -> dict:
     config["water_enabled"] = _clean_bool(config.get("water_enabled"), False)
     config["break_enabled"] = _clean_bool(config.get("break_enabled"), False)
     config["event_alerts"] = _clean_bool(config.get("event_alerts"), False)
-    config["aec_enabled"] = _clean_bool(config.get("aec_enabled"), True)
     config["phone_autostart"] = _clean_bool(config.get("phone_autostart"), False)
     config["start_with_windows"] = _clean_bool(config.get("start_with_windows"), False)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
+    config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
+    config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
+    config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
+    config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, indent=4, ensure_ascii=False), encoding="utf-8")
+    from jarvis.atomic import write_text
+
+    write_text(path, json.dumps(config, indent=4, ensure_ascii=False))
     return config
 
 

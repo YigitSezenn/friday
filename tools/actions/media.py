@@ -70,16 +70,16 @@ def spotify_cli_path() -> Path | None:
 
 
 def _press_media(vk: int) -> None:
-    import ctypes
+    from jarvis.win32 import available, press_keys
 
-    user32 = ctypes.windll.user32
-    user32.keybd_event(vk, 0, 0, 0)
-    user32.keybd_event(vk, 0, 2, 0)
+    if not available():
+        raise OSError("Yalnızca Windows'ta")
+    press_keys(vk)
 
 
 def play_media(query: str, provider: str = "auto", autoplay: bool = True) -> str:
     if not query or not str(query).strip():
-        return "Calinacak icerik belirtilmedi."
+        return "Çalınacak içerik belirtilmedi."
     provider = (provider or "auto").strip().lower()
     if provider in {"yt", "youtube music"}:
         provider = "youtube"
@@ -90,12 +90,12 @@ def play_media(query: str, provider: str = "auto", autoplay: bool = True) -> str
     spotify = spotify_path()
     if provider == "spotify":
         if not spotify:
-            return "Spotify yuklu gorunmuyor."
+            return "Spotify yüklü görünmüyor."
         return _play_spotify(query, spotify)
     if provider == "apple_music":
         if spotify:
-            return _play_spotify(query, spotify) + " (Windows'ta Apple Music yerine Spotify kullanildi.)"
-        return browser_control("play_youtube", query=query) + " (Windows'ta Apple Music yerine YouTube kullanildi.)"
+            return _play_spotify(query, spotify) + " (Windows'ta Apple Music yerine Spotify kullanıldı.)"
+        return browser_control("play_youtube", query=query) + " (Windows'ta Apple Music yerine YouTube kullanıldı.)"
     if spotify:
         return _play_spotify(query, spotify)
     return browser_control("play_youtube", query=query)
@@ -121,7 +121,7 @@ def _spotify_run(args: list[str], timeout: int = 25):
         except json.JSONDecodeError:
             pass
     if result.returncode != 0:
-        return {"error": raw or f"cikis {result.returncode}"}
+        return {"error": raw or f"çıkış {result.returncode}"}
     return {"text": raw}
 
 
@@ -221,7 +221,7 @@ def play_saved_collection(query: str, run=None) -> str | None:
         return None
     runner = run or _spotify_run
     if run is None and spotify_cli_path() is None:
-        return "Spotify komut araci yok. Profildeki album acilamadi."
+        return "Spotify komut araci yok. Profildeki album açılamadı."
     albums = _library_items(runner(["library", "list", "--type", "album", "--limit", "50", "--format", "json"]))
     playlists = _library_items(runner(["library", "list", "--type", "playlist", "--limit", "50", "--format", "json"]))
     album = pick_library_item(albums, name)
@@ -239,13 +239,13 @@ def play_saved_collection(query: str, run=None) -> str | None:
     else:
         chosen = album or playlist
     if not chosen:
-        return f"Spotify profilinde '{name}' adinda album veya calma listesi yok."
+        return f"Spotify profilinde '{name}' adinda album veya çalma listesi yok."
     uri = str(chosen.get("uri") or "")
     played = runner(["play", uri], timeout=20)
     if isinstance(played, dict) and played.get("error"):
-        return f"Spotify profilindeki kayit acilamadi: {str(played['error'])[:160]}"
+        return f"Spotify profilindeki kayıt açılamadı: {str(played['error'])[:160]}"
     title = str(chosen.get("name") or name)
-    return f"Spotify profilinde acildi: {title} ({uri})"
+    return f"Spotify profilinde açıldı: {title} ({uri})"
 
 
 def spotify_now() -> dict:
@@ -286,7 +286,7 @@ def _play_spotify(query: str, spotify: Path) -> str:
         return _open_spotify_search(query, spotify)
     try:
         if not _spotify_ready():
-            return "Spotify acildi ama oturum hazir olmadi. Uygulamada giris yapildigini kontrol et."
+            return "Spotify açıldı ama oturum hazır olmadı. Uygulamada giriş yapıldığını kontrol et."
         saved = play_saved_collection(query)
         if saved:
             return saved
@@ -294,22 +294,22 @@ def _play_spotify(query: str, spotify: Path) -> str:
         tracks = found.get("tracks") if isinstance(found, dict) else None
         if not tracks:
             detail = found.get("error") if isinstance(found, dict) else ""
-            return f"Spotify'da '{query}' icin parca bulunamadi.{(' ' + detail) if detail else ''}"
+            return f"Spotify'da '{query}' için parça bulunamadi.{(' ' + detail) if detail else ''}"
         track = tracks[0]
         uri = str(track.get("uri") or "")
         if not uri.startswith("spotify:track:"):
-            return f"Spotify sonucu bir parca degil: {query}"
+            return f"Spotify sonucu bir parça değil: {query}"
         played = _spotify_run(["play", uri], timeout=20)
         if isinstance(played, dict) and played.get("error"):
-            return f"Spotify'da acilamadi: {str(played['error'])[:160]}"
+            return f"Spotify'da açılamadı: {str(played['error'])[:160]}"
         name = str(track.get("name") or query)
         confirmed, current = wait_until_playing(uri, name)
         label = current.get("description") or name
         if confirmed:
             return f"Spotify'da caliyor: {label} ({uri})"
-        return f"Spotify'a '{query}' icin calma komutu gonderildi ({uri}); calan parcayi dogrulayamadim."
+        return f"Spotify'a '{query}' için çalma komutu gönderildi ({uri}); çalan parçayı doğrulayamadım."
     except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-        return f"Spotify'da calinamadi: {exc}"
+        return f"Spotify'da çalınamadı: {exc}"
 
 
 def _open_spotify_search(query: str, spotify: Path) -> str:
@@ -318,28 +318,28 @@ def _open_spotify_search(query: str, spotify: Path) -> str:
     try:
         os.startfile(str(spotify))  # type: ignore[attr-defined]
     except OSError as exc:
-        return f"Spotify acilamadi: {exc}"
+        return f"Spotify açılamadı: {exc}"
     try:
         os.startfile(uri)  # type: ignore[attr-defined]
     except OSError:
         import webbrowser
 
         webbrowser.open(f"https://open.spotify.com/search/{encoded}")
-        return f"Spotify aramasi tarayicida acildi: {query}"
-    return f"Spotify'da arandi ama parca acilmadi: {query}. Komut araci yok."
+        return f"Spotify aramasi tarayıcıda açıldı: {query}"
+    return f"Spotify'da arandı ama parça açılmadı: {query}. Komut araci yok."
 
 
 def control_media(action: str = "pause") -> str:
     key = _ALIASES.get((action or "").strip().lower())
     if key is None:
-        return f"Bilinmeyen medya eylemi: {action}. Kullanilabilir: durdur, devam et, sonraki, onceki."
+        return f"Bilinmeyen medya eylemi: {action}. Kullanılabilir: durdur, devam et, sonraki, önceki."
     mapping = {
         "pause": (VK_MEDIA_PLAY_PAUSE, "duraklatildi"),
         "resume": (VK_MEDIA_PLAY_PAUSE, "devam ettirildi"),
         "stop": (VK_MEDIA_STOP, "durduruldu"),
-        "next": (VK_MEDIA_NEXT_TRACK, "sonraki parcaya gecildi"),
-        "previous": (VK_MEDIA_PREV_TRACK, "onceki parcaya gecildi"),
-        "play_pause": (VK_MEDIA_PLAY_PAUSE, "oynat/duraklat gonderildi"),
+        "next": (VK_MEDIA_NEXT_TRACK, "sonraki parçaya geçildi"),
+        "previous": (VK_MEDIA_PREV_TRACK, "önceki parçaya geçildi"),
+        "play_pause": (VK_MEDIA_PLAY_PAUSE, "oynat/duraklat gönderildi"),
     }
     vk, label = mapping[key]
     cli_command = {"pause": "pause", "resume": "resume", "stop": "pause", "next": "next", "previous": "previous", "play_pause": "play"}[key]
@@ -347,11 +347,11 @@ def control_media(action: str = "pause") -> str:
         try:
             outcome = _spotify_run([cli_command], timeout=15)
             if not (isinstance(outcome, dict) and outcome.get("error")):
-                return f"Medya {label} (Spotify komutu gonderildi)."
+                return f"Medya {label} (Spotify komutu gönderildi)."
         except (OSError, subprocess.TimeoutExpired):
             pass
     try:
         _press_media(vk)
     except OSError as exc:
-        return f"Medya tusu gonderilemedi: {exc}"
-    return f"Medya {label} (calan uygulamaya komut gonderildi)."
+        return f"Medya tusu gönderilemedi: {exc}"
+    return f"Medya {label} (çalan uygulamaya komut gönderildi)."

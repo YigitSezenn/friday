@@ -93,6 +93,30 @@ class DomainTest {
     }
 
     @Test
+    fun pinnedCommandsStayOnTopAndSurviveLimit() {
+        var list = listOf(HistoryItem("fav", 0, true)).togglePinned("fav")
+        for (i in 0 until 40) list = list.withNewest(HistoryItem("k$i", i.toLong(), true))
+        assertEquals("fav", list.first().text)
+        assertTrue(list.first().pinned)
+        assertEquals(HISTORY_LIMIT + 1, list.size)
+        list = list.withNewest(HistoryItem("fav", 99, true))
+        assertTrue(list.first { it.text == "fav" }.pinned)
+    }
+
+    @Test
+    fun commandsCanBeDeletedEditedAndCleared() {
+        var list = listOf(HistoryItem("a", 0, true), HistoryItem("b", 0, true), HistoryItem("c", 0, true)).without("b")
+        assertEquals(listOf("a", "c"), list.map { it.text })
+        list = list.edited("a", "  ışıkları aç ")
+        assertEquals(listOf("ışıkları aç", "c"), list.map { it.text })
+        assertEquals(list, list.edited("c", "   "))
+        list = list.edited("c", "ışıkları aç")
+        assertEquals(listOf("ışıkları aç"), list.map { it.text })
+        list = (list + HistoryItem("x", 0, true)).togglePinned("x")
+        assertEquals(listOf("x"), list.clearedUnpinned().map { it.text })
+    }
+
+    @Test
     fun lanLinkParsesDesktopQr() {
         val link = lanLinkFrom("http://192.168.1.20:8766/join?token=abc-_XYZ")
         assertNotNull(link)

@@ -9,6 +9,7 @@ datas = [
     (str(ROOT / "ui" / "hud"), "ui/hud"),
     (str(ROOT / "jarvis" / "prompts"), "jarvis/prompts"),
     (str(ROOT / "assets" / "friday.ico"), "assets"),
+    (str(ROOT / "assets" / "sounds"), "assets/sounds"),
 ]
 binaries = []
 hidden = [
@@ -19,12 +20,15 @@ hidden = [
     "jarvis.app",
     "jarvis.live",
     "webview.platforms.edgechromium",
+    "win32com.client",
+    "pythoncom",
 ]
+hidden += collect_submodules("ui")
 hidden += collect_submodules("tools.actions")
 hidden += collect_submodules("jarvis")
-hidden += collect_submodules("jarvis.actions")
 
-for package in ("webview", "google.genai", "cv2", "PIL", "mss", "qrcode", "pyttsx3"):
+
+for package in ("webview", "google.genai", "cv2", "PIL", "mss", "qrcode", "pyttsx3", "pycaw", "comtypes"):
     extra_datas, extra_binaries, extra_hidden = collect_all(package)
     datas += extra_datas
     binaries += extra_binaries

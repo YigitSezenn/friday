@@ -1,5 +1,7 @@
 package com.friday.phone.ui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -79,15 +81,23 @@ fun FridayApp(vm: FridayViewModel, actions: PlatformActions) {
             if (!showMain) {
                 PairScreen(state, onScan = actions.scanQr, onConfirm = vm::confirmCode, onCancel = vm::cancelPairing)
             } else {
-                when (tab) {
-                    Tab.COMMAND -> CommandScreen(
-                        state,
-                        onSend = vm::send,
-                        onListen = actions.listen,
-                        onToggleLanMic = actions.toggleLanMic,
-                    )
-                    Tab.WAKE -> WakeScreen(state, onWake = vm::wake)
-                    Tab.SETTINGS -> SettingsScreen(state, actions, onForget = vm::forgetPairing, onForgetLan = vm::forgetLan)
+                Crossfade(targetState = tab, animationSpec = tween(280), label = "tab") { current ->
+                    when (current) {
+                        Tab.COMMAND -> CommandScreen(
+                            state,
+                            onSend = vm::send,
+                            onListen = actions.listen,
+                            onToggleLanMic = actions.toggleLanMic,
+                            history = HistoryActions(
+                                onDelete = vm::deleteCommand,
+                                onEdit = vm::editCommand,
+                                onPin = vm::togglePin,
+                                onClear = vm::clearHistory,
+                            ),
+                        )
+                        Tab.WAKE -> WakeScreen(state, onWake = vm::wake)
+                        Tab.SETTINGS -> SettingsScreen(state, actions, onForget = vm::forgetPairing, onForgetLan = vm::forgetLan)
+                    }
                 }
             }
         }
