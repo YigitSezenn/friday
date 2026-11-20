@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.13",
+      "tarih": "2026-11-21",
+      "baslik": "Uzun komutlar ve onay kelimeleri",
+      "maddeler": [
+        "winget, pip, npm gibi uzun süren komutlar artık gizli çalışıp FRIDAY'yi “düşünüyor”da bırakmaz: onaydan sonra görünür bir terminal penceresinde çalışır.",
+        "“Çalıştır”, “tabii”, “başlat” da onay sayılır; FRIDAY aynı soruyu tekrar tekrar sormaz."
+      ]
+    },
+    {
       "surum": "4.13.12",
       "tarih": "2026-11-21",
       "baslik": "Açılan pencereler öne gelir",

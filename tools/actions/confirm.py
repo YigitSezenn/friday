@@ -20,7 +20,7 @@ _lock = threading.RLock()
 # olumlu bir cevap (evet/tamam/olur…) ve olumsuz kelime (hayır/dur/vazgeç…) olmaması gerekir.
 require_user_yes = False
 _said: list[tuple[float, str]] = []
-YES = ("evet", "tamam", "olur", "onayla", "onaylıyorum", "onaylıyorum", "yap", "gönder", "sil", "devam", "kabul", "yes", "ok")
+YES = ("evet", "tamam", "olur", "onayla", "onaylıyorum", "onaylıyorum", "yap", "gönder", "sil", "devam", "kabul", "yes", "ok", "çalıştır", "calistir", "tabii", "tabi", "başlat", "baslat")
 NO = ("hayır", "hayir", "yapma", "dur", "vazgeç", "vazgec", "iptal", "olmaz", "gönderme", "silme", "no", "stop")
 
 

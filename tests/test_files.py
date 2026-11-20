@@ -255,3 +255,23 @@ class FrontWindowTests(unittest.TestCase):
         from tools.actions.apps import front_wait
 
         self.assertFalse(front_wait("yok", timeout=1.0, find=lambda m: 0, front=lambda h: None, sleep=lambda s: None))
+
+
+class LongRunningShellTests(unittest.TestCase):
+    def test_winget_runs_in_visible_window_and_calistir_approves(self):
+        from unittest import mock
+
+        from tools.actions import confirm, shell
+
+        confirm._said.clear()
+        with mock.patch.object(shell.subprocess, "Popen") as popen, mock.patch.object(shell.subprocess, "run") as run, mock.patch.object(confirm, "MIN_WAIT", 0.0):
+            confirm.require_user_yes = True
+            self.assertIn("ONAY", shell.shell_run("winget upgrade --all").upper())
+            time.sleep(0.01)
+            confirm.note_user_said("çalıştır.")
+            out = shell.shell_run("winget upgrade --all", confirm_run=True)
+            self.assertIn("terminal penceresinde", out)
+            popen.assert_called_once()
+            run.assert_not_called()
+        confirm.require_user_yes = False
+        self.assertIn("çalıştır", confirm.YES)
