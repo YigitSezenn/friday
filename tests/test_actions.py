@@ -211,3 +211,24 @@ class ReminderRelativeTests(unittest.TestCase):
                 self.assertIn("zaten var", again)
             finally:
                 os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class ReminderDueTests(unittest.TestCase):
+    def test_due_reminder_fires_once(self):
+        import datetime as dt
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import reminders
+
+                reminders.add_reminder("Su iç", after_minutes=1)
+                later = dt.datetime.now() + dt.timedelta(minutes=2)
+                early = dt.datetime.now()
+                self.assertEqual(reminders.due_now(early), [])
+                self.assertEqual([i["title"] for i in reminders.due_now(later)], ["Su iç"])
+                self.assertEqual(reminders.due_now(later), [])
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)

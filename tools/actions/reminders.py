@@ -135,6 +135,28 @@ def add_reminder(
     return f"Anımsatıcı eklendi: {when} - {record['title']}{suffix}"
 
 
+def due_now(now: dt.datetime | None = None, grace_hours: float = 6.0) -> list[dict]:
+    """Saati gelmiş, henüz haber verilmemiş anımsatıcılar. Verilenleri `notified` diye işaretler."""
+    now = now or dt.datetime.now()
+    oldest = now - dt.timedelta(hours=grace_hours)
+    found: list[dict] = []
+    with store._store_lock:
+        data = store.load_store()
+        for item in data["reminders"]:
+            if item.get("completed") or item.get("notified") or item.get("all_day") or not item.get("due_iso"):
+                continue
+            try:
+                due = dt.datetime.fromisoformat(item["due_iso"])
+            except ValueError:
+                continue
+            if oldest <= due <= now:
+                item["notified"] = True
+                found.append(dict(item))
+        if found:
+            store.save_store(data)
+    return found
+
+
 def _pick_reminder(items: list[dict], title: str, reminder_id: str) -> tuple[dict | None, str]:
     needle_id = (reminder_id or "").strip()
     needle = (title or "").strip().casefold()

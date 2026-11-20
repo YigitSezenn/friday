@@ -135,6 +135,17 @@ def _proactive_loop(ui, live_box: dict) -> None:
         except Exception:
             continue
         live = live_box.get("live")
+        try:
+            from tools.actions.reminders import due_now
+
+            for item in due_now():
+                title = str(item.get("title") or "Anımsatıcı")
+                ui.write_log(f"SYS: Anımsatıcı zamanı: {title}")
+                ui.play_success_sfx()
+                if live:
+                    live.nudge(f"Anımsatıcı zamanı geldi: {title}. Kullanıcıya kısaca hatırlat.")
+        except Exception:
+            pass
         for note in notes:
             if live:
                 live.nudge(note)
