@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.3",
+      "tarih": "2026-11-20",
+      "baslik": "Kapı bağlantısı şifreli",
+      "maddeler": [
+        "Siteden ve uygulamadan gönderilen komutlar artık HTTPS ile Kapı sunucusuna gidiyor; anahtar ve komut metni yolda okunamaz.",
+        "Sunucu IP adresi koddan kaldırıldı, yerine alan adı kullanılıyor."
+      ]
+    },
+    {
       "surum": "4.13.2",
       "tarih": "2026-11-20",
       "baslik": "Şifreli telefon köprüsü",
