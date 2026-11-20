@@ -13,10 +13,10 @@ def due_nudges(now: float, state: dict, config: dict, paused: bool = False) -> l
         notes.append("Uzun sessizlik oldu. Bir kez, kısa ve israr etmeden soz al.")
     if config.get("water_enabled") and now - float(state.get("water") or 0) >= 3600:
         state["water"] = now
-        notes.append("Su hatirlatmasi: kısa bir yudum oner.")
+        notes.append("Su hatırlatması: kısa bir yudum öner.")
     if config.get("break_enabled") and now - float(state.get("break") or 0) >= 50 * 60:
         state["break"] = now
-        notes.append("Mola hatirlatmasi: kalkip gerinmeyi kısa oner.")
+        notes.append("Mola hatırlatması: kalkıp gerinmeyi kısaca öner.")
     if config.get("event_alerts"):
         notes.extend(_event_note(now, state))
     return notes

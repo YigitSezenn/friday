@@ -226,4 +226,4 @@ def open_app(app_name: str) -> str:
     candidate = resolved if resolved.lower().endswith(".exe") else f"{resolved}.exe"
     if _start(candidate.replace(" ", "")):
         return f"{resolved} açıldı."
-    return f"'{app_name}' bulunamadi veya açılamadı."
+    return f"'{app_name}' bulunamadı veya açılamadı."

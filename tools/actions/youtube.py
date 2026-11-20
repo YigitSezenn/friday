@@ -55,7 +55,7 @@ def _fetch(api_key: str, channel_ref: str, limit: int) -> tuple[dict, list[dict]
     response.raise_for_status()
     items = response.json().get("items") or []
     if not items:
-        raise RuntimeError("Kanal bulunamadi.")
+        raise RuntimeError("Kanal bulunamadı.")
     channel = items[0]
     uploads = ((channel.get("contentDetails") or {}).get("relatedPlaylists") or {}).get("uploads", "")
     videos: list[dict] = []

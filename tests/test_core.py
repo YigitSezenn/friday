@@ -36,7 +36,7 @@ class JarvisTestCase(unittest.TestCase):
         update_memory({"identity": {"name": {"value": "Alp"}}})
         self.assertIn("Alp", format_memory_for_prompt(load_memory()))
         message = delete_memory(match_text="alp")
-        self.assertIn("kaldirildi", message)
+        self.assertIn("kaldırıldı", message)
         self.assertEqual(format_memory_for_prompt(load_memory()), "")
         self.assertIn("yok", delete_memory(category="identity", key="name").lower() + delete_memory())
 

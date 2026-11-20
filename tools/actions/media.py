@@ -294,7 +294,7 @@ def _play_spotify(query: str, spotify: Path) -> str:
         tracks = found.get("tracks") if isinstance(found, dict) else None
         if not tracks:
             detail = found.get("error") if isinstance(found, dict) else ""
-            return f"Spotify'da '{query}' için parça bulunamadi.{(' ' + detail) if detail else ''}"
+            return f"Spotify'da '{query}' için parça bulunamadı.{(' ' + detail) if detail else ''}"
         track = tracks[0]
         uri = str(track.get("uri") or "")
         if not uri.startswith("spotify:track:"):
@@ -353,5 +353,5 @@ def control_media(action: str = "pause") -> str:
     try:
         _press_media(vk)
     except OSError as exc:
-        return f"Medya tusu gönderilemedi: {exc}"
+        return f"Medya tuşu gönderilemedi: {exc}"
     return f"Medya {label} (çalan uygulamaya komut gönderildi)."

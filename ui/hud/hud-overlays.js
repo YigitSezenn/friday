@@ -45,7 +45,14 @@ function openWeather() {
   const refresh = el("button", "wxrefresh", "⟳ YENİLE");
   refresh.type = "button";
   refresh.title = "Konumu ve havayı yeniden bul";
-  refresh.addEventListener("click", () => { refresh.classList.add("spin"); send("weather_refresh"); setTimeout(() => { $("ov-weather").hidden = true; refresh.classList.remove("spin"); }, 900); });
+  refresh.addEventListener("click", () => {
+    refresh.classList.add("spin");
+    refresh.disabled = true;
+    refresh.textContent = "⟳ BULUNUYOR…";
+    send("weather_refresh");
+    // Yanıt gelmezse düğme kilitli kalmasın
+    setTimeout(() => { refresh.classList.remove("spin"); refresh.disabled = false; refresh.textContent = "⟳ YENİLE"; }, 12000);
+  });
   const close = el("button", "", "×");
   close.id = "wx-close";
   close.type = "button";
@@ -75,10 +82,23 @@ function openWeather() {
     ["UV", card.uv || "—", card.uvLabel || ""],
     ["BULUT", card.cloud ? `%${card.cloud}` : "—", card.precip ? `${card.precip} mm yağış` : ""],
   ];
+  const fill = {NEM: Number(card.humidity), BULUT: Number(card.cloud), UV: Math.min(100, (Number(card.uv) || 0) * 9), "GÖRÜŞ": Math.min(100, (Number(card.visibility) || 0) * 10), "BASINÇ": Math.max(0, Math.min(100, ((Number(card.pressure) || 1013) - 980) * 1.4))};
   for (const [name, value, note] of items) {
     const box = el("div", "wxstat");
     box.append(el("i", "", name), el("b", "", value));
     if (note) box.append(el("small", "", note));
+    if (name === "RÜZGÂR") {
+      // Rüzgâr yönünü gösteren dönen ok
+      const arrow = el("span", "wxwind", "➤");
+      arrow.style.setProperty("--deg", `${(Number(card.windDeg) || 0) + 90}deg`);
+      box.append(arrow);
+    } else if (Number.isFinite(fill[name])) {
+      const bar = el("div", "wxbar");
+      const inner = el("i");
+      inner.style.setProperty("--v", `${Math.max(3, Math.min(100, fill[name]))}%`);
+      bar.append(inner);
+      box.append(bar);
+    }
     stats.appendChild(box);
   }
   host.appendChild(stats);
@@ -87,6 +107,11 @@ function openWeather() {
   (card.days || []).slice(0, 3).forEach((day, index) => {
     const box = el("div", "wxday");
     box.append(el("i", "", dayName(day.date, index)), el("small", "", dayLabel(day.date)), el("b", "", `${day.hi || "—"}°`), el("span", "", `${day.lo || "—"}°`), el("p", "", day.desc || ""), el("small", "", `↑ %${day.rain || "0"}`));
+    const bar = el("div", "wxbar rain");
+    const inner = el("i");
+    inner.style.setProperty("--v", `${Math.max(2, Math.min(100, Number(day.rain) || 0))}%`);
+    bar.append(inner);
+    box.append(bar);
     days.appendChild(box);
   });
   host.appendChild(days);
@@ -156,6 +181,51 @@ function hourCard(hours) {
     const y = 28 + (1 - (temp - low) / span) * 70;
     return [x, y];
   });
+  const NS = "http://www.w3.org/2000/svg";
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML = '<linearGradient id="wxfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".38"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>';
+  svg.appendChild(defs);
+  const area = document.createElementNS(NS, "polygon");
+  area.setAttribute("points", `${points[0][0]},128 ${points.map(point => point.join(",")).join(" ")} ${points[points.length - 1][0]},128`);
+  area.setAttribute("fill", "url(#wxfill)");
+  area.setAttribute("class", "wxarea");
+  svg.appendChild(area);
+  hours.forEach((hour, index) => {
+    const chance = Math.max(0, Math.min(100, Number(hour.rain) || 0));
+    const bar = document.createElementNS(NS, "rect");
+    bar.setAttribute("x", String(points[index][0] - 7));
+    bar.setAttribute("width", "14");
+    bar.setAttribute("rx", "3");
+    bar.setAttribute("y", String(128 - chance * 0.22));
+    bar.setAttribute("height", String(Math.max(2, chance * 0.22)));
+    bar.setAttribute("fill", "#5fb3ff");
+    bar.setAttribute("class", "wxrainbar");
+    bar.style.animationDelay = (0.6 + index * 0.1) + "s";
+    svg.appendChild(bar);
+  });
+  // Çizgi boyunca süzülen ışık
+  const trail = document.createElementNS(NS, "circle");
+  trail.setAttribute("r", "5");
+  trail.setAttribute("fill", "var(--accent)");
+  trail.setAttribute("class", "wxtrail");
+  const path = "M" + points.map(point => point.join(",")).join(" L");
+  const motion = document.createElementNS(NS, "animateMotion");
+  motion.setAttribute("path", path);
+  motion.setAttribute("dur", "7s");
+  motion.setAttribute("begin", "2s");
+  motion.setAttribute("repeatCount", "indefinite");
+  motion.setAttribute("calcMode", "linear");
+  trail.appendChild(motion);
+  svg.appendChild(trail);
+  const now = document.createElementNS(NS, "circle");
+  now.setAttribute("cx", String(points[0][0]));
+  now.setAttribute("cy", String(points[0][1]));
+  now.setAttribute("r", "6");
+  now.setAttribute("fill", "none");
+  now.setAttribute("stroke", "var(--accent)");
+  now.setAttribute("stroke-width", "2");
+  now.setAttribute("class", "wxnow");
+  svg.appendChild(now);
   const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   line.setAttribute("points", points.map(point => point.join(",")).join(" "));
   line.setAttribute("fill", "none");

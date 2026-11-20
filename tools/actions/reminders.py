@@ -140,7 +140,7 @@ def _pick_reminder(items: list[dict], title: str, reminder_id: str) -> tuple[dic
     else:
         return None, "Anımsatıcı başlığı veya kimligi gerekli."
     if not found:
-        return None, "Eslesen anımsatıcı bulunamadi."
+        return None, "Eşleşen anımsatıcı bulunamadı."
     return found[0], ""
 
 

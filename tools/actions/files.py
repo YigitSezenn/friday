@@ -21,7 +21,7 @@ def list_user_files(folder: str, root: Path | None = None) -> str:
     if target != base and base not in target.parents:
         return "Bu klasore bakamam."
     if not target.is_dir():
-        return "Klasör bulunamadi."
+        return "Klasör bulunamadı."
     names = []
     for path in sorted(target.iterdir(), key=lambda item: item.name.lower()):
         if path.name.startswith(".") or path.name.lower() in {"api_keys.json", ".env"}:

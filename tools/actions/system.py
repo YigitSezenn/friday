@@ -47,7 +47,7 @@ def _battery() -> str:
             hours, remainder = divmod(int(bat.secsleft), 3600)
             extra = f", ~{hours}s {remainder // 60}dk kaldı"
         return f"Pil: %{bat.percent:.0f} — {status}{extra}"
-    return "Pil bulunamadi (masaüstü bilgisayar olabilir)."
+    return "Pil bulunamadı (masaüstü bilgisayar olabilir)."
 
 
 def _cpu() -> str:
@@ -99,7 +99,7 @@ def _network() -> str:
         pass
     if ip:
         return f"Ag: IP {ip}"
-    return "Ag bağlantısı bulunamadi."
+    return "Ağ bağlantısı bulunamadı."
 
 
 def _local_ip() -> str:
