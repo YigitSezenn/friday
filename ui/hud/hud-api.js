@@ -237,6 +237,7 @@ window.hud = {
     showPhone(data.phone);
     paintGate(data.gateKeyQr, data.pairCode);
     paintGateState(data.gateState);
+    paintHome(data.homeDevices);
     paintSiteQr(data.siteQr, data.siteUrl);
     $("set-mic").setAttribute("aria-checked", $("t-mic").dataset.on === "1" ? "true" : "false");
     paintPanels(data.panels);

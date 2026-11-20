@@ -59,3 +59,20 @@ class HomeControlTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SnapshotTests(unittest.TestCase):
+    def test_snapshot_hides_codes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import home
+
+                home._bridge = lambda host: FakeBridge()
+                home.time.sleep = lambda s: None
+                home.run("add", "masa led", host="10.0.0.5")
+                home.run("learn", "masa led", "aç")
+                snap = home.snapshot()
+                self.assertEqual(snap, {"masa led": {"host": "10.0.0.5", "codes": ["aç"]}})
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)

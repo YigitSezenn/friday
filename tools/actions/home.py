@@ -43,6 +43,11 @@ def _bridge(host: str):
     return device
 
 
+def snapshot() -> dict:
+    """Ayarlar ekranı için: {cihaz: {host, codes: [komut adları]}}. Kodların kendisi gönderilmez."""
+    return {name: {"host": info.get("host", ""), "codes": list(info.get("codes", {}))} for name, info in _load().items()}
+
+
 def run(action: str, device: str = "", command: str = "", host: str = "") -> str:
     action, device, command = action.lower().strip(), _key(device), _key(command)
     data = _load()

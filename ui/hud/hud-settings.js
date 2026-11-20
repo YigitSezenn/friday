@@ -28,6 +28,15 @@ const GATE_TEXT = {
   offline: "Kapı: sunucuya ulaşılamıyor. İnternet bağlantını kontrol et; bağlanınca kendiliğinden düzelir.",
   unknown: "Kapı: kontrol ediliyor…",
 };
+function paintHome(devices) {
+  const line = $("home-list");
+  if (!line) return;
+  const names = Object.keys(devices || {});
+  line.textContent = names.length
+    ? names.map(name => `${name} (${devices[name].host || "IP yok"}): ${devices[name].codes.join(", ") || "kod yok"}`).join("\n")
+    : "Henüz cihaz yok.";
+  line.style.whiteSpace = "pre-line";
+}
 function paintGateState(state) {
   const line = $("gate-state");
   if (!line) return;
