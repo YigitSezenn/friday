@@ -316,6 +316,13 @@ def sleep_mode(args, ctx):
     ui = ctx.ui
     if ui is None or not hasattr(ui, "_js"):
         return "Uyku modu şu an kullanılamıyor."
+    if asleep:
+        # Model "cevap alamadım" diye kendi kendine uyutmasın: kullanıcı gerçekten istemiş olmalı.
+        from jarvis.intents import is_sleep
+        from tools.actions.confirm import recent_said
+
+        if not any(is_sleep(t) for t in recent_said()):
+            return "Uyku modu yalnızca kullanıcı isterse açılır. Kullanıcı istemedi; uyumadan dinlemeye devam et, cevap gelmediyse sessiz kal."
     # Kısa gecikme: önce vedalaşma cümlesi söylenir, sonra mikrofon uykuya geçer.
     ui._js(f"window.hud && window.hud.sleep({'true' if asleep else 'false'}, {2500 if asleep else 0})")
     if asleep:

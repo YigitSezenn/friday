@@ -19,6 +19,7 @@ class ConnectIssue:
     message: str  # gunluge yazilan acik cumle
     retry: bool = True  # False ise ayni anahtarla bos yere denenmez
     rejection: bool = False  # Google'in bagi reddetmesi sayilir
+    quiet: bool = False  # hata degil: sessizce yeniden baglanilir, ekranda kirmizi yazi cikmaz
 
 
 def clean_api_key(value) -> str:
@@ -51,6 +52,10 @@ def classify(exc: BaseException, key: str = "") -> ConnectIssue:
         detail = detail.replace(secret, "")
     low = detail.lower()
 
+    # Mikrofon kapaliyken Google bosta kalan oturumu 1008 "client inactivity" ile kapatir.
+    # Bu bir hata degil; kullaniciya hata gostermeden yeniden baglanilir.
+    if "client inactivity" in low or "session closed due to" in low and "inactiv" in low:
+        return ConnectIssue("BOŞTA", "SYS: Oturum boşta kaldı, yeniden bağlanıyor.", quiet=True)
     if "free tier is not available" in low:
         return ConnectIssue("ERİŞİM KAPALI", "ERR: ERİŞİM KAPALI. Google bu proje için ücretsiz Gemini'yi açmıyor. "
                             "Başka bir Google hesabından anahtar al. " + _reason(detail), retry=False, rejection=True)
