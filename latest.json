@@ -1,20 +1,20 @@
 {
   "version": "4.10.3",
   "ref": "yayin",
-  "sha": "1473b6124b5dcb6a070dbc8c71307a97b7eec01e",
-  "run": "https://github.com/YigitSezenn/friday/actions/runs/44722095210",
+  "sha": "995b6cb99d0ac9284785a4205300a7b7a70f3d3b",
+  "run": "https://github.com/YigitSezenn/friday/actions/runs/44722542412",
   "tests": "success",
   "windows": "success",
-  "exe_sha256": "815C42BA375D7C976AC6650C8BB788D724CF10477B9D360C1573902E029B12F6",
-  "exe_size": "78055434",
+  "exe_sha256": "77242F9F94A2BBFC552A1031411304CDFD2B2939929D1085E6A272D2F01C44CA",
+  "exe_size": "78054362",
   "android": "success",
   "apk_signed": "true",
-  "apk_sha256": "9cd12936c1ac31802023d4e85f559bb38ffdd170d62e171eb3d9abc5821167cb",
-  "apk_kept_live": "",
-  "deploy": "failure",
-  "deploy_url": "",
-  "live_surum": "",
-  "vercel_token_present": "false",
-  "deploy_error": "VERCEL_TOKEN sırrı bu iş akışına ulaşmıyor (ad tam 'VERCEL_TOKEN' mı, Actions > Repository secrets altında mı?) "
+  "apk_sha256": "3f599f0c75ffca7596f31d48fc2a540a87debe86514e9bcbe39e096f9e391039",
+  "apk_kept_live": "false",
+  "deploy": "success",
+  "deploy_url": "https://site-evbgcswvk-yigitsezenns-projects.vercel.app",
+  "live_surum": "4.10.3",
+  "vercel_token_present": "true",
+  "deploy_error": ""
 }
 
