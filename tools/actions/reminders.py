@@ -98,11 +98,15 @@ def add_reminder(
     list_name: str = "",
     priority: str = "",
     all_day: bool = False,
+    after_minutes: float = 0,
 ) -> str:
     if not title or not title.strip():
         return "Anımsatıcı başlığı boş olamaz."
     due_text = ""
     inferred_all_day = False
+    if after_minutes and float(after_minutes) > 0:
+        # "N dakika sonra": saati modelin hesaplamasına bırakma, burada hesapla.
+        due_iso = (dt.datetime.now() + dt.timedelta(minutes=float(after_minutes))).replace(second=0, microsecond=0).isoformat(timespec="minutes")
     if due_iso and due_iso.strip():
         parsed, inferred_all_day = store.parse_iso(due_iso)
         if parsed is None:
@@ -121,11 +125,36 @@ def add_reminder(
     }
     with store._store_lock:
         data = store.load_store()
+        same = [r for r in data["reminders"] if not r.get("completed") and r.get("title") == record["title"] and r.get("due_iso") == record["due_iso"]]
+        if same:
+            return f"Bu anımsatıcı zaten var: {_format_due(same[0], dt.datetime.now())} - {record['title']}"
         data["reminders"].append(record)
         store.save_store(data)
     when = _format_due(record, dt.datetime.now())
     suffix = f" [{record['list_name']}]" if record["list_name"] else ""
     return f"Anımsatıcı eklendi: {when} - {record['title']}{suffix}"
+
+
+def due_now(now: dt.datetime | None = None, grace_hours: float = 6.0) -> list[dict]:
+    """Saati gelmiş, henüz haber verilmemiş anımsatıcılar. Verilenleri `notified` diye işaretler."""
+    now = now or dt.datetime.now()
+    oldest = now - dt.timedelta(hours=grace_hours)
+    found: list[dict] = []
+    with store._store_lock:
+        data = store.load_store()
+        for item in data["reminders"]:
+            if item.get("completed") or item.get("notified") or item.get("all_day") or not item.get("due_iso"):
+                continue
+            try:
+                due = dt.datetime.fromisoformat(item["due_iso"])
+            except ValueError:
+                continue
+            if oldest <= due <= now:
+                item["notified"] = True
+                found.append(dict(item))
+        if found:
+            store.save_store(data)
+    return found
 
 
 def _pick_reminder(items: list[dict], title: str, reminder_id: str) -> tuple[dict | None, str]:

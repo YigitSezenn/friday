@@ -31,6 +31,7 @@ WINDOWS_NOTE = (
     "- Takvim ve anımsatıcılar Outlook yapılandırılmışsa Outlook'a, değilse "
     "JARVIS'in kendi yerel takvimine yazilir. Kullanıcı sormadikca bu ayrimi anlatma.\n"
     "- Apple Music yoktur; muzik istekleri Spotify veya YouTube üzerinden karsilanir.\n"
+    "- Bir araç hata, ONAY GEREKLİ ya da engel döndürdüyse işlemi yapılmış sayma ve 'yaptım' deme; ne olduğunu söyle.\n"
     "- get_health_data bu Windows surumunde yoktur; saglik orneklerini uygulama.\n"
 )
 

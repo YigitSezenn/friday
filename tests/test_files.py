@@ -27,6 +27,22 @@ class FileAccessTests(unittest.TestCase):
             p.stop()
         self.tmp.cleanup()
 
+    def test_move_into_new_folder_keeps_file_names(self):
+        for name in ("a.lnk", "b.lnk"):
+            (self.root / name).write_text("x", encoding="utf-8")
+        self.assertIn("taşındı", files.run("move", str(self.root / "a.lnk"), destination=str(self.root / "Oyunlar")))
+        self.assertTrue((self.root / "Oyunlar" / "a.lnk").is_file())
+        self.assertFalse((self.root / "Oyunlar").is_file())
+
+    def test_move_many_in_one_call(self):
+        for name in ("a.lnk", "b.lnk", "c.lnk"):
+            (self.root / name).write_text("x", encoding="utf-8")
+        src = "|".join(str(self.root / n) for n in ("a.lnk", "b.lnk", "c.lnk"))
+        dest = str(self.root / "Oyunlar")
+        out = files.run("move", src, destination=dest)
+        self.assertIn("3/3", out)
+        self.assertEqual(sorted(p.name for p in (self.root / "Oyunlar").iterdir()), ["a.lnk", "b.lnk", "c.lnk"])
+
     def test_disabled_by_default(self):
         with mock.patch("jarvis.config.load_app_config", return_value={"file_access": False}):
             self.assertIn("kapalı", files.run("list", str(self.root)))

@@ -4,6 +4,7 @@ import os
 import tempfile
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import requests
@@ -192,3 +193,85 @@ class ActionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReminderRelativeTests(unittest.TestCase):
+    def test_after_minutes_and_duplicate_guard(self):
+        import datetime as dt
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import reminders
+
+                out = reminders.add_reminder("Su iç", after_minutes=1)
+                self.assertIn("eklendi", out)
+                again = reminders.add_reminder("Su iç", after_minutes=1)
+                self.assertIn("zaten var", again)
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class ReminderDueTests(unittest.TestCase):
+    def test_due_reminder_fires_once(self):
+        import datetime as dt
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import reminders
+
+                reminders.add_reminder("Su iç", after_minutes=1)
+                later = dt.datetime.now() + dt.timedelta(minutes=2)
+                early = dt.datetime.now()
+                self.assertEqual(reminders.due_now(early), [])
+                self.assertEqual([i["title"] for i in reminders.due_now(later)], ["Su iç"])
+                self.assertEqual(reminders.due_now(later), [])
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class DiscordMessageTests(unittest.TestCase):
+    def test_needs_id_then_confirmation(self):
+        from tools.actions import discord
+
+        with mock.patch.object(discord, "_book", return_value={}):
+            self.assertIn("kayıtlı Discord kimliği yok", discord.send_discord_message("selam", "Ali"))
+            self.assertIn("17-19 haneli", discord.send_discord_message("selam", "Ali", "123"))
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", "123456789012345678"))
+        with mock.patch.object(discord, "_book", return_value={"Ali": "123456789012345678"}):
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "ali"))
+
+    def test_confirmed_send_pastes_enter_and_saves_contact(self):
+        from tools.actions import confirm, discord
+
+        uid = "123456789012345678"
+        calls = []
+        saved = {}
+        win = mock.Mock(available=lambda: True, set_clipboard=lambda t: calls.append(("clip", t)) or True, press_keys=lambda *k: calls.append(("keys", k)))
+        with mock.patch.object(discord, "_book", side_effect=lambda: dict(saved)), \
+             mock.patch.object(discord, "_save", side_effect=saved.update), \
+             mock.patch.object(discord.time, "sleep"), \
+             mock.patch.object(confirm, "MIN_WAIT", 0), \
+             mock.patch.object(os, "startfile", lambda url: calls.append(("open", url)), create=True), \
+             mock.patch.dict("sys.modules", {"jarvis.win32": win}):
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", uid))
+            self.assertEqual(calls, [])
+            confirm.note_user_said("evet gönder")
+            out = discord.send_discord_message("selam", "Ali", uid, confirm_send=True)
+        self.assertIn("gönderildi", out)
+        self.assertEqual(calls, [("open", f"discord://-/users/{uid}"), ("clip", "selam"), ("keys", (0x11, 0x56)), ("keys", (0x0D,))])
+        self.assertEqual(saved, {"Ali": uid})
+
+    def test_confirm_without_user_yes_does_not_send(self):
+        from tools.actions import confirm, discord
+
+        with mock.patch.object(os, "startfile", mock.Mock(), create=True) as opener:
+            discord.send_discord_message("selam", "Ali", "123456789012345678")
+            out = discord.send_discord_message("selam", "Ali", "123456789012345678", confirm_send=True)
+        self.assertNotIn("gönderildi", out)
+        opener.assert_not_called()

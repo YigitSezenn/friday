@@ -642,3 +642,13 @@ class MinimizeToTrayTests(unittest.TestCase):
 
         self._ui(Win()).minimize_to_taskbar()
         self.assertEqual(calls, ["minimize"])
+
+
+class DiscordOwnerIdTests(unittest.TestCase):
+    def test_saved_keeps_digits_and_empty_clears(self):
+        from unittest import mock
+        from jarvis import config
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(config, "config_path", return_value=Path(tmp) / "c.json"):
+            self.assertEqual(config.save_app_config({"discord_owner_id": " 1234 5678abc "})["discord_owner_id"], "12345678")
+            self.assertEqual(config.save_app_config({"discord_owner_id": ""})["discord_owner_id"], "")
