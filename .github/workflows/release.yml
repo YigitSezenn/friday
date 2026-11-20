@@ -2,7 +2,7 @@
 # site Vercel'e TEK yayınla çıkar, canlı sürüm doğrulanır ve sonuç `ci-status` dalına yazılır.
 #
 # Gerekli depo sırları (Settings › Secrets and variables › Actions):
-#   VERCEL_TOKEN                 (zorunlu) Vercel › Account Settings › Tokens
+#   VERCEL_TOKEN (ya da VERCEL)  (zorunlu) Vercel › Account Settings › Tokens
 #   ANDROID_DEBUG_KEYSTORE_B64   (önerilir) mevcut APK ile aynı imza; yoksa canlı APK değiştirilmez
 name: Yayın
 
@@ -151,7 +151,7 @@ jobs:
       - id: token
         name: Vercel anahtarı var mı
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || secrets.VERCEL }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "present=false" >> "$GITHUB_OUTPUT"
@@ -184,7 +184,7 @@ jobs:
         name: Yayınla (tek dağıtım; Vercel dağıtımları atomik)
         working-directory: site
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || secrets.VERCEL }}
         run: |
           set -o pipefail
           npm ci 2>&1 | tee -a /tmp/deploy.log
