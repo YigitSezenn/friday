@@ -87,17 +87,9 @@ def auto_location(force: bool = False) -> dict:
         return dict(_auto) if _auto["lat"] is not None else {}
 
 
-def location_source() -> str:
-    return "elle" if configured_location() else "otomatik"
-
-
 def detected_city() -> str:
     with _lock:
         return _detected_city
-
-
-def current_location_label() -> str:
-    return configured_location() or detected_city() or "Konum araniyor"
 
 
 def _extract_city(payload: dict) -> str:

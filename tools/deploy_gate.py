@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = "SERVER-IP"
+HOST = "friday-kapi.duckdns.org"
 USER = "Administrator"
 
 
@@ -69,7 +69,7 @@ def ask_password() -> str:
     root = tk.Tk()
     root.title("FRIDAY sunucu")
     root.geometry("440x200")
-    tk.Label(root, text="SERVER-IP\nKullanıcı: Administrator\nBu kayıt bu bilgisayarda kalır. Bir daha sorulmaz.").pack(pady=12)
+    tk.Label(root, text=f"{HOST}\nKullanıcı: Administrator\nBu kayıt bu bilgisayarda kalır. Bir daha sorulmaz.").pack(pady=12)
     entry = tk.Entry(root, show="*", width=32)
     entry.pack()
     entry.focus_set()
@@ -100,7 +100,6 @@ def main() -> int:
     if not key:
         key = secrets.token_urlsafe(24)
         existing.write_text(key, encoding="utf-8")
-    (data / "gate_url.txt").write_text(f"http://{HOST}:8787", encoding="utf-8")
     print("local-key-ready")
 
     password = load_saved()

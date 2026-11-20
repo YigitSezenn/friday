@@ -362,7 +362,6 @@ def start_phone_server(on_text, lan: bool | None = None) -> str:
 
 
 def stop_phone_server() -> None:
-    global _server, _tls_server
     for name in ("_server", "_tls_server"):
         srv = globals().get(name)
         if srv is not None:

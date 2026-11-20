@@ -6,7 +6,6 @@ import subprocess
 import threading
 import uuid
 
-from jarvis.config import get_app_config_value
 from jarvis.paths import data_path
 
 _store_lock = threading.Lock()
@@ -147,17 +146,6 @@ def outlook_running() -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return "OUTLOOK.EXE" in (result.stdout or "").upper()
-
-
-def use_outlook() -> bool:
-    mode = str(get_app_config_value("calendar_backend", "auto") or "auto").strip().lower()
-    if mode == "local":
-        return False
-    if mode == "auto" and not outlook_running():
-        return False
-    if mode == "outlook" and not outlook_running():
-        return False
-    return outlook_running()
 
 
 def day_label(when: dt.datetime, now: dt.datetime) -> str:
