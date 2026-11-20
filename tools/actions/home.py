@@ -80,6 +80,17 @@ def run(action: str, device: str = "", command: str = "", host: str = "") -> str
         data.setdefault(device, {"codes": {}})["host"] = host.strip()
         _save(data)
         return f"{device} eklendi ({host.strip()})."
+    if action == "remove":
+        if device not in data:
+            return f"{device} kayıtlı değil."
+        if command:
+            if data[device]["codes"].pop(command, None) is None:
+                return f"{device} için '{command}' kodu yok."
+            _save(data)
+            return f"{device}: {command} kodu silindi."
+        del data[device]
+        _save(data)
+        return f"{device} silindi."
     info = data.get(device)
     if not info:
         return f"{device} kayıtlı değil. Kayıtlı cihazlar: {', '.join(data) or 'yok'}."
