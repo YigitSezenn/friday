@@ -121,3 +121,16 @@ class RemoveTests(unittest.TestCase):
                 self.assertIn("kayıtlı değil", home.run("remove", "x"))
             finally:
                 os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class HostValidationTests(unittest.TestCase):
+    def test_rejects_non_ip_host(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import home
+
+                self.assertIn("geçerli bir IP", home.run("add", "x", host="11"))
+                self.assertEqual(home.snapshot(), {})
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)

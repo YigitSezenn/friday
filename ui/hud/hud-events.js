@@ -34,7 +34,6 @@ $("quit").addEventListener("click", () => send("quit"));
 })();
 ["home-name", "home-host", "home-cmd"].forEach(id => $(id)?.addEventListener("keydown", event => { if (event.key === "Enter") event.preventDefault(); }));
 $("home-add")?.addEventListener("click", () => { $("home-msg").textContent = "Aranıyor…"; send("home", {action: "add", device: $("home-name").value, host: $("home-host").value}); });
-$("home-remove")?.addEventListener("click", () => send("home", {action: "remove", device: $("home-name").value, command: $("home-cmd").value}));
 $("home-learn")?.addEventListener("click", () => { $("home-msg").textContent = "Dinleniyor: 30 saniye içinde kumandayı köprüye doğrultup tuşa bas…"; send("home", {action: "learn", device: $("home-name").value, command: $("home-cmd").value}); });
 $("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));

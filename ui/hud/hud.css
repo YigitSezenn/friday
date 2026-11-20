@@ -309,3 +309,16 @@ body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown=
 #mail-test-out.ok{color:var(--c)}
 #mail-test-out.bad{color:var(--accent)}
 #mail-test:disabled{opacity:.6;cursor:progress}
+
+.home-list{display:grid;gap:8px;margin-top:10px}
+.home-card{border:1px solid rgba(var(--rgb),.25);border-radius:10px;padding:10px 12px;background:rgba(var(--rgb),.05)}
+.home-card header{display:flex;align-items:center;gap:10px}
+.home-name{cursor:pointer;background:none;border:0;color:var(--c);font:inherit;font-weight:600;padding:0;text-transform:capitalize}
+.home-host{margin-right:auto;color:var(--dim);font-size:12px}
+.home-del{cursor:pointer;background:transparent;border:1px solid rgba(var(--rgb),.3);border-radius:6px;color:var(--dim);font-size:11px;letter-spacing:.08em;padding:3px 8px}
+.home-del:hover{color:#ff8a8a;border-color:#ff8a8a}
+.home-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.home-chips em{color:var(--dim);font-size:12px}
+.home-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:rgba(var(--rgb),.14);color:var(--c);font-size:12px}
+.home-chip-x{cursor:pointer;background:none;border:0;color:var(--dim);font-size:14px;line-height:1;padding:0 4px;border-radius:50%}
+.home-chip-x:hover{color:#ff8a8a}
