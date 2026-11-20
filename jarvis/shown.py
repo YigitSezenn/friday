@@ -26,7 +26,7 @@ TOOL_LABELS = {
     "delete_calendar_event": "Takvimden silme", "get_reminders": "Anımsatıcılar", "add_reminder": "Anımsatıcı ekleme",
     "browser_control": "Tarayıcı", "shell_run": "PowerShell", "toggle_webcam": "Kamera", "play_media": "Müzik/video",
     "set_volume": "Ses ayarı", "control_media": "Medya kontrolü", "analyze_screen": "Ekran okuma", "web_search": "İnternet araması",
-    "send_whatsapp_message": "WhatsApp", "send_email": "E-posta", "open_mail": "Gelen kutusu", "open_app": "Uygulama açma",
+    "send_whatsapp_message": "WhatsApp", "send_discord_message": "Discord", "send_email": "E-posta", "open_mail": "Gelen kutusu", "open_app": "Uygulama açma",
     "list_files": "Dosya listesi", "set_location": "Konum", "timer_set": "Zamanlayıcı", "stopwatch": "Kronometre",
     "note_add": "Not ekleme", "note_delete": "Not silme", "notes_list": "Notlar", "save_memory": "Hafıza", "desktop_action": "Masaüstü komutu",
     "app_window": "Pencere komutu", "connect_gmail": "Gmail bağlantısı", "sys_info": "Sistem bilgisi",

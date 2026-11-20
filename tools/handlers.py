@@ -463,6 +463,13 @@ def open_mail(args, ctx):
     return run(text(args, "provider", "auto"))
 
 
+@tool("send_discord_message")
+def send_discord_message(args, ctx):
+    from tools.actions.discord import send_discord_message as run
+
+    return run(text(args, "message"), text(args, "recipient_name"), text(args, "user_id"), bool(args.get("confirm", False)))
+
+
 @tool("save_whatsapp_contact")
 def save_whatsapp_contact(args, ctx):
     from tools.actions.whatsapp import save_whatsapp_contact as run

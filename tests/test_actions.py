@@ -4,6 +4,7 @@ import os
 import tempfile
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import requests
@@ -232,3 +233,15 @@ class ReminderDueTests(unittest.TestCase):
                 self.assertEqual(reminders.due_now(later), [])
             finally:
                 os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class DiscordMessageTests(unittest.TestCase):
+    def test_needs_id_then_confirmation(self):
+        from tools.actions import discord
+
+        with mock.patch.object(discord, "_book", return_value={}):
+            self.assertIn("kayıtlı Discord kimliği yok", discord.send_discord_message("selam", "Ali"))
+            self.assertIn("17-19 haneli", discord.send_discord_message("selam", "Ali", "123"))
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", "123456789012345678"))
+        with mock.patch.object(discord, "_book", return_value={"Ali": "123456789012345678"}):
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "ali"))
