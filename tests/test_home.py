@@ -1,0 +1,61 @@
+import base64
+import os
+import tempfile
+import unittest
+
+
+class FakeBridge:
+    sent = []
+    packet = b"\x26\x00abc"
+
+    def send_data(self, data):
+        FakeBridge.sent.append(data)
+
+    def enter_learning(self):
+        pass
+
+    def check_data(self):
+        return FakeBridge.packet
+
+
+class HomeControlTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["JARVIS_DATA_DIR"] = self.tmp.name
+        from tools.actions import home
+
+        self.home = home
+        home._bridge = lambda host: FakeBridge()
+        home.time.sleep = lambda s: None
+        FakeBridge.sent.clear()
+
+    def tearDown(self):
+        os.environ.pop("JARVIS_DATA_DIR", None)
+        self.tmp.cleanup()
+
+    def test_add_learn_send(self):
+        run = self.home.run
+        self.assertIn("eklendi", run("add", "Salon Klima", host="192.168.1.20"))
+        self.assertIn("öğrenildi", run("learn", "salon klima", "aç"))
+        self.assertIn("gönderildi", run("send", "SALON  klima", "Aç"))
+        self.assertEqual(FakeBridge.sent, [FakeBridge.packet])
+        self.assertIn("aç", run("list"))
+
+    def test_unknown_device_and_command(self):
+        run = self.home.run
+        self.assertIn("kayıtlı değil", run("send", "garaj", "aç"))
+        run("add", "salon klima", host="1.2.3.4")
+        self.assertIn("öğrenilmemiş", run("send", "salon klima", "kapat"))
+        self.assertEqual(FakeBridge.sent, [])
+
+    def test_bridge_error_is_reported(self):
+        def boom(host):
+            raise OSError("zaman aşımı")
+
+        self.home._bridge = boom
+        self.home.run("add", "x", host="1.1.1.1")
+        self.assertIn("ulaşılamadı", self.home.run("send", "x", "aç"))
+
+
+if __name__ == "__main__":
+    unittest.main()

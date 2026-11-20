@@ -363,6 +363,13 @@ def file_access(args, ctx):
     return run(text(args, "action"), text(args, "path"), text(args, "destination"), text(args, "content"), text(args, "query"), bool(args.get("confirm", False)))
 
 
+@tool("home_control")
+def home_control(args, ctx):
+    from tools.actions.home import run
+
+    return run(text(args, "action"), text(args, "device"), text(args, "command"), text(args, "host"))
+
+
 @tool("desktop_action")
 def desktop_action(args, ctx):
     from tools.actions.desktop import run
