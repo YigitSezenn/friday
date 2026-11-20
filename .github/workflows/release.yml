@@ -1,4 +1,4 @@
-# FRIDAY yayın hattı: etiket (v4.10.3 gibi) itilince Windows kurulumu + Android APK derlenir,
+# FRIDAY yayın hattı: `yayin` dalına gönderim (ya da v* etiketi) olunca Windows kurulumu + Android APK derlenir,
 # site Vercel'e TEK yayınla çıkar, canlı sürüm doğrulanır ve sonuç `ci-status` dalına yazılır.
 #
 # Gerekli depo sırları (Settings › Secrets and variables › Actions):
@@ -8,6 +8,7 @@ name: Yayın
 
 on:
   push:
+    branches: ["yayin"]
     tags: ["v*"]
   workflow_dispatch:
 
