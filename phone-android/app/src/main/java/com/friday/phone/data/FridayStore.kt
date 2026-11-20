@@ -4,6 +4,7 @@ import android.content.Context
 import com.friday.phone.domain.DEFAULT_WAKE_PORT
 import com.friday.phone.domain.HistoryItem
 import com.friday.phone.domain.LAN_PORT
+import com.friday.phone.domain.LAN_TLS_PORT
 import com.friday.phone.domain.LanLink
 import org.json.JSONArray
 import org.json.JSONObject
@@ -38,14 +39,15 @@ class FridayStore(context: Context) {
             val host = prefs.getString(LAN_HOST, "").orEmpty()
             val token = prefs.getString(LAN_TOKEN, "").orEmpty()
             if (host.isEmpty() || token.isEmpty()) return null
-            return LanLink(host, prefs.getInt(LAN_PORT_KEY, LAN_PORT), token)
+            val pin = prefs.getString(LAN_PIN, "").orEmpty()
+            return LanLink(host, prefs.getInt(LAN_PORT_KEY, if (pin.isNotEmpty()) LAN_TLS_PORT else LAN_PORT), token, pin)
         }
         set(value) {
             val editor = prefs.edit()
             if (value == null) {
-                editor.remove(LAN_HOST).remove(LAN_PORT_KEY).remove(LAN_TOKEN)
+                editor.remove(LAN_HOST).remove(LAN_PORT_KEY).remove(LAN_TOKEN).remove(LAN_PIN)
             } else {
-                editor.putString(LAN_HOST, value.host).putInt(LAN_PORT_KEY, value.port).putString(LAN_TOKEN, value.token)
+                editor.putString(LAN_HOST, value.host).putInt(LAN_PORT_KEY, value.port).putString(LAN_TOKEN, value.token).putString(LAN_PIN, value.pin)
             }
             editor.apply()
         }
@@ -79,5 +81,6 @@ class FridayStore(context: Context) {
         const val LAN_HOST = "lan_host"
         const val LAN_PORT_KEY = "lan_port"
         const val LAN_TOKEN = "lan_token"
+        const val LAN_PIN = "lan_pin"
     }
 }

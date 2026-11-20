@@ -1,6 +1,38 @@
 {
   "surumler": [
     {
+      "surum": "4.13.2",
+      "tarih": "2026-11-20",
+      "baslik": "Şifreli telefon köprüsü",
+      "maddeler": [
+        "Aynı Wi-Fi telefon köprüsü artık şifreli (HTTPS). Bilgisayar kendi sertifikasını üretir, parmak izi QR kodunun içinde telefona gider ve telefon yalnızca o sertifikayı kabul eder; ağdaki biri araya giremez.",
+        "Yeni QR yalnızca bu sürümün Android uygulamasıyla okunur: telefonda yeni APK'yı kurup QR'ı yeniden okutun. Eski telefonlar geçiş için bir süre düz HTTP ile çalışmaya devam eder.",
+        "Harita betiği internetten değil uygulamanın içinden yüklenir (CDN'e bağımlılık ve olası kod enjeksiyonu kapandı)."
+      ]
+    },
+    {
+      "surum": "4.13.1",
+      "tarih": "2026-11-20",
+      "baslik": "Gerçek onay, kaydırılabilir sohbet, sıkılaştırılmış güvenlik",
+      "maddeler": [
+        "Onay artık gerçek: FRIDAY bir işlemi (dosya, PowerShell, mesaj, e-posta) siz “evet” demeden kendi kendine onaylayamaz; onaydan sonra sizden açık bir evet duyulmazsa işlem yapılmaz.",
+        "Sohbet penceresi kaydırılabilir: eski satırlara fare tekeriyle dönebilirsiniz (son 300 satır).",
+        "“YouTube açıldı” gibi basit eylemlerin ekrandaki yinelenen satırı kaldırıldı.",
+        "Dosya erişimi sıkılaştı: parola/anahtar gibi dosyalar okunmaz, .bat/.exe/.ps1 gibi çalıştırılabilir dosya yazılmaz, taşıma üzerine yazmaz, dosya içindeki yönergeler komut sayılmaz.",
+        "PowerShell: şifreli komut, indirip çalıştırma, zamanlanmış görev, kullanıcı ekleme gibi tehlikeli kalıplar engellendi."
+      ]
+    },
+    {
+      "surum": "4.13.0",
+      "tarih": "2026-11-20",
+      "baslik": "Dosya erişimi (izinle)",
+      "maddeler": [
+        "Ayarlar › İzinler'de yeni “Dosya erişimi” anahtarı (varsayılan kapalı). Açınca FRIDAY Belgeler, İndirilenler ve Masaüstü'nde dosya arar, listeler ve okur.",
+        "Dosya yazma, taşıma ve silme her seferinde okunur bir onay ister; silinen dosya kalıcı silinmez, FRIDAY klasöründeki “cop” içine taşınır.",
+        "İzinli klasörlerin dışına çıkılamaz (.. ile kaçış dahil)."
+      ]
+    },
+    {
       "surum": "4.12.4",
       "tarih": "2026-11-20",
       "baslik": "YouTube tek pencerede açılır",

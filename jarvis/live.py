@@ -189,6 +189,8 @@ class JarvisLive:
         if not self._loop or not self.session:
             self.ui.write_log("ERR: JARVIS bağlantısı henüz hazır değil.")
             return
+        from tools.actions import confirm as _confirm
+        _confirm.note_user_said(text)
         asyncio.run_coroutine_threadsafe(self._send_text(text), self._loop)
 
     async def _send_text(self, text: str) -> None:
@@ -276,6 +278,9 @@ class JarvisLive:
             from jarvis.shown import for_screen
 
             shown = for_screen(result)
+            # Sesli yanıt zaten söylüyor; basit eylemlerin "açıldı" satırı ikinci kez yazılmaz.
+            if name in {"open_app", "browser_control", "play_media", "control_media", "set_volume", "desktop_action", "app_window"}:
+                shown = ""
             if shown:
                 self.ui.write_log(f"JARVIS: {shown}")
                 self._said_result = True
@@ -398,6 +403,8 @@ class JarvisLive:
                         misheard = misheard or rejected
                         if heard:
                             in_buf.append(heard)
+                            from tools.actions import confirm as _confirm
+                            _confirm.note_user_said(heard)
                             self.ui.last_heard = time.time()
                     if content.turn_complete:
                         self.set_speaking(False)
@@ -557,6 +564,8 @@ class JarvisLive:
                 self._reconnect.clear()
                 async with client.aio.live.connect(model=current_live_model(), config=config) as session, asyncio.TaskGroup() as group:
                     self.session = session
+                    from tools.actions import confirm as _confirm
+                    _confirm.require_user_yes = True
                     self._loop = asyncio.get_running_loop()
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=8)

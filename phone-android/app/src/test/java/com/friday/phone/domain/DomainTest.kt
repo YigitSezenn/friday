@@ -129,10 +129,34 @@ class DomainTest {
     }
 
     @Test
+    fun lanLinkParsesPinnedHttpsQr() {
+        val pin = "ab".repeat(32)
+        val link = lanLinkFrom("https://192.168.1.20:8767/join?token=t1&fp=${pin.uppercase()}")
+        assertNotNull(link)
+        assertTrue(link!!.secure)
+        assertEquals(pin, link.pin)
+        assertEquals(8767, link.port)
+        assertEquals("https://192.168.1.20:8767/mic?token=t1", link.url("/mic"))
+        assertEquals(8767, lanLinkFrom("https://10.0.0.5/?token=t&fp=$pin")!!.port)
+    }
+
+    @Test
+    fun pinMatchesOnlyTheSameCertificateHash() {
+        val hash = ByteArray(32) { 0xab.toByte() }
+        assertTrue(pinMatches(hash, "ab".repeat(32)))
+        assertTrue(pinMatches(hash, "AB".repeat(32)))
+        assertFalse(pinMatches(hash, "ac".repeat(32)))
+        assertFalse(pinMatches(hash, "ab".repeat(31)))
+        assertFalse(pinMatches(ByteArray(31), "ab".repeat(32)))
+    }
+
+    @Test
     fun lanLinkRejectsAnythingThatIsNotLocalNetwork() {
         assertNull(lanLinkFrom("http://8.8.8.8:8766/join?token=abc"))
         assertNull(lanLinkFrom("http://example.com:8766/join?token=abc"))
-        assertNull(lanLinkFrom("https://192.168.1.20:8766/join?token=abc"))
+        assertNull(lanLinkFrom("https://192.168.1.20:8767/join?token=abc"))
+        assertNull(lanLinkFrom("https://192.168.1.20:8767/join?token=abc&fp=zz"))
+        assertNull(lanLinkFrom("https://8.8.8.8:8767/join?token=abc&fp=${"a".repeat(64)}"))
         assertNull(lanLinkFrom("http://192.168.1.20:8766/join"))
         assertNull(lanLinkFrom("http://192.168.1.20:8766/join?token="))
         assertNull(lanLinkFrom("http://192.168.1.20:8766/other?token=abc"))

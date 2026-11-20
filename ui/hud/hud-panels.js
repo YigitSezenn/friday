@@ -149,8 +149,11 @@ function addLine(text, kind) {
   line.className = "sub" + (kind ? " " + kind : "");
   line.textContent = text;
   const log = $("chat-log");
+  const box = $("chat");
+  const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
   log.appendChild(line);
-  while (log.children.length > 4) log.removeChild(log.firstChild);
+  while (log.children.length > 300) log.removeChild(log.firstChild);
+  if (stick) box.scrollTop = box.scrollHeight;
 }
 
 const PERM_TEXT = {granted: "✓ VERİLDİ", denied: "✕ KAPALI", unknown: "— BİLİNMİYOR"};

@@ -5,8 +5,8 @@
 <title>FRIDAY</title>
 <link rel="stylesheet" href="hud.css">
 <link rel="stylesheet" href="hud-fx.css">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<script src="vendor/maplibre-gl.js"></script>
 </head>
 <body data-state="connecting" data-boot="1">
 <div id="bloom"></div>
@@ -238,6 +238,8 @@
         <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
       <div class="row2 perm" data-perm="webcam"><div>KAMERA<small>İstediğinde kameradan gördüğünü anlatabilmek için.</small></div>
         <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
+      <div class="row2"><div>DOSYA ERİŞİMİ<small>FRIDAY Belgeler, İndirilenler ve Masaüstü'nde dosya arayıp okuyabilir. Yazma, taşıma ve silme her seferinde onay ister; silinenler çöpe taşınır.</small></div>
+        <button type="button" class="switch" id="set-files" aria-checked="false"></button></div>
     </section>
     <section class="pane" data-pane="hakkinda">
       <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-3.8-live.</p>
