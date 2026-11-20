@@ -190,12 +190,6 @@ def main(argv: list[str] | None = None) -> int:
             ui.write_log(f"ERR: Telefon sunucusu açılamadı. ({exc})")
             return ""
         ui.write_debug("Telefon aynı Wi-Fi için hazır. QR Ayarlar içinde, paylaşma.")
-        try:
-            from jarvis.story import note_phone
-
-            note_phone()
-        except Exception:
-            pass
         return url
 
     ui.phone_opener = open_phone

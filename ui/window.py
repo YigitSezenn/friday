@@ -39,19 +39,15 @@ class WindowMixin:
         if window is None or self._quitting or self._closed or getattr(self, "_hiding", False):
             return
         self._hiding = True
-        self._ensure_tray()
-        ready = self._tray.wait_ready() if getattr(self, "_tray", None) is not None else False
-        if not ready:
-            self._hiding = False
-            self.write_log("ERR: Tepsi simgesi açılamadı.")
-            return
+        self._ensure_tray()  # geri getirmek için tepsi simgesi hazır dursun
         try:
-            window.hide()
+            # Gerçek küçültme: görev çubuğunda kalır, tıklayınca geri gelir.
+            window.minimize()
         except Exception:
             try:
-                window.minimize()
+                window.hide()
             except Exception:
-                pass
+                self.write_log("ERR: Pencere küçültülemedi.")
         self._hiding = False
 
     def restore_from_taskbar(self) -> bool:
@@ -69,8 +65,13 @@ class WindowMixin:
 
     def _check_update(self) -> None:
         from jarvis import __version__
+        from jarvis.config import get_app_config_value, save_app_config
         from jarvis.updater import available_update
 
+        # Güncellemeden sonraki ilk açılışta yenilikler kendiliğinden gösterilir.
+        if get_app_config_value("seen_notes", "") != __version__:
+            save_app_config({"seen_notes": __version__})
+            self.push_patch_notes(auto=True)
         try:
             newer = available_update(__version__)
         except Exception:
@@ -78,6 +79,21 @@ class WindowMixin:
         if newer:
             self._update_version = newer
             self._call("updateOffer", newer)
+
+    def push_patch_notes(self, auto: bool = False) -> None:
+        import json
+
+        from jarvis import __version__
+        from jarvis.patchnotes import fetch_remote, load_local, merge
+
+        remote: list[dict] = []
+        if not auto:
+            try:
+                remote = fetch_remote()
+            except Exception:
+                remote = []
+        entries = merge(remote, load_local())
+        self._call("patchNotes", json.dumps({"current": __version__, "entries": entries[:12], "update": getattr(self, "_update_version", "")}), bool(auto))
 
     def install_update(self) -> None:
         import os

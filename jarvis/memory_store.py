@@ -101,6 +101,11 @@ def delete_memory(category: str = "", key: str = "", match_text: str = "") -> st
     key = (key or "").strip()
     match_text = (match_text or "").strip()
 
+    if category and not key and category in mem and not isinstance(mem[category], dict):
+        del mem[category]  # düz kayıt (kategori: değer)
+        _write_memory(mem)
+        return f"{category} hafızadan kaldirildi."
+
     if category and key:
         bucket = mem.get(category)
         if isinstance(bucket, dict) and key in bucket:
@@ -163,3 +168,25 @@ def format_memory_for_prompt(memory: dict) -> str:
         else:
             lines.append(f"  {category}: {items}")
     return "\n".join(lines)
+
+
+def list_entries(memory: dict | None = None, limit: int = 200) -> list[dict]:
+    """Ayarlar ekranı için düz liste: her kayıt {category, key, text}. Düz (kategori: değer) kayıtlar da gelir."""
+    rows: list[dict] = []
+    for category, items in (memory if memory is not None else load_memory()).items():
+        if isinstance(items, dict):
+            for key, value in items.items():
+                rows.append({"category": str(category), "key": str(key), "text": _entry_value_text(value)[:400]})
+        elif items not in (None, "", [], {}):
+            rows.append({"category": str(category), "key": "", "text": str(items)[:400]})
+    return rows[:limit]
+
+
+def save_entry(category: str, key: str, value: str) -> str:
+    category = " ".join(str(category or "notes").split())[:40] or "notes"
+    key = " ".join(str(key or "").split())[:60]
+    value = " ".join(str(value or "").split())[:400]
+    if not key or not value:
+        return "Anahtar ve değer dolu olmalı."
+    update_memory({category: {key: {"value": value}}})
+    return f"Kaydedildi: {category}/{key}"

@@ -28,7 +28,9 @@ TOOL_DECLARATIONS = [
     {"name": "timer_cancel", "description": "Zamanlayiciyi iptal eder.", "parameters": {"type": "OBJECT", "properties": {}}},
     {"name": "timer_status", "description": "Zamanlayicida ne kadar kaldigini ve kronometreyi soyler.", "parameters": {"type": "OBJECT", "properties": {}}},
     {"name": "stopwatch", "description": "Kronometre: action start|stop|reset|toggle.", "parameters": {"type": "OBJECT", "properties": {"action": {"type": "STRING"}}}},
-    {"name": "sleep_mode", "description": "FRIDAY'i uyku moduna alir (mikrofon dinlemeyi birakir). 'Uyu', 'uyku moduna gec', 'sessize gec', 'biraz dinlen' gibi isteklerde asleep=true.", "parameters": {"type": "OBJECT", "properties": {"asleep": {"type": "BOOLEAN"}}}},
+    {"name": "sleep_mode", "description": "FRIDAY'i uyku moduna alir (mikrofon dinlemeyi birakir). Kullanici tek basina 'uyu', 'uyku moduna gec', 'git uyu', 'iyi geceler', 'sus', 'sessize gec', 'biraz dinlen', 'dinlemeyi birak' dediginde HEMEN asleep=true ile cagir; onay isteme. 'Uyan' dediginde asleep=false.", "parameters": {"type": "OBJECT", "properties": {"asleep": {"type": "BOOLEAN"}}}},
+    {"name": "app_window", "description": "FRIDAY penceresinin kendisi. 'Kucul', 'kendini kucult', 'arka plana gec' -> action=minimize. 'Kendini kapat', 'kapan', 'uygulamayi kapat' -> action=close (veda et). Geri getirmek icin restore. Baska pencereler icin desktop_action kullan.", "parameters": {"type": "OBJECT", "properties": {"action": {"type": "STRING"}}, "required": ["action"]}},
+    {"name": "desktop_action", "description": "Masaustu komutu. action: show_desktop (masaustunu goster), minimize_all (hepsini kucult), restore_all (geri getir), task_view, maximize/minimize (aktif pencere), lock (ekrani kilitle), screenshot (ekran goruntusu kaydet).", "parameters": {"type": "OBJECT", "properties": {"action": {"type": "STRING"}}, "required": ["action"]}},
     {"name": "set_volume", "description": "Bir uygulamanin (spotify, youtube/tarayıcı, discord...) ya da bilgisayarın genel sesini ayarlar. level: 0-100 kesin deger; change: +10/-10 gibi goreli; mute: sessize al/aç.", "parameters": {"type": "OBJECT", "properties": {"target": {"type": "STRING", "description": "spotify|youtube|system|uygulama adı"}, "level": {"type": "NUMBER"}, "change": {"type": "NUMBER"}, "mute": {"type": "BOOLEAN"}}, "required": ["target"]}},
     {"name": "control_media", "description": "Çalan medyayi durdurur, devam ettirir veya parça değiştirir.", "parameters": {"type": "OBJECT", "properties": {"action": {"type": "STRING"}}, "required": ["action"]}},
     {"name": "get_youtube_channel_report", "description": "YouTube kanal istatistiklerini raporlar.", "parameters": {"type": "OBJECT", "properties": {"query": {"type": "STRING"}, "handle": {"type": "STRING"}, "video_limit": {"type": "NUMBER"}}}},
@@ -59,14 +61,7 @@ def looks_like_error(result) -> bool:
 
 
 def execute_tool(name: str, args: dict, webcam=None, ui=None) -> str:
-    result = _run_tool(name, args, webcam, ui)
-    try:
-        from jarvis.story import note_tool
-
-        note_tool(name, result)
-    except Exception:
-        pass
-    return result
+    return _run_tool(name, args, webcam, ui)
 
 
 def _run_tool(name: str, args: dict, webcam=None, ui=None) -> str:

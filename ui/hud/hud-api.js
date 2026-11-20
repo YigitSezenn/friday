@@ -57,6 +57,7 @@ window.hud = {
     $("wx-temp").textContent = data.temp || "--°";
     $("wx-city").textContent = data.city || "KONUM";
     $("wx-desc").textContent = data.desc || "";
+    if (window.fxWeather) window.fxWeather(data.desc || "");
     $("wx-detail").textContent = data.detail || "";
     $("map-cap").textContent = data.city ? `${data.city} · SABİT KONUM · küçük görüntü © Esri` : "";
   },
@@ -106,6 +107,32 @@ window.hud = {
     $("td-close").focus();
     clearTimeout(window.__tdHide);
     window.__tdHide = setTimeout(() => { $("timer-done").hidden = true; }, 60000);
+  },
+  patchNotes(raw, auto) {
+    let data;
+    try { data = JSON.parse(raw); } catch { return; }
+    const list = $("notes-list");
+    list.textContent = "";
+    (data.entries || []).forEach((entry, index) => {
+      const card = document.createElement("article");
+      card.className = "note-card" + (entry.surum === data.current ? " current" : "");
+      card.style.setProperty("--n", index);
+      const head = document.createElement("header");
+      const tag = document.createElement("b");
+      tag.textContent = "v" + entry.surum;
+      const title = document.createElement("span");
+      title.textContent = entry.baslik || "";
+      const date = document.createElement("time");
+      date.textContent = entry.tarih || "";
+      head.append(tag, title, date);
+      const ul = document.createElement("ul");
+      (entry.maddeler || []).forEach(line => { const li = document.createElement("li"); li.textContent = line; ul.append(li); });
+      card.append(head, ul);
+      list.append(card);
+    });
+    $("notes-sub").textContent = data.update ? "Yeni sürüm hazır: " + data.update : "Şu an sürüm " + data.current;
+    $("notes-update").hidden = !data.update;
+    $("ov-notes").hidden = false;
   },
   updateOffer(version) {
     if (!version) return;
@@ -172,7 +199,6 @@ window.hud = {
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
     $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
     $("set-patient").setAttribute("aria-checked", data.config.patient_listening === false ? "false" : "true");
-    setSwitch("set-story", data.config.story_enabled);
     setSwitch("set-proactive", data.config.proactive_enabled);
     setSwitch("set-water", data.config.water_enabled);
     setSwitch("set-break", data.config.break_enabled);
@@ -183,7 +209,6 @@ window.hud = {
     window.__liveModel = data.config.live_model;
     window.__dataDir = data.dataDir || "";
     window.__appVersion = data.version || "";
-    paintStory(data.story);
     showPhone(data.phone);
     paintGate(data.gateKeyQr, data.pairCode);
     paintSiteQr(data.siteQr, data.siteUrl);
@@ -196,9 +221,6 @@ window.hud = {
   },
   phone(data) {
     showPhone(data);
-  },
-  story(data) {
-    paintStory(data);
   },
 };
 

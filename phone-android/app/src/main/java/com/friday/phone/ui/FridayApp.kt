@@ -1,6 +1,13 @@
 package com.friday.phone.ui
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -81,7 +88,15 @@ fun FridayApp(vm: FridayViewModel, actions: PlatformActions) {
             if (!showMain) {
                 PairScreen(state, onScan = actions.scanQr, onConfirm = vm::confirmCode, onCancel = vm::cancelPairing)
             } else {
-                Crossfade(targetState = tab, animationSpec = tween(280), label = "tab") { current ->
+                AnimatedContent(
+                    targetState = tab,
+                    transitionSpec = {
+                        val dir = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                        (slideInHorizontally(tween(360)) { it / 4 * dir } + fadeIn(tween(300)) + scaleIn(tween(360), initialScale = 0.92f)) togetherWith
+                            (slideOutHorizontally(tween(260)) { -it / 4 * dir } + fadeOut(tween(200)) + scaleOut(tween(260), targetScale = 0.92f))
+                    },
+                    label = "tab",
+                ) { current ->
                     when (current) {
                         Tab.COMMAND -> CommandScreen(
                             state,

@@ -99,7 +99,7 @@ fun PairScreen(state: UiState, onScan: () -> Unit, onConfirm: (String) -> Unit, 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(28.dp))
-            Button(onClick = onScan, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Button(onClick = onScan, modifier = Modifier.fillMaxWidth().height(56.dp).pressDepth()) {
                 Icon(Icons.Filled.QrCodeScanner, contentDescription = null)
                 Spacer(Modifier.size(10.dp))
                 Text("QR OKUT", style = MaterialTheme.typography.labelLarge)
@@ -122,7 +122,7 @@ fun PairScreen(state: UiState, onScan: () -> Unit, onConfirm: (String) -> Unit, 
                 keyboardActions = KeyboardActions(onDone = { if (code.length == 6) onConfirm(code) }),
             )
             Spacer(Modifier.height(12.dp))
-            Button(onClick = { onConfirm(code) }, enabled = code.length == 6, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Button(onClick = { onConfirm(code) }, enabled = code.length == 6, modifier = Modifier.fillMaxWidth().height(56.dp).pressDepth()) {
                 Text("ONAYLA", style = MaterialTheme.typography.labelLarge)
             }
             TextButton(onClick = { code = ""; onCancel() }, modifier = Modifier.fillMaxWidth()) {
@@ -167,7 +167,7 @@ fun CommandScreen(
         if (state.lanHost.isNotEmpty()) {
             OutlinedButton(
                 onClick = onToggleLanMic,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).pressDepth(),
             ) {
                 Text(
                     if (state.lanMic) "TELEFON MİKROFONU: AÇIK · KAPAT" else "TELEFON MİKROFONUNU AÇ (${state.lanHost})",
@@ -231,7 +231,7 @@ fun CommandScreen(
             FilledIconButton(
                 onClick = { submit() },
                 enabled = text.isNotBlank() && !state.sending,
-                modifier = Modifier.scale(if (state.sending) sendScale else 1f),
+                modifier = Modifier.scale(if (state.sending) sendScale else 1f).pressDepth(),
             ) {
                 if (state.sending) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -294,7 +294,7 @@ private fun StatusHeader(code: String, busy: Boolean) {
         modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 8.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Reactor(Modifier.size(64.dp), busy = busy)
+        Reactor(Modifier.size(64.dp).floating().tilt3d(), busy = busy)
         Spacer(Modifier.size(10.dp))
         Column {
             Text("FRIDAY", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
@@ -339,7 +339,7 @@ private fun HistoryRow(
         enter = fadeIn(tween(260)) + slideInVertically(tween(320)) { it / 3 },
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth().combinedClickable(
+            modifier = Modifier.fillMaxWidth().tilt3d().combinedClickable(
                 onClick = onResend,
                 onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); menu = true },
             ),
@@ -439,7 +439,7 @@ fun WakeScreen(state: UiState, onWake: (WakeConfig) -> Unit) {
         Button(
             onClick = { onWake(WakeConfig(mac, ip, port)) },
             enabled = !state.waking,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp).pressDepth(),
         ) {
             if (state.waking) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -462,10 +462,10 @@ fun SettingsScreen(state: UiState, actions: PlatformActions, onForget: () -> Uni
         Text("AYARLAR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         Text("EŞLEŞME", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("Bilgisayarla eşleşti · kod ${state.pairingCode}")
-        OutlinedButton(onClick = actions.scanQr, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = actions.scanQr, modifier = Modifier.fillMaxWidth().pressDepth()) {
             Text("YENİDEN EŞLEŞTİR", style = MaterialTheme.typography.labelLarge)
         }
-        OutlinedButton(onClick = { confirm = true }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { confirm = true }, modifier = Modifier.fillMaxWidth().pressDepth()) {
             Text("EŞLEŞMEYİ SİL", style = MaterialTheme.typography.labelLarge)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -474,12 +474,12 @@ fun SettingsScreen(state: UiState, actions: PlatformActions, onForget: () -> Uni
             Text("Aynı Wi-Fi'de telefon mikrofonu için bilgisayardaki telefon QR'ını okut.")
         } else {
             Text("Kayıtlı: ${state.lanHost}")
-            OutlinedButton(onClick = onForgetLan, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onForgetLan, modifier = Modifier.fillMaxWidth().pressDepth()) {
                 Text("YEREL BAĞLANTIYI SİL", style = MaterialTheme.typography.labelLarge)
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        OutlinedButton(onClick = actions.openSite, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = actions.openSite, modifier = Modifier.fillMaxWidth().pressDepth()) {
             Text("SİTEYİ AÇ", style = MaterialTheme.typography.labelLarge)
         }
         Text(

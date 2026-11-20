@@ -34,6 +34,12 @@ $("quit").addEventListener("click", () => send("quit"));
 })();
 $("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));
+$("notes-update")?.addEventListener("click", () => send("update"));
+$("app-notes")?.addEventListener("click", () => send("notes"));
+$("t-ver")?.addEventListener("click", () => send("notes"));
+const closeNotes = () => { $("ov-notes").hidden = true; };
+$("notes-ok")?.addEventListener("click", closeNotes);
+$("notes-close")?.addEventListener("click", closeNotes);
 $("uninstall").addEventListener("click", () => {
   const ok = confirm("FRIDAY kaldırılsın mı? Uygulama ve FRIDAY kayıt klasörü silinir. Başka klasörler silinmez.");
   if (ok) send("uninstall");
@@ -48,7 +54,6 @@ $("settings-form").addEventListener("submit", event => {
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
   values.music = $("set-music").getAttribute("aria-checked") === "true";
   values.patient_listening = $("set-patient").getAttribute("aria-checked") !== "false";
-  values.story_enabled = $("set-story").getAttribute("aria-checked") === "true";
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";
   values.water_enabled = $("set-water").getAttribute("aria-checked") === "true";
   values.break_enabled = $("set-break").getAttribute("aria-checked") === "true";
@@ -108,5 +113,5 @@ addEventListener("keydown", event => {
     toggleMic();
   }
   if (event.key === "F6") { event.preventDefault(); $("t-cam").click(); }
-  if (event.key === "Escape") { $("ov-settings").hidden = true; $("ov-models").hidden = true; }
+  if (event.key === "Escape") { $("ov-settings").hidden = true; $("ov-models").hidden = true; $("ov-notes").hidden = true; }
 });

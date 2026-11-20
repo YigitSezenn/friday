@@ -56,25 +56,6 @@ $("site-copy")?.addEventListener("click", event => {
   setTimeout(() => { button.textContent = "Bağlantıyı kopyala"; }, 1600);
 });
 function showPhone(_data) {}
-function paintStory(story) {
-  const note = $("story-note");
-  const list = $("story-list");
-  if (!note || !list) return;
-  if (!story || !story.enabled) {
-    note.textContent = "Hikâye kapalı. Genel sekmesinden açınca ipuçları birikir.";
-    list.replaceChildren();
-    return;
-  }
-  const hint = (story.hints || [])[0];
-  note.textContent = story.ending === "kapat" ? "Hikâye kapandı. Başarımlar duruyor." : hint ? "İpucu: " + hint : "Açık iz kalmadı.";
-  list.replaceChildren();
-  for (const row of story.achievements || []) {
-    const line = document.createElement("div");
-    line.className = "mem-row";
-    line.textContent = (row.got ? "açıldı · " : "kapalı · ") + row.title + " — " + row.detail;
-    list.appendChild(line);
-  }
-}
 function paintPanels(panels) {
   const box = $("set-panels");
   box.replaceChildren();
@@ -96,27 +77,88 @@ function paintPanels(panels) {
   }
 }
 
+let memoryRows = [];
+const MEMORY_LABELS = {email_contacts: "E-posta kişileri", whatsapp_contacts: "WhatsApp kişileri", notes: "Notlar", kisisel: "Kişisel", tercih: "Tercihler", preferences: "Tercihler", personal: "Kişisel"};
+const memoryLabel = (name) => MEMORY_LABELS[name] || name;
 function paintMemory(rows) {
+  if (Array.isArray(rows)) memoryRows = rows;
   const box = $("mem-list");
+  const query = ($("mem-search")?.value || "").trim().toLowerCase();
+  const shown = memoryRows.filter(row => !query || `${row.category} ${row.key} ${row.text}`.toLowerCase().includes(query));
+  $("mem-count").textContent = memoryRows.length ? `${shown.length}/${memoryRows.length} kayıt` : "";
   box.replaceChildren();
-  if (!rows || !rows.length) {
-    box.textContent = "Kayıt yok.";
+  if (!shown.length) {
+    const empty = document.createElement("p");
+    empty.className = "whisper";
+    empty.textContent = memoryRows.length ? "Eşleşen kayıt yok." : "Henüz bir şey hatırlamıyorum. “Şunu hatırla: …” diyebilir ya da aşağıdan ekleyebilirsin.";
+    box.appendChild(empty);
     return;
   }
-  for (const row of rows) {
+  let lastCategory = null;
+  shown.forEach((row, index) => {
+    if (row.category !== lastCategory) {
+      lastCategory = row.category;
+      const head = document.createElement("div");
+      head.className = "mem-cat";
+      head.textContent = memoryLabel(row.category);
+      box.appendChild(head);
+    }
     const line = document.createElement("div");
     line.className = "mem-row";
-    const text = document.createElement("span");
-    text.textContent = `${row.category} · ${row.key}: ${row.text}`;
+    line.style.setProperty("--n", Math.min(index, 12));
+    const text = document.createElement("div");
+    text.className = "mem-text";
+    const key = document.createElement("b");
+    key.textContent = row.key || row.category;
+    const value = document.createElement("span");
+    value.textContent = row.text;
+    text.append(key, value);
+    text.title = "Düzeltmek için tıkla";
+    text.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.className = "mem-edit";
+      input.value = row.text;
+      input.maxLength = 400;
+      value.replaceWith(input);
+      input.focus();
+      input.select();
+      const commit = () => {
+        const next = input.value.trim();
+        if (next && next !== row.text && row.key) send("memory_save", {category: row.category, key: row.key, text: next});
+        else paintMemory();
+      };
+      input.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); commit(); } if (event.key === "Escape") paintMemory(); });
+      input.addEventListener("blur", commit);
+    });
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "tbtn";
+    button.className = "tbtn danger";
     button.textContent = "SİL";
-    button.addEventListener("click", () => send("forget", {category: row.category, key: row.key}));
+    let armed = false;
+    button.addEventListener("click", () => {
+      if (!armed) {
+        armed = true;
+        button.textContent = "EMİN MİSİN?";
+        setTimeout(() => { armed = false; button.textContent = "SİL"; }, 2500);
+        return;
+      }
+      line.classList.add("gone");
+      setTimeout(() => send("forget", {category: row.category, key: row.key}), 260);
+    });
     line.append(text, button);
     box.appendChild(line);
-  }
+  });
 }
+$("mem-search")?.addEventListener("input", () => paintMemory());
+$("mem-save")?.addEventListener("click", () => {
+  const category = $("mem-cat").value.trim() || "notes";
+  const key = $("mem-key").value.trim();
+  const text = $("mem-val").value.trim();
+  if (!key || !text) { (key ? $("mem-val") : $("mem-key")).focus(); return; }
+  send("memory_save", {category, key, text});
+  $("mem-key").value = "";
+  $("mem-val").value = "";
+});
 
 function toggleMic() {
   const off = $("t-mic").dataset.on === "1";
@@ -137,7 +179,7 @@ function openPhone() {
   send("phone");
 }
 $("t-phone").addEventListener("click", openPhone);
-for (const id of ["set-story", "set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-windows"]) {
+for (const id of ["set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-windows"]) {
   $(id).addEventListener("click", () => $(id).setAttribute("aria-checked", $(id).getAttribute("aria-checked") === "true" ? "false" : "true"));
 }
 document.querySelectorAll("#quiet-seg button").forEach(button => {
@@ -146,8 +188,6 @@ document.querySelectorAll("#quiet-seg button").forEach(button => {
     document.querySelector("[name=quiet_minutes]").value = button.dataset.min;
   });
 });
-$("story-keep").addEventListener("click", () => send("story", {ending: "surdur"}));
-$("story-end").addEventListener("click", () => send("story", {ending: "kapat"}));
 document.querySelectorAll(".stab").forEach(button => {
   button.addEventListener("click", () => {
     document.querySelectorAll(".stab").forEach(node => node.setAttribute("aria-selected", node === button ? "true" : "false"));

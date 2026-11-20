@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>FRIDAY</title>
 <link rel="stylesheet" href="hud.css">
+<link rel="stylesheet" href="hud-fx.css">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
@@ -21,6 +22,14 @@
   <button class="ctl" id="t-persona" data-i18n="models">AI MODELLERİ</button>
   <button class="ctl" id="t-settings" data-i18n="settings">AYARLAR</button>
   <span class="clock" id="t-clock">--:--</span>
+  <span class="winctl" id="br">
+    <button id="min" type="button" title="Küçült" aria-label="Küçült">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
+    </button>
+    <button id="quit" type="button" title="FRIDAY'i kapat" aria-label="Kapat">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v7"/><path d="M7.4 7.4a6.5 6.5 0 1 0 9.2 0"/></svg>
+    </button>
+  </span>
 </div>
 <div id="stage"><div id="core"></div></div>
 <div id="tiles">
@@ -67,6 +76,7 @@
   <div id="colR">
     <section class="mod wx" data-key="weather" style="--i:0">
       <div class="wxcard">
+        <i class="wxico" id="wx-ico" data-kind="clear" aria-hidden="true"><u></u><u></u><u></u></i>
         <b id="wx-temp">--°</b>
         <div><strong id="wx-city">KONUM</strong><span id="wx-desc"></span></div>
       </div>
@@ -84,7 +94,7 @@
       <p class="whisper" id="rem-text" data-i18n="remEmpty">Bekleyen anımsatıcı yok.</p>
     </section>
     <section class="mod" data-key="map" style="--i:3">
-      <div class="mapbox"><img id="map-img" alt=""><div class="maptint"></div></div>
+      <div class="mapbox"><img id="map-img" alt=""><div class="maptint"></div><i class="mapping" aria-hidden="true"></i></div>
       <div class="kicker" data-i18n="map">HARİTA</div>
       <p class="whisper" id="map-cap"></p>
     </section>
@@ -110,14 +120,6 @@
     <button type="button" class="tbtn" id="td-close">TAMAM</button>
   </div>
 </div>
-<div id="br">
-  <button id="min" type="button" title="Küçült (tepside çalışmaya devam eder)" aria-label="Küçült">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
-  </button>
-  <button id="quit" type="button" title="FRIDAY'i kapat" aria-label="Kapat">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v7"/><path d="M7.4 7.4a6.5 6.5 0 1 0 9.2 0"/></svg>
-  </button>
-</div>
 <div class="overlay" id="ov-settings" hidden>
   <form class="sheet setsheet" id="settings-form">
     <div class="sethead"><h2 data-i18n="settingsTitle">AYARLAR</h2><button type="button" class="setx" id="set-close" aria-label="Kapat">✕</button></div>
@@ -126,7 +128,6 @@
       <button type="button" class="stab" data-tab="paneller" data-i18n="tabPanels">PANELLER</button>
       <button type="button" class="stab" data-tab="ses" data-i18n="tabSound">SES</button>
       <button type="button" class="stab" data-tab="konusma" data-i18n="tabTalk">KONUŞMA</button>
-      <button type="button" class="stab" data-tab="hikaye" data-i18n="tabStory">HİKÂYE</button>
       <button type="button" class="stab" data-tab="hafiza" data-i18n="tabMemory">HAFIZA</button>
       <button type="button" class="stab" data-tab="telefon" data-i18n="tabPhone">TELEFON</button>
       <button type="button" class="stab" data-tab="izinler" data-i18n="tabPerms">İZİNLER</button>
@@ -156,8 +157,6 @@
       <div class="row2"><div>MİKROFON<small>Kapalıyken yalnızca yazarak konuşursun. F4 de açıp kapatır.</small></div>
         <button type="button" class="switch" id="set-mic" aria-checked="true"></button></div>
       <div class="row2"><div>KISAYOLLAR<small>/ yaz · F4 mikrofon · F6 kamera · Esc kapat · ortaya basınca uyku</small></div></div>
-      <div class="row2"><div>HİKÂYE MODU<small>İpuçları ve başarımlar. Kapalıyken hiçbiri olmaz; ilerlemen saklanır.</small></div>
-        <button type="button" class="switch" id="set-story" aria-checked="false"></button></div>
       <div class="row2"><div>WINDOWS İLE BAŞLA<small>Kapalı gelir. Açınca oturum açılınca FRIDAY kendiliğinden başlar. Kaldırınca bu kayıt da silinir.</small></div>
         <button type="button" class="switch" id="set-windows" aria-checked="false"></button></div>
     </section>
@@ -174,13 +173,6 @@
       <div class="row2"><div>YAKLAŞAN ETKİNLİK</div><button type="button" class="switch" id="set-events" aria-checked="false"></button></div>
       <div class="row2"><div>SU HATIRLATMASI</div><button type="button" class="switch" id="set-water" aria-checked="false"></button></div>
       <div class="row2"><div>MOLA HATIRLATMASI</div><button type="button" class="switch" id="set-break" aria-checked="false"></button></div>
-    </section>
-    <section class="pane" data-pane="hikaye">
-      <p class="whisper" id="story-note">Hikâye kapalı.</p>
-      <div id="story-list"></div>
-      <div class="row2"><div>SON KARAR<small>İlerleme silinmez.</small></div>
-        <button type="button" class="btn ghost" id="story-keep">SÜRDÜR</button>
-        <button type="button" class="btn ghost" id="story-end">KAPAT</button></div>
     </section>
     <section class="pane" data-pane="paneller">
       <p class="whisper">Ekranın iki yanında hangi paneller görünsün.</p>
@@ -207,8 +199,18 @@
         <button type="button" class="switch" id="set-music" role="switch" aria-checked="false"></button></div>
     </section>
     <section class="pane" data-pane="hafiza">
-      <p class="whisper">Bu bilgisayarda tutulan kayıtlar. Bir satırı silmek yalnızca onu unutturur.</p>
+      <p class="whisper">FRIDAY'nin senin hakkında hatırladıkları. Bu bilgisayarda durur. Satıra tıklayıp düzeltebilir, silerek unutturabilirsin.</p>
+      <div class="mem-tools">
+        <input type="search" id="mem-search" placeholder="Ara…" autocomplete="off">
+        <span class="mem-count" id="mem-count"></span>
+      </div>
       <div id="mem-list"></div>
+      <div class="mem-add">
+        <input id="mem-cat" placeholder="Kategori (örn. kişisel)" autocomplete="off" maxlength="40">
+        <input id="mem-key" placeholder="Başlık (örn. doğum günü)" autocomplete="off" maxlength="60">
+        <input id="mem-val" placeholder="Değer (örn. 4 Mayıs)" autocomplete="off" maxlength="400">
+        <button type="button" class="tbtn" id="mem-save">EKLE</button>
+      </div>
     </section>
     <section class="pane" data-pane="telefon">
       <div class="row2"><div>TELEFONA İNDİR<small>Telefonunun kamerasıyla okut: FRIDAY'in sitesi açılır, Android uygulamasını oradan indirirsin. Sonra uygulamada aşağıdaki kapı QR'ını okutup eşleştir.</small></div></div>
@@ -239,6 +241,7 @@
     </section>
     <section class="pane" data-pane="hakkinda">
       <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-3.8-live.</p>
+      <button type="button" class="btn ghost" id="app-notes">YENİLİKLER</button>
       <button type="button" class="btn ghost" id="app-update" hidden>Güncelle</button>
       <button type="button" class="btn ghost" id="open-data">KAYIT KLASÖRÜNÜ AÇ</button>
       <button type="button" class="btn ghost" id="uninstall">FRIDAY'İ KALDIR</button>
@@ -321,6 +324,14 @@
     </div>
   </div>
 </div>
+<div class="overlay" id="ov-notes" hidden>
+  <div class="sheet notesheet" role="dialog" aria-labelledby="notes-title">
+    <div class="sethead"><h2 id="notes-title">YENİLİKLER</h2><button type="button" class="setx" id="notes-close" aria-label="Kapat">✕</button></div>
+    <p class="whisper" id="notes-sub"></p>
+    <div class="notes-list" id="notes-list"></div>
+    <div class="row"><button type="button" class="btn" id="notes-update" hidden>Güncelle</button><button type="button" id="notes-ok">TAMAM</button></div>
+  </div>
+</div>
 <div class="overlay" id="ov-models" hidden>
   <div class="sheet">
     <h2 data-i18n="models">AI MODELLERİ</h2>
@@ -337,5 +348,6 @@
 <script src="hud-overlays.js"></script>
 <script src="hud-events.js"></script>
 <script src="core3d.js"></script>
+<script src="hud-fx.js"></script>
 </body>
 </html>
