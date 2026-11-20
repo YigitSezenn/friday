@@ -153,8 +153,7 @@ def main() -> int:
             "set COMPOSE_BAKE=0\r\n"
             "docker-compose up -d --build > C:\\Code\\friday-kapi\\build.txt 2>&1\r\n"
             "docker ps --filter name=friday-kapi > C:\\Code\\friday-kapi\\ps.txt 2>&1\r\n"
-            "docker logs --tail 40 friday-kapi > C:\\Code\\friday-kapi\\bot.txt 2>&1\r\n"
-            "netsh advfirewall firewall add rule name=FRIDAY-kapi dir=in action=allow protocol=TCP localport=8787 >nul 2>&1\r\n",
+            "docker logs --tail 40 friday-kapi > C:\\Code\\friday-kapi\\bot.txt 2>&1\r\n",
             encoding="ascii",
         )
         (target / "deploy.cmd").write_text(
