@@ -236,6 +236,7 @@ window.hud = {
     window.__appVersion = data.version || "";
     showPhone(data.phone);
     paintGate(data.gateKeyQr, data.pairCode);
+    paintGateState(data.gateState);
     paintSiteQr(data.siteQr, data.siteUrl);
     $("set-mic").setAttribute("aria-checked", $("t-mic").dataset.on === "1" ? "true" : "false");
     paintPanels(data.panels);

@@ -188,3 +188,32 @@ class PhoneTlsTests(unittest.TestCase):
                 finally:
                     srv.shutdown()
                     srv.server_close()
+
+
+class GateStateTests(unittest.TestCase):
+    def _run_once(self, status):
+        from jarvis import gate_client
+
+        class Stop(BaseException):
+            pass
+
+        resp = mock.Mock(status_code=status)
+        resp.json.return_value = {"commands": []}
+        calls = {"n": 0}
+
+        def sleeper(_s):
+            raise Stop
+
+        with mock.patch.object(gate_client, "gate_key", return_value="k" * 32), \
+                mock.patch.object(gate_client.requests, "get", return_value=resp), \
+                mock.patch.object(gate_client.time, "sleep", side_effect=sleeper):
+            try:
+                gate_client.run_gate(None)
+            except Stop:
+                pass
+        return gate_client.gate_state()
+
+    def test_states(self):
+        self.assertEqual(self._run_once(403), "denied")
+        self.assertEqual(self._run_once(500), "offline")
+        self.assertEqual(self._run_once(200), "ok")

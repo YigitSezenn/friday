@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.4",
+      "tarih": "2026-11-20",
+      "baslik": "Kapı durumu görünür",
+      "maddeler": [
+        "Ayarlar › Telefon'da yeni “Kapı” satırı: uzaktan komut bağlantısının çalışıp çalışmadığını (bağlı, anahtar kayıtlı değil, sunucuya ulaşılamıyor) açıkça gösterir.",
+        "Anahtar sunucuda kayıtlı değilse uygulama sunucuyu dakikada bir yoklar (eskiden her 5 saniyede).",
+        "Telefon anahtarını “Yenile” düğmesi gizlendi: anahtarı değiştirmek sunucuyu güncellemediği için uzaktan komut bağlantısını koparıyordu."
+      ]
+    },
+    {
       "surum": "4.13.3",
       "tarih": "2026-11-20",
       "baslik": "Kapı bağlantısı şifreli",

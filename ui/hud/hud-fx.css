@@ -235,3 +235,8 @@ circle.wxdot{transform-box:fill-box;transform-origin:center;animation:wxfade .5s
 .notes-rest{display:grid;gap:12px}
 .notes-rest[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.mapradar u,.wxbar i,.wxarea,.wxrainbar{animation:none!important}.wxtrail{display:none}}
+
+.gate-state{margin:8px 0;padding:8px 12px;border-radius:10px;border:1px solid rgba(160,140,255,.25);font-size:12.5px;line-height:1.45}
+.gate-state[data-state="ok"]{border-color:rgba(80,220,160,.5);color:#9ff0c8}
+.gate-state[data-state="denied"]{border-color:rgba(255,190,90,.5);color:#ffd9a0}
+.gate-state[data-state="offline"]{border-color:rgba(255,120,140,.45);color:#ffb3bf}

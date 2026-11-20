@@ -162,7 +162,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         from jarvis.config import ADDRESS_PRESETS, LIVE_MODELS, PANEL_KEYS, UI_COLORS, address_phrase, persona_palette
         from jarvis.language import choices, ui_language
         from jarvis.memory_store import list_entries
-        from jarvis.gate_client import ensure_gate_key, gate_join_url, pair_code, site_download_url
+        from jarvis.gate_client import ensure_gate_key, gate_join_url, gate_state, pair_code, site_download_url
         from jarvis.phone_server import phone_qr_data_url, phone_status
         config = load_app_config()
         self.effects = bool(config.get("effects", True))
@@ -190,6 +190,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
                 "siteQr": phone_qr_data_url(site_download_url()),
                 "siteUrl": site_download_url(),
                 "pairCode": pair_code(ensure_gate_key()),
+                "gateState": gate_state(),
                 "languages": choices(),
                 "uiLanguage": ui_language(config),
                 "models": list(LIVE_MODELS),
