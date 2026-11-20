@@ -1,6 +1,6 @@
 # FRIDAY
 
-Windows için Türkçe sesli asistan. Gemini Live ile konuşur; takvim, anımsatıcı, hava, dosya, uygulama, Spotify, YouTube, ekran ve kamera araçlarını kullanır. Arkadaşının bilgisayarına Python kurmadan kurulur. Telefon, aynı Wi-Fi üzerinden bilgisayara komut ve mikrofon gönderir.
+Windows için Türkçe sesli asistan. Gemini Live ile konuşur; takvim, anımsatıcı, not, zamanlayıcı, hava, dosya, uygulama, e-posta, WhatsApp, Spotify, YouTube, ekran ve kamera araçlarını kullanır. Python kurmadan kurulur. Android uygulaması bilgisayara komut, Wake-on-LAN ve mikrofon gönderir.
 
 Kurulum dosyası `dist/FRIDAY-Kurulum.exe` dosyasıdır. Bu depoda yoktur; kaynak koddan Inno Setup ile üretilir. Anahtar, telefon jetonu ve kişisel kayıtlar depoya girmez.
 
@@ -34,29 +34,42 @@ Anahtar zaten duruyorsa karşılama atlanır.
 ## Kısayollar
 
 - Yazı kutusuna yazıp Enter.
-- F4 mikrofon, F6 kamera, Esc kapatır.
+- F4 mikrofon (uyku modunu da açar/kapatır), F6 kamera, Esc kapatır.
+- “Uyku moduna geç” demek veya uyku düğmesi dinlemeyi durdurur.
 - Ayarlar › Genel › **Windows ile başla** kapalı gelir. Açınca `FRIDAY.exe` kullanıcının kendi Run anahtarına yazılır. Kapatmak veya kaldırmak bu kaydı siler.
-- Ayarlar › Ses › **Yankı engelleme** açıktır. Hoparlör yankısı ve konuşma sırasındaki ortam gürültüsü mikrofona gitmeden önce süzülür.
+
+## Neler yapar
+
+- **E-posta:** Gmail’i uygulama şifresiyle arka planda gönderir (Ayarlar’da **Test maili gönder** düğmesi var). Gmail/Outlook web, klasik Outlook ve taslak (mailto) yolları da vardır. Göndermeden önce her zaman sesli “Göndereyim mi?” onayı istenir.
+- **WhatsApp:** mesajı hazırlar, onayından sonra gönderir.
+- **Notlar** (silinebilir, asistan okuyabilir), **zamanlayıcı ve kronometre** (süre bitince alarm çalar, süre eklenebilir).
+- **Ses:** Spotify, uygulama ve sistem sesi komutla değişir. Hızlı konuşmaya karşı sabırlı dinleme ayarlıdır. Açılış ve kapanış sesleri vardır, isteğe bağlı arka plan müziği açılabilir.
+- **Güvenlik:** PowerShell’de salt okunur olmayan komutlar onay olmadan çalışmaz.
+- **Güncelleme:** uygulama sitedeki `surum.txt` ile sürümü karşılaştırır.
 
 ## Telefon
 
-Bilgisayar ve telefon aynı Wi-Fi’da olmalıdır. İnternete tünel açılmaz.
+Android uygulaması Jetpack Compose ile yazılmıştır (`com.friday.phone`). İki ayrı QR vardır:
 
-1. Ayarlar › Telefon’daki QR kodu okut.
-2. Açılan sayfa `FRIDAY.apk` indirme bağlantısı ve tarayıcıda açma bağlantısı verir.
-3. Telefondaki mikrofon bilgisayara PCM olarak gider. Asistanın sesi telefonda duyulur.
-4. “Bilgisayarda aç” veya “bilgisayara ilet” dersen komut bilgisayarda çalışır.
+1. Ayarlar › Telefon › **Telefona indir** QR’ı telefonun tarayıcısını sitedeki indirme bölümüne (`#indir`) götürür; APK oradan alınır.
+2. **Kapı** QR’ı yalnızca FRIDAY Android uygulamasının içinde okunur ve eşleştirme yapar. Telefon kamerası veya tarayıcı ile açılmaz.
 
-`phone-android` bir WebView projesidir (`com.friday.phone`). Aynı Wi-Fi dışında `gate` klasöründeki kapı kullanılır. Bilgisayar sunucuya kendisi bağlanır. Site ve sıfırdan yazılmış Discord botu (`!f komut`) aynı kuyruğa yazar. Kurulum dosyası sitedeki indirme bağlantısındadır. Kapı anahtarı ve Discord tokeni depoya girmez. Atrium botuna dokunulmaz.
+Uygulama komut gönderir, bilgisayarı Wake-on-LAN ile uyandırır, aynı Wi-Fi’da mikrofon köprüsü kurar ve komut geçmişini tutar (düzenle, sabitle, sil). Aynı Wi-Fi dışında `gate` klasöründeki kapı kullanılır; bilgisayar sunucuya kendisi bağlanır. Site ve Discord botu (`!f komut`) aynı kuyruğa yazar.
 
-QR ve sayfa adresi bir eşleştirme jetonu taşır. Paylaşma. Ayarlar’dan yeni kod üretmek eskisini düşürür.
+Ayarlar’daki **Yenile** düğmesi onayla yeni kapı anahtarı üretir, eskisi düşer. QR ve anahtarı paylaşma. Kapı anahtarı ve Discord tokeni depoya girmez; yalnızca `gate/.env.example` vardır. Atrium botuna dokunulmaz.
 
 ## Geliştirme
 
 ```
 .venv\Scripts\python.exe -m jarvis
 .venv\Scripts\python.exe -m unittest discover -s tests -v
-.venv\Scripts\python.exe -m PyInstaller --noconfirm --distpath dist --workpath build packaging\friday.spec
+python tools/bump_version.py X.Y.Z
 ```
 
-Kurulum betiği `packaging/friday.iss`. Derlemek için Inno Setup 6 gerekir. Betik `data` klasörünü pakete koymaz; bu yüzden bir bilgisayarın anahtarı başka bir kuruluma gitmez. Yeniden kurulum, kullanıcının duran veri klasörünü silmez.
+Testler Linux’ta da çalışır; Windows, ağ veya gerçek API gerektirenler `tests/_env.py` işaretleriyle atlanır (canlı Gemini testi için `FRIDAY_TEST_GEMINI_KEY`). `bump_version.py` sürümü Python paketine, Inno Setup betiğine, Android `build.gradle` ve siteye yazar; `surum.txt`’ye dokunmaz.
+
+### Yayın
+
+`yayin` dalına push, `.github/workflows/release.yml` iş akışını çalıştırır: testler, PyInstaller + Inno Setup (`FRIDAY-Kurulum.exe`), Android APK, Vercel’e tek seferde dağıtım (`surum.txt` ile birlikte) ve canlı doğrulama. Sonuç `ci-status` dalındaki `latest.json` dosyasına yazılır. Depo sırları: `VERCEL_TOKEN` (veya `VERCEL`) ve `ANDROID_DEBUG_KEYSTORE_B64`. Sırlar yalnızca GitHub’daki depo ayarlarına girilir.
+
+Elle derlemek için: `python -m PyInstaller --noconfirm --distpath dist --workpath build packaging\friday.spec`, ardından Inno Setup 6 ile `packaging/friday.iss` (UTF-8, BOM’lu kalmalı). Betik `data` klasörünü pakete koymaz; bir bilgisayarın anahtarı başka kuruluma gitmez. Yeniden kurulum kullanıcının veri klasörünü silmez.
