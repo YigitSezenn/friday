@@ -217,3 +217,21 @@ class GateStateTests(unittest.TestCase):
         self.assertEqual(self._run_once(403), "denied")
         self.assertEqual(self._run_once(500), "offline")
         self.assertEqual(self._run_once(200), "ok")
+
+
+class VisibleShellTests(unittest.TestCase):
+    def test_visible_opens_new_console_only_after_checks(self):
+        from unittest import mock
+
+        from tools.actions import shell
+
+        with mock.patch.object(shell.subprocess, "Popen") as popen:
+            out = shell.shell_run("ipconfig", visible=True)
+            self.assertIn("terminal penceresinde", out)
+            args = popen.call_args[0][0]
+            self.assertIn("-NoExit", args)
+            self.assertEqual(args[-1], "ipconfig")
+            popen.reset_mock()
+            self.assertIn("Güvenlik", shell.shell_run("shutdown /s", visible=True))
+            self.assertIn("ONAY", shell.shell_run("mkdir yeni", visible=True).upper())
+            popen.assert_not_called()
