@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 
 TERMINAL_TITLE = "FRIDAY Terminal"
+# Uzun süren komutlar gizli çalışırsa asistan dakikalarca "düşünüyor" kalır: görünür pencerede çalışır.
+LONG_RUNNING = ("winget ", "choco ", "scoop ", "pip ", "pip3 ", "npm ", "dotnet ", "ollama pull", "docker pull", "docker build")
 
 BLOCKED = [
     "mkfs",
@@ -141,6 +143,8 @@ def shell_run(command: str, timeout: int = 30, confirm_run: bool = False, visibl
         problem = confirm.check("shell", parts)
         if problem:
             return problem
+    if not visible and command.strip().lower().startswith(LONG_RUNNING):
+        visible = True
     if visible:
         # Kullanıcı terminal penceresinde görmek istedi: komut yeni bir PowerShell penceresinde çalışır, pencere açık kalır.
         try:
