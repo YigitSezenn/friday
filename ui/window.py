@@ -41,11 +41,11 @@ class WindowMixin:
         self._hiding = True
         self._ensure_tray()  # geri getirmek için tepsi simgesi hazır dursun
         try:
-            # Gerçek küçültme: görev çubuğunda kalır, tıklayınca geri gelir.
-            window.minimize()
+            # Pencereyi gizle: görev çubuğu düğmesi kalkar, FRIDAY yalnızca tepsi simgesinde (^ içinde) durur.
+            window.hide()
         except Exception:
             try:
-                window.hide()
+                window.minimize()
             except Exception:
                 self.write_log("ERR: Pencere küçültülemedi.")
         self._hiding = False
