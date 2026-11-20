@@ -63,6 +63,8 @@ DEFAULT_CONFIG = {
     # Arka planda (pencere açmadan) Gmail gönderimi: Google hesabındaki 16 haneli uygulama şifresi.
     "gmail_address": "",
     "gmail_app_password": "",
+    # Discord botunun komut kabul ettiği hesap (yalnızca rakamlardan oluşan kullanıcı kimliği; sır değildir).
+    "discord_owner_id": "",
     "outlook_web_host": "outlook.live.com",
     "water_enabled": False,
     "break_enabled": False,
@@ -127,6 +129,7 @@ def load_app_config() -> dict:
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
     config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
     config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
+    config["discord_owner_id"] = "".join(ch for ch in str(config.get("discord_owner_id") or "") if ch.isdigit())[:24]
     config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
     config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     return config
@@ -269,6 +272,7 @@ def _save_app_config(updates: dict) -> dict:
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
     config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
     config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
+    config["discord_owner_id"] = "".join(ch for ch in str(config.get("discord_owner_id") or "") if ch.isdigit())[:24]
     config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
     config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     path = config_path()

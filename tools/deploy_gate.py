@@ -41,6 +41,17 @@ def secret_path() -> Path:
     return Path(os.environ["LOCALAPPDATA"]) / "FRIDAY" / "server-login.bin"
 
 
+def saved_discord_owner() -> str:
+    """Ayarlar'daki Discord kimliği (sır değil); boşsa eski şifreli dosyaya düşülür."""
+    sys.path.insert(0, str(ROOT))
+    try:
+        from jarvis.config import load_app_config
+
+        return str(load_app_config().get("discord_owner_id") or "").strip()
+    except Exception:
+        return ""
+
+
 def load_saved() -> str:
     path = secret_path()
     if not path.exists():
@@ -127,7 +138,7 @@ def main() -> int:
         public = ROOT / "gate" / "public"
         if public.exists():
             shutil.copytree(public, target / "public")
-        discord_owner = load_named("discord-owner.bin")
+        discord_owner = saved_discord_owner() or load_named("discord-owner.bin")
         (target / ".env").write_text(
             f"GATE_KEY={key}\nDISCORD_TOKEN={discord_token}\nDISCORD_OWNER_ID={discord_owner}\n",
             encoding="utf-8",
