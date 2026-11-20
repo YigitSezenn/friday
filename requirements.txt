@@ -11,3 +11,4 @@ pywebview
 qrcode
 pycaw
 comtypes
+cryptography>=42

@@ -21,6 +21,8 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
 
 /**
  * Telefon mikrofonunu (/mic) bilgisayara, bilgisayarın sesini (/speaker) telefona taşır.
@@ -134,5 +136,9 @@ class LanBridge(private val link: LanLink, private val scope: CoroutineScope) {
         (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 3_000
             readTimeout = 3_000
+            if (this is HttpsURLConnection && link.secure) {
+                sslSocketFactory = PinnedTls.factory(link.pin)
+                hostnameVerifier = HostnameVerifier { _, _ -> true } // kimlik doğrulama parmak izi sabitlemesiyle yapılır
+            }
         }
 }
