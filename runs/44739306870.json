@@ -1,0 +1,20 @@
+{
+  "version": "4.12.0",
+  "ref": "yayin",
+  "sha": "4572e608212f10c363a3641d28f3c363ef4ec911",
+  "run": "https://github.com/YigitSezenn/friday/actions/runs/44739306870",
+  "tests": "success",
+  "windows": "success",
+  "exe_sha256": "1FE1DB92C832CB903B405FE1506156AF7FF5E00DB8212FE48D666CD416D32C9A",
+  "exe_size": "78073666",
+  "android": "success",
+  "apk_signed": "true",
+  "apk_sha256": "7148c6429add4eb73af133f28738d2efbb96dd1bf0ca51d55161438f936c9278",
+  "apk_kept_live": "false",
+  "deploy": "success",
+  "deploy_url": "https://site-95mk83j7x-yigitsezenns-projects.vercel.app",
+  "live_surum": "4.12.0",
+  "vercel_token_present": "true",
+  "deploy_error": ""
+}
+
