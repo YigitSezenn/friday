@@ -10,7 +10,9 @@
         "Yeni bir klasöre taşırken ilk dosya klasörün adını alıyordu ve geri kalanı taşınmıyordu; düzeltildi. Birden çok dosya tek seferde taşınır ve taşıma artık onay sormaz (silme ve üzerine yazma sorar).",
         "Anımsatıcılar artık zamanı gelince haber veriyor (log satırı, ses ve FRIDAY'nin sesli hatırlatması). Daha önce yalnızca kaydediliyordu, hiç çalmıyordu.",
         "“N dakika sonra hatırlat” tek anımsatıcı ekler ve saati sunucu hesaplar; aynı anımsatıcı iki kez eklenmez.",
-        "Bir işlem hata ya da onay bekliyorsa FRIDAY artık “yaptım” demez. “Taşı”, “çalıştır” da onay sayılır."
+        "Bir işlem hata ya da onay bekliyorsa FRIDAY artık “yaptım” demez. “Taşı”, “çalıştır” da onay sayılır.",
+        "Ayarlara Discord kimliği alanı eklendi; Discord botu yalnızca bu hesaptan komut alır, başkası yazarsa sebebini ve kimliğini söyler.",
+        "FRIDAY artık Discord masaüstü uygulamasından kişilere özel mesaj gönderebilir (onay sorar)."
       ]
     },
     {
