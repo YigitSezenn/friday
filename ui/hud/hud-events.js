@@ -59,6 +59,7 @@ $("settings-form").addEventListener("submit", event => {
   values.break_enabled = $("set-break").getAttribute("aria-checked") === "true";
   values.event_alerts = $("set-events").getAttribute("aria-checked") === "true";
   values.phone_autostart = $("set-phone-auto").getAttribute("aria-checked") === "true";
+  values.file_access = $("set-files").getAttribute("aria-checked") === "true";
   values.start_with_windows = $("set-windows").getAttribute("aria-checked") === "true";
   values.quiet_minutes = Number(values.quiet_minutes || 20);
   values.panels_off = [...document.querySelectorAll("#set-panels .switch")].filter(node => node.getAttribute("aria-checked") !== "true").map(node => node.dataset.panel);

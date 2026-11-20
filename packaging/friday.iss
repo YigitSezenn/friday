@@ -7,7 +7,7 @@
 [Setup]
 AppId={{8F3A1C2E-6B47-4D19-9A55-F21DA7000001}
 AppName=FRIDAY
-AppVersion=4.12.4
+AppVersion=4.13.0
 AppPublisher=FRIDAY
 DefaultDirName={localappdata}\FRIDAY
 DisableDirPage=yes

@@ -349,6 +349,13 @@ def app_window(args, ctx):
     return "Bilinmeyen pencere komutu: minimize, close ya da restore."
 
 
+@tool("file_access")
+def file_access(args, ctx):
+    from tools.actions.fileaccess import run
+
+    return run(text(args, "action"), text(args, "path"), text(args, "destination"), text(args, "content"), text(args, "query"), bool(args.get("confirm", False)))
+
+
 @tool("desktop_action")
 def desktop_action(args, ctx):
     from tools.actions.desktop import run

@@ -75,6 +75,9 @@ def friendly(result: str) -> str:
     shell = re.search(r"Bu komut bilgisayarda değişiklik yapabilir: `(.+)`", body, re.S)
     if shell:
         return f"Bu işlem bilgisayarda değişiklik yapabilir: {shell.group(1).strip()}. Çalıştırayım mı? (evet / hayır)"
+    fil = re.search(r"Dosya işlemi: (.+)$", body, re.S)
+    if fil:
+        return f"{fil.group(1).strip().capitalize()}. Devam edeyim mi? (evet / hayır)"
     if "cevabini bekle" in body or "cevabını bekle" in body:
         return "Cevabını bekliyorum."
     if "taslağı" in body and "sor" in body:

@@ -229,6 +229,7 @@ window.hud = {
     setSwitch("set-events", data.config.event_alerts);
     setSwitch("set-phone-auto", data.config.phone_autostart);
     setSwitch("set-windows", data.config.start_with_windows);
+    setSwitch("set-files", data.config.file_access);
     document.querySelectorAll("#quiet-seg button").forEach(node => node.setAttribute("aria-checked", node.dataset.min === String(data.config.quiet_minutes || 20) ? "true" : "false"));
     window.__liveModel = data.config.live_model;
     window.__dataDir = data.dataDir || "";
