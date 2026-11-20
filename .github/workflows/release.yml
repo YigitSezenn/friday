@@ -142,15 +142,23 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
       live: ${{ steps.verify.outputs.live }}
       apk_kept: ${{ steps.files.outputs.apk_kept }}
+      token: ${{ steps.token.outputs.present }}
+      error: ${{ steps.diag.outputs.error }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - name: Vercel anahtarı var mı
+      - id: token
+        name: Vercel anahtarı var mı
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          if [ -z "$VERCEL_TOKEN" ]; then echo "::error::VERCEL_TOKEN sırrı eksik (Settings › Secrets and variables › Actions)"; exit 1; fi
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "VERCEL_TOKEN sırrı bu iş akışına ulaşmıyor (ad tam 'VERCEL_TOKEN' mı, Actions > Repository secrets altında mı?)" > /tmp/deploy.log
+            echo "::error::VERCEL_TOKEN sırrı eksik"; exit 1
+          fi
+          echo "present=true" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -178,10 +186,12 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          npm ci
-          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
-          URL=$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          set -o pipefail
+          npm ci 2>&1 | tee -a /tmp/deploy.log
+          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN" 2>&1 | tee -a /tmp/deploy.log
+          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN" 2>&1 | tee -a /tmp/deploy.log
+          npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>>/tmp/deploy.log > /tmp/url.txt
+          URL=$(tail -n1 /tmp/url.txt)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
       - id: verify
         name: Canlı doğrulama
@@ -197,7 +207,14 @@ jobs:
             sleep 15
           done
           echo "live=${live:-?}" >> "$GITHUB_OUTPUT"
+          echo "Canlı doğrulanamadı (surum=$live exe=$len beklenen $VERSION/$size)" >> /tmp/deploy.log
           echo "::error::Canlı doğrulanamadı (surum=$live exe=$len beklenen $VERSION/$size)"; exit 1
+      - id: diag
+        name: Hata özeti (rapor için; Actions sırları günlükte zaten maskelenir)
+        if: failure()
+        run: |
+          msg=$(tail -n 25 /tmp/deploy.log 2>/dev/null | tr '"\\' "'/" | tr '\n\r\t' '   ' | cut -c1-1500)
+          echo "error=${msg:-adım günlüğü yok (indirme/checkout aşaması)}" >> "$GITHUB_OUTPUT"
 
   report:
     name: Sonuç raporu
@@ -224,7 +241,9 @@ jobs:
               "apk_kept_live": "${{ needs.deploy.outputs.apk_kept }}",
               "deploy": "${{ needs.deploy.result }}",
               "deploy_url": "${{ needs.deploy.outputs.url }}",
-              "live_surum": "${{ needs.deploy.outputs.live }}"
+              "live_surum": "${{ needs.deploy.outputs.live }}",
+              "vercel_token_present": "${{ needs.deploy.outputs.token }}",
+              "deploy_error": "${{ needs.deploy.outputs.error }}"
             }
         run: |
           mkdir rep && cd rep
