@@ -205,7 +205,44 @@ def _find_start_app(target_name: str, allow_fuzzy: bool = True) -> tuple[str, st
     return "", ""
 
 
+def front_wait(marker: str, timeout: float = 6.0, find=None, front=None, sleep=None) -> bool:
+    """Başlığında `marker` geçen pencere görününce öne getirir; çıkmazsa vazgeçer (en iyi çaba)."""
+    import time
+
+    from jarvis import win32
+
+    find = find or win32.find_window
+    front = front or win32.bring_to_front
+    sleep = sleep or time.sleep
+    waited = 0.0
+    while waited <= timeout:
+        hwnd = find(marker)
+        if hwnd:
+            front(hwnd)
+            return True
+        sleep(0.4)
+        waited += 0.4
+    return False
+
+
+def front_soon(marker: str) -> None:
+    """Açılan pencereyi arka planda bekleyip öne getirir; Windows dışında bir şey yapmaz."""
+    from jarvis import win32
+
+    if marker and win32.available():
+        import threading
+
+        threading.Thread(target=front_wait, args=(marker,), name="friday-front", daemon=True).start()
+
+
 def open_app(app_name: str) -> str:
+    result = _open_app(app_name)
+    if result.endswith(" açıldı."):
+        front_soon(result[: -len(" açıldı.")])
+    return result
+
+
+def _open_app(app_name: str) -> str:
     raw = (app_name or "").strip()
     if not raw:
         return "Uygulama adı belirtilmedi."

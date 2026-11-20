@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import subprocess
 
+TERMINAL_TITLE = "FRIDAY Terminal"
+
 BLOCKED = [
     "mkfs",
     "dd if=",
@@ -143,9 +145,12 @@ def shell_run(command: str, timeout: int = 30, confirm_run: bool = False, visibl
         # Kullanıcı terminal penceresinde görmek istedi: komut yeni bir PowerShell penceresinde çalışır, pencere açık kalır.
         try:
             subprocess.Popen(
-                ["powershell.exe", "-NoProfile", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", command],
+                ["powershell.exe", "-NoProfile", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", f"$Host.UI.RawUI.WindowTitle = '{TERMINAL_TITLE}'; {command}"],
                 creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
             )
+            from tools.actions.apps import front_soon
+
+            front_soon(TERMINAL_TITLE)
         except OSError as exc:
             return f"Hata: {exc}"
         return f"Komut yeni bir terminal penceresinde çalıştırıldı: {command.strip()[:120]}"

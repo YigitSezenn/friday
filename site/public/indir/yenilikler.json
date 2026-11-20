@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.12",
+      "tarih": "2026-11-21",
+      "baslik": "Açılan pencereler öne gelir",
+      "maddeler": [
+        "FRIDAY'nin açtığı uygulama ve terminal pencereleri, görününce öne getirilir. (Windows bazen buna izin vermez; o zaman pencere görev çubuğunda yanıp söner.)"
+      ]
+    },
+    {
       "surum": "4.13.11",
       "tarih": "2026-11-21",
       "baslik": "Komutu terminal penceresinde çalıştır",
