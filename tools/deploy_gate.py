@@ -42,14 +42,15 @@ def secret_path() -> Path:
 
 
 def saved_discord_owner() -> str:
-    """Ayarlar'daki Discord kimliği (sır değil); boşsa eski şifreli dosyaya düşülür."""
-    sys.path.insert(0, str(ROOT))
-    try:
-        from jarvis.config import load_app_config
+    """Ayarlar'daki Discord kimliği (sır değil); kurulu uygulamanın yapılandırmasından okunur."""
+    import json
 
-        return str(load_app_config().get("discord_owner_id") or "").strip()
-    except Exception:
+    path = Path(os.environ.get("LOCALAPPDATA", "")) / "FRIDAY" / "data" / "config" / "api_keys.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8")).get("discord_owner_id")
+    except (OSError, ValueError, AttributeError):
         return ""
+    return "".join(ch for ch in str(value or "") if ch.isdigit())
 
 
 def load_saved() -> str:
