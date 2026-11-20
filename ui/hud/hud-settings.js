@@ -29,13 +29,59 @@ const GATE_TEXT = {
   unknown: "Kapı: kontrol ediliyor…",
 };
 function paintHome(devices) {
-  const line = $("home-list");
-  if (!line) return;
+  const box = $("home-list");
+  if (!box) return;
+  box.replaceChildren();
   const names = Object.keys(devices || {});
-  line.textContent = names.length
-    ? names.map(name => `${name} (${devices[name].host || "IP yok"}): ${devices[name].codes.join(", ") || "kod yok"}`).join("\n")
-    : "Henüz cihaz yok.";
-  line.style.whiteSpace = "pre-line";
+  if (!names.length) {
+    const empty = document.createElement("p");
+    empty.className = "whisper";
+    empty.textContent = "Henüz cihaz yok.";
+    box.append(empty);
+    return;
+  }
+  const remove = (device, command) => send("home", {action: "remove", device, command: command || ""});
+  const button = (cls, label, title, onClick) => {
+    const node = document.createElement("button");
+    node.type = "button";
+    node.className = cls;
+    node.textContent = label;
+    node.title = title;
+    node.addEventListener("click", onClick);
+    return node;
+  };
+  for (const name of names) {
+    const info = devices[name];
+    const card = document.createElement("article");
+    card.className = "home-card";
+    const head = document.createElement("header");
+    const title = document.createElement("button");
+    title.type = "button";
+    title.className = "home-name";
+    title.title = "Alanlara doldur";
+    title.textContent = name;
+    title.addEventListener("click", () => { $("home-name").value = name; $("home-host").value = info.host || ""; });
+    const host = document.createElement("span");
+    host.className = "home-host";
+    host.textContent = info.host || "IP yok";
+    head.append(title, host, button("home-del", "SİL", "Cihazı sil", () => remove(name)));
+    const chips = document.createElement("div");
+    chips.className = "home-chips";
+    if (!info.codes.length) {
+      const none = document.createElement("em");
+      none.textContent = "Henüz kod öğretilmedi";
+      chips.append(none);
+    }
+    for (const code of info.codes) {
+      const chip = document.createElement("span");
+      chip.className = "home-chip";
+      chip.textContent = code;
+      chip.append(button("home-chip-x", "×", "Kodu sil", () => remove(name, code)));
+      chips.append(chip);
+    }
+    card.append(head, chips);
+    box.append(card);
+  }
 }
 function paintGateState(state) {
   const line = $("gate-state");

@@ -7,6 +7,7 @@ Köprü ilk kullanımda `broadlink` paketiyle konuşur (pip install broadlink).
 from __future__ import annotations
 
 import base64
+import ipaddress
 import json
 import time
 
@@ -77,6 +78,10 @@ def run(action: str, device: str = "", command: str = "", host: str = "") -> str
             if len(found) > 1:
                 return f"Birden fazla köprü bulundu: {', '.join(found)}. Hangisini eklemek istediğini IP ile belirt."
             host = found[0]
+        try:
+            ipaddress.ip_address(host.strip())
+        except ValueError:
+            return f"'{host.strip()}' geçerli bir IP adresi değil (örnek: 192.168.1.45). Boş bırakırsan köprü otomatik bulunur."
         data.setdefault(device, {"codes": {}})["host"] = host.strip()
         _save(data)
         return f"{device} eklendi ({host.strip()})."

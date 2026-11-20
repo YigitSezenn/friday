@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.10",
+      "tarih": "2026-11-21",
+      "baslik": "EV listesi yenilendi",
+      "maddeler": [
+        "EV sekmesindeki cihazlar kartlar halinde: her cihazın kendi SİL düğmesi, her kodun yanında × var.",
+        "Geçersiz köprü adresi (ör. “11”) artık kaydedilmiyor."
+      ]
+    },
+    {
       "surum": "4.13.9",
       "tarih": "2026-11-20",
       "baslik": "Daha güvenli telefon köprüsü",
