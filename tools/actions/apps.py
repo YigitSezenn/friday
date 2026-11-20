@@ -210,6 +210,13 @@ def open_app(app_name: str) -> str:
     if not raw:
         return "Uygulama adı belirtilmedi."
     needle = normalize_name(raw)
+    sites = {"youtube": "https://www.youtube.com", "you tube": "https://www.youtube.com",
+             "youtube music": "https://music.youtube.com"}
+    if needle in sites:
+        from tools.actions.browser import open_home_soon
+
+        open_home_soon(sites[needle])
+        return "YouTube açıldı."
     resolved = _ALIAS_LOOKUP.get(needle)
     if resolved is None:
         app_id, matched = _find_start_app(raw, allow_fuzzy=False)
