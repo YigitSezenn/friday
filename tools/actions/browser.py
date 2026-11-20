@@ -2,13 +2,61 @@ from __future__ import annotations
 
 import re
 import urllib.parse
+import threading
+import time
 import webbrowser
+
+_RECENT: dict[str, float] = {}
+DEDUPE_SECONDS = 8.0
+
+
+def _site_key(url: str) -> str:
+    host = urllib.parse.urlparse(url).netloc.lower()
+    host = host[4:] if host.startswith("www.") else host
+    return host.replace("m.", "", 1) if host.startswith("m.") else host
+
+
+def recently_opened(url: str, now: float | None = None) -> bool:
+    """Ayni siteye birkac saniye icinde ikinci pencere acilmasin (model iki arac cagirabilir)."""
+    now = time.monotonic() if now is None else now
+    key = _site_key(url)
+    last = _RECENT.get(key)
+    _RECENT[key] = now
+    return last is not None and now - last < DEDUPE_SECONDS
+
+
+_PENDING: dict[str, "threading.Timer"] = {}
+WEAK_DELAY = 2.5
 
 
 def open_url(url: str) -> None:
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    # Ayni siteye ait bekleyen "ana sayfa" acilisi varsa iptal et: video/arama zaten acilacak.
+    pending = _PENDING.pop(_site_key(url), None)
+    if pending is not None:
+        pending.cancel()
+    if recently_opened(url):
+        return
     webbrowser.open(url)
+
+
+def open_home_soon(url: str) -> None:
+    """Sadece 'YouTube'u ac' denince: model ayrica video acarsa bu acilis iptal olur."""
+    key = _site_key(url)
+    last = _RECENT.get(key)
+    if key in _PENDING or (last is not None and time.monotonic() - last < DEDUPE_SECONDS):
+        return
+
+    def fire() -> None:
+        _PENDING.pop(key, None)
+        _RECENT[key] = time.monotonic()
+        webbrowser.open(url)
+
+    timer = threading.Timer(WEAK_DELAY, fire)
+    timer.daemon = True
+    _PENDING[key] = timer
+    timer.start()
 
 
 def _find_first_youtube_video(query: str) -> str | None:
