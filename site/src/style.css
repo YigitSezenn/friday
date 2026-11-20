@@ -5,41 +5,55 @@
 }
 
 :root {
-  --bg: #04070c;
-  --ink: #e9f6ff;
-  --dim: #92a8ba;
-  --arc: #7fe7ff;
-  --arc-rgb: 127, 231, 255;
-  --ember: #ffb454;
-  --ember-rgb: 255, 180, 84;
-  --on-arc: #03121a;
-  --panel: rgba(8, 16, 25, 0.74);
-  --field: rgba(127, 231, 255, 0.05);
-  --bar: rgba(4, 7, 12, 0.8);
+  --bg: #05060a;
+  --ink: #f6f1e6;
+  --dim: #b7a27a;
+  --arc: #e6c98a;
+  --arc-rgb: 230, 201, 138;
+  --ember: #e7a0ae;
+  --ember-rgb: 231, 160, 174;
+  --on-arc: #140e03;
+  --panel: rgba(14, 12, 8, 0.72);
+  --field: rgba(230, 201, 138, 0.05);
+  --bar: rgba(5, 6, 10, 0.8);
   --line: rgba(var(--arc-rgb), 0.2);
   --line-strong: rgba(var(--arc-rgb), 0.78);
-  --solid: #0a1620;
+  --solid: #14110b;
   --display: "Saira", "Segoe UI", system-ui, sans-serif;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --pad: clamp(20px, 6vw, 104px);
   --head: 64px;
   color-scheme: dark;
 }
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: linear-gradient(rgba(var(--arc-rgb), 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--arc-rgb), 0.07) 1px, transparent 1px);
+  background-size: 96px 96px;
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 50%, #000 20%, transparent 78%);
+  mask-image: radial-gradient(70% 70% at 50% 50%, #000 20%, transparent 78%);
+}
+
 [data-theme="light"] {
-  --bg: #f6f1e8;
+  --bg: #f6f1e6;
   --ink: #1c1710;
-  --dim: #675a49;
-  --arc: #9a4d12;
-  --arc-rgb: 154, 77, 18;
-  --ember: #0f5e73;
-  --ember-rgb: 15, 94, 115;
-  --on-arc: #fffaf4;
-  --panel: rgba(255, 251, 244, 0.78);
-  --field: rgba(154, 77, 18, 0.05);
-  --bar: rgba(246, 241, 232, 0.84);
+  --dim: #6b5a3a;
+  --arc: #9a5c1a;
+  --arc-rgb: 154, 92, 26;
+  --ember: #a33d5c;
+  --ember-rgb: 163, 61, 92;
+  --on-arc: #fffaf2;
+  --panel: rgba(255, 251, 242, 0.8);
+  --field: rgba(154, 92, 26, 0.05);
+  --bar: rgba(246, 241, 230, 0.86);
   --line: rgba(var(--arc-rgb), 0.24);
   --line-strong: rgba(var(--arc-rgb), 0.85);
-  --solid: #efe6d6;
+  --solid: #efe6d4;
   color-scheme: light;
 }
 
@@ -181,22 +195,6 @@ nav a[aria-current="true"]::after { transform: scaleX(1); }
   transform: scaleX(var(--p, 0));
   transform-origin: left;
 }
-.theme {
-  display: inline-flex;
-  border: 1px solid var(--line);
-}
-.theme button {
-  border: 0;
-  padding: 7px 12px;
-  background: transparent;
-  color: var(--dim);
-  font: 500 13px/1 var(--display);
-  font-stretch: 108%;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-.theme button[aria-pressed="true"] { background: var(--arc); color: var(--on-arc); }
 
 h1, h2, h3 { margin: 0; font-weight: 600; }
 h1 {
@@ -661,8 +659,7 @@ html, body, header, .panel, form, input, textarea { transition-property: backgro
   nav::-webkit-scrollbar { display: none; }
   nav a { padding: 11px 10px; }
   nav a::after { left: 10px; right: 10px; bottom: 5px; }
-  .theme button { padding: 7px 10px; }
-  .frame { display: none; }
+    .frame { display: none; }
   .hero { justify-content: flex-end; padding: 46svh var(--pad) 9vh; }
   h1 { font-size: clamp(46px, 14.5vw, 72px); margin-bottom: 20px; }
   .lead { font-size: 17px; }
@@ -745,3 +742,23 @@ html[data-app="apk"] .btn { width: 100%; min-height: 52px; font-size: 16px; }
   }
   .btn::after { display: none; }
 }
+
+/* Tema geçişi (açık / koyu) — HUD tasarımı iki modda da aynı */
+.theme {
+  display: inline-flex;
+  border: 1px solid var(--line);
+}
+.theme button {
+  border: 0;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--dim);
+  font: 500 13px/1 var(--display);
+  font-stretch: 108%;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.theme button[aria-pressed="true"] { background: var(--arc); color: var(--on-arc); }
+.theme button { padding: 7px 10px; }
+  .theme button { padding: 7px 10px; }

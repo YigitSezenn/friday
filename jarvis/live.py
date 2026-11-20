@@ -36,6 +36,60 @@ CHUNK = 1024
 CONTROL_TOKEN_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
 
+class SafeStream:
+    """PyAudio akışını iş parçacığı güvenli sarar.
+
+    Yeniden bağlanmada (uyku, ayar kaydı) görevler iptal edilir ama `asyncio.to_thread` ile
+    başlamış read/write iş parçacığı sürer. Akış o sırada kapatılırsa PortAudio yerel kodda
+    çöker ve uygulama kapanır. Kilit: close() süren okuma/yazmanın bitmesini bekler,
+    kapandıktan sonra gelen okuma/yazma sessizce atlanır.
+    """
+
+    def __init__(self, audio, stream) -> None:
+        self._audio = audio
+        self._stream = stream
+        self._lock = threading.Lock()
+        self.closed = False
+
+    def write(self, data: bytes) -> None:
+        with self._lock:
+            if not self.closed:
+                self._stream.write(data)
+
+    def read(self, frames: int) -> bytes:
+        with self._lock:
+            if self.closed:
+                return b""
+            return self._stream.read(frames, exception_on_overflow=False)
+
+    def close(self) -> None:
+        with self._lock:
+            if self.closed:
+                return
+            self.closed = True
+            for step in (getattr(self._stream, "stop_stream", None), getattr(self._stream, "close", None), getattr(self._audio, "terminate", None)):
+                if step is None:
+                    continue
+                try:
+                    step()
+                except Exception:
+                    pass
+
+
+def listening_config(patient: bool) -> dict | None:
+    """Sunucu ses algılama ayarı. Gemini Live varsayılanı konuşmayı erken bitmiş sayar
+    (END_SENSITIVITY_HIGH); hızlı ya da duraksayarak konuşanın cümlesi yarıda kesilir.
+    Sabırlı modda konuşma başı kaçırılmaz, bitiş için kısa bir sessizlik beklenir."""
+    if not patient:
+        return None
+    return {
+        "start_of_speech_sensitivity": "START_SENSITIVITY_HIGH",
+        "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
+        "prefix_padding_ms": 200,
+        "silence_duration_ms": 700,
+    }
+
+
 def queue_mic_frame(pcm: bytes, *, speaking: bool, muted: bool, paused: bool) -> dict | None:
     """V3 ile aynı: asistan konuşurken, sessizde ve durakta mikrofon modele gitmez."""
     if speaking or muted or paused or not pcm:
@@ -80,6 +134,7 @@ class JarvisLive:
         self.webcam = WebcamStreamer()
         ui.on_text_command = self._on_text_command
         ui.on_pause_toggle = self._on_pause_toggle
+        ui.speak_note = self.nudge
         ui.on_webcam_toggle = self._on_webcam_toggle
         ui.on_settings_saved = self.request_reconnect
 
@@ -136,7 +191,16 @@ class JarvisLive:
         asyncio.run_coroutine_threadsafe(self._send_text(text), self._loop)
 
     async def _send_text(self, text: str) -> None:
-        await self.session.send_client_content(turns={"parts": [{"text": text}]}, turn_complete=True)
+        await self._send_user_text(text)
+
+    async def _send_user_text(self, text: str) -> None:
+        """3.x canlı modeller oturum ortasında send_client_content'i 1007 ile kapatır
+        (S-022'de yeniden üretildi). Metin yalnızca send_realtime_input(text=) ile gider;
+        eski yola düşmek oturumu kopardığı için geri dönüş yok."""
+        try:
+            await self.session.send_realtime_input(text=text)
+        except TypeError:
+            self.ui.write_log("ERR: Yazılı mesaj gönderilemedi: Gemini kütüphanesi eski. FRIDAY'i güncelle.")
 
     def set_speaking(self, value: bool) -> None:
         with self._speaking_lock:
@@ -168,6 +232,12 @@ class JarvisLive:
         )
         if code:
             speech.language_code = code
+        extra = {}
+        listening = listening_config(bool(get_app_config_value("patient_listening", True)))
+        if listening:
+            extra["realtime_input_config"] = types.RealtimeInputConfig(
+                automatic_activity_detection=types.AutomaticActivityDetection(**listening)
+            )
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             output_audio_transcription=spoken,
@@ -175,6 +245,7 @@ class JarvisLive:
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS}],
             speech_config=speech,
+            **extra,
         )
 
     async def _execute(self, function_call):
@@ -212,7 +283,17 @@ class JarvisLive:
             if mime.startswith("image/"):
                 await self._send_media(message["data"], mime)
                 continue
-            await self.session.send_realtime_input(media={"data": message["data"], "mime_type": "audio/pcm"})
+            await self._send_audio(message["data"])
+
+    async def _send_audio(self, data: bytes) -> None:
+        """`media=` kullanımdan kalktı ve 3.x canlı modellerde bağlantıyı 1007 ile düşürür;
+        mikrofon sesi `audio=` Blob'u ve açık örnekleme hızıyla gider."""
+        from google.genai import types
+
+        try:
+            await self.session.send_realtime_input(audio=types.Blob(data=data, mime_type=f"audio/pcm;rate={SEND_RATE}"))
+        except TypeError:
+            await self.session.send_realtime_input(media={"data": data, "mime_type": "audio/pcm"})
 
     async def _send_media(self, data: bytes, mime: str) -> None:
         from google.genai import types
@@ -254,9 +335,12 @@ class JarvisLive:
                 )
                 if frame:
                     await self.out_queue.put(frame)
+        mic = SafeStream(audio, stream)
         try:
             while True:
-                data = await asyncio.to_thread(stream.read, CHUNK, exception_on_overflow=False)
+                data = await asyncio.to_thread(mic.read, CHUNK)
+                if mic.closed:
+                    break
                 with self._speaking_lock:
                     speaking = self._is_speaking
                 from jarvis.phone_server import take_phone_audio
@@ -272,11 +356,7 @@ class JarvisLive:
                         self.stall.voice(time.monotonic(), peak(pcm))
                         await self.out_queue.put(frame)
         finally:
-            close = getattr(stream, "close", None)
-            if close:
-                close()
-            if audio is not None:
-                audio.terminate()
+            mic.close()
 
     async def _receive_audio(self) -> None:
         out_buf, in_buf = [], []
@@ -318,7 +398,7 @@ class JarvisLive:
                         if spoken and not self._said_result:
                             self.ui.write_log(f"JARVIS: {spoken}")
                         elif output_noise and not self._said_result:
-                            self.ui.write_log("ERR: JARVIS sesli yanitini cozumlerken bir hata olustu.")
+                            self.ui.write_log("ERR: JARVIS sesli yanıtını çözümlerken bir hata oluştu.")
                             self.ui.set_state("ERROR")
                         await self._after_turn(bool(heard), bool(spoken) or got_audio, misheard)
                         in_buf, out_buf, output_noise = [], [], False
@@ -372,32 +452,26 @@ class JarvisLive:
             audio.terminate()
             while True:
                 await self.audio_in_queue.get()
+        speaker = SafeStream(audio, stream)
         try:
             while True:
                 chunk = await self.audio_in_queue.get()
                 self.set_speaking(True)
                 heard = self._scale_output(chunk)
-                capture = getattr(self, "_capture", None)
-                if capture is not None:
-                    capture.note_playback(heard)
                 from jarvis.phone_server import publish_speaker
 
                 publish_speaker(heard)
-                await asyncio.to_thread(stream.write, heard)
+                await asyncio.to_thread(speaker.write, heard)
                 if self.audio_in_queue.empty():
                     self.set_speaking(False)
         finally:
             self.set_speaking(False)
-            stream.close()
-            audio.terminate()
+            speaker.close()
 
     def _scale_output(self, chunk: bytes) -> bytes:
         level = int(get_app_config_value("voice_volume", 100) or 100)
         level = max(0, min(150, level))
         factor = level / 100
-        capture = getattr(self, "_capture", None)
-        if capture is not None and capture.ducked:
-            factor *= 0.35
         if factor == 1 or not chunk:
             return chunk
         import array
@@ -423,7 +497,7 @@ class JarvisLive:
             try:
                 await self._send_media(frame, "image/jpeg")
             except Exception as exc:
-                self.ui.write_log(f"ERR: Kamera karesi gonderilemedi. ({exc})")
+                self.ui.write_log(f"ERR: Kamera karesi gönderilemedi. ({exc})")
             await asyncio.sleep(0.5)
 
     async def _preview_webcam(self) -> None:
@@ -482,18 +556,22 @@ class JarvisLive:
                     group.create_task(self._preview_webcam())
                     group.create_task(self._watch_reconnect())
                     group.create_task(self._watch_stall())
+                self.session = None
             except Reconnect:
+                self.session = None
                 self.set_speaking(False)
                 if not self._paused:
-                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
+                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
                 continue
             except Exception as exc:
+                self.session = None
                 if _reconnect_error(exc):
                     self.set_speaking(False)
                     if not self._paused:
-                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden baglaniyor.")
+                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
                     continue
                 traceback.print_exc()
+                _log_error(exc, key)
                 self.set_speaking(False)
                 if self.webcam.is_active:
                     self.webcam.stop()
@@ -517,16 +595,35 @@ class JarvisLive:
         asyncio.run_coroutine_threadsafe(self._nudge(text), loop)
 
     async def _nudge(self, text: str) -> None:
-        from google.genai import types
-
-        await self.session.send_client_content(
-            turns=types.Content(role="user", parts=[types.Part(text=f"[Sistem notu, sesli ve kisa soyle] {text}")]),
-            turn_complete=True,
-        )
+        if self.session is None:
+            return
+        try:
+            await self._send_user_text(f"[Sistem notu, sesli ve kısa söyle] {text}")
+        except Exception:
+            pass  # oturum o anda kapanıyorsa sessizce vazgeç
 
     async def _watch_reconnect(self) -> None:
         await self._reconnect.wait()
         raise Reconnect()
+
+
+def _log_error(exc: BaseException, key: str) -> None:
+    """Bağlantı hatalarını data/logs/live-errors.log'a yazar (anahtar silinir, 256 KB'de döner)."""
+    try:
+        from jarvis.paths import data_path
+
+        path = data_path("logs", "live-errors.log")
+        if path.exists() and path.stat().st_size > 256 * 1024:
+            path.replace(path.with_suffix(".log.1"))
+        text = "".join(traceback.format_exception(exc))
+        secret = str(key or "").strip()
+        if secret:
+            text = text.replace(secret, "***")
+        stamp = datetime.datetime.now().isoformat(timespec="seconds")
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(f"--- {stamp} model={current_live_model()}\n{text}\n")
+    except Exception:
+        pass
 
 
 def _public_connect_error(exc: BaseException, key: str) -> str:

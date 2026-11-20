@@ -49,7 +49,9 @@ def _load() -> dict:
 
 
 def _save(state: dict) -> None:
-    _path().write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    from jarvis.atomic import write_text
+
+    write_text(_path(), json.dumps(state, ensure_ascii=False, indent=2))
 
 
 def enabled() -> bool:
@@ -84,10 +86,10 @@ def note_phone() -> None:
 
 def choose(ending: str) -> str:
     if not enabled():
-        return "Hikaye kapali."
+        return "Hikaye kapalı."
     ending = ending if ending in {"surdur", "kapat"} else ""
     if not ending:
-        return "Secim gecersiz."
+        return "Seçim geçersiz."
     state = _load()
     state["ending"] = ending
     _save(state)

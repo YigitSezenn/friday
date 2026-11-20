@@ -9,3 +9,5 @@ mss
 pyttsx3
 pywebview
 qrcode
+pycaw
+comtypes

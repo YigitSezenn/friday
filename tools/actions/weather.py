@@ -285,7 +285,7 @@ def get_weather_summary(location: str | None = None) -> str:
     if payload is None:
         known = target or detected_city()
         if known:
-            return f"{known} icin hava durumu bilgisi su anda alinamadi."
+            return f"{known} için hava durumu bilgisi su anda alınamadı."
         return "Hava durumu bilgisi şu anda alınamadı."
     return summarize_weather_payload(payload, target)
 

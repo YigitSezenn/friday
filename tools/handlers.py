@@ -47,9 +47,9 @@ def save_memory(args, ctx):
     key = str(args.get("key") or "").strip()
     value = str(args.get("value") or "").strip()
     if not key or not value:
-        return "Hafizaya yazilamadi: key ve value dolu olmali."
+        return "Hafızaya yazilamadi: key ve value dolu olmalı."
     update_memory({category: {key: {"value": value}}})
-    return f"Hafizaya kaydedildi: {category}/{key} = {value}"
+    return f"Hafızaya kaydedildi: {category}/{key} = {value}"
 
 
 @tool("delete_memory")
@@ -165,14 +165,14 @@ def browser_control(args, ctx):
 def shell_run(args, ctx):
     from tools.actions.shell import shell_run as run
 
-    return run(text(args, "command"))
+    return run(text(args, "command"), confirm_run=bool(args.get("confirm", False)))
 
 
 @tool("toggle_webcam")
 def toggle_webcam(args, ctx):
     action = text(args, "action", "start").strip().lower()
     if ctx.webcam is None:
-        return "Webcam bu oturumda kullanilamiyor."
+        return "Webcam bu oturumda kullanılamıyor."
     if action == "start":
         status = ctx.webcam.start()
         if ctx.ui:
@@ -180,12 +180,155 @@ def toggle_webcam(args, ctx):
         if status == "ok":
             return "Webcam akisi baslatildi. Artik kamerani goruyorum."
         if status == "already_active":
-            return "Webcam zaten acik, goruntu aliyorum."
+            return "Webcam zaten açık, görüntü aliyorum."
         return "Webcam baslatilamadi."
     ctx.webcam.stop()
     if ctx.ui:
         ctx.ui.set_webcam_active(False)
     return "Webcam akisi durduruldu."
+
+
+def _ui_or_none(ctx):
+    ui = ctx.ui
+    return ui if ui is not None and hasattr(ui, "_call") else None
+
+
+@tool("notes_list")
+def notes_list(args, ctx):
+    from jarvis import notes
+
+    lines = notes.load()
+    if not lines:
+        return "Hiç not yok."
+    return "Notlar:\n" + "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
+
+
+@tool("note_add")
+def note_add(args, ctx):
+    from jarvis import notes
+
+    note = text(args, "text")
+    if not note.strip():
+        return "Not metni boş."
+    lines = notes.add(note)
+    if (ui := _ui_or_none(ctx)) is not None:
+        ui._call("notes", lines)
+    return f"Not eklendi ({len(lines)}. not): {lines[-1]}"
+
+
+@tool("note_delete")
+def note_delete(args, ctx):
+    from jarvis import notes
+
+    lines, removed = notes.remove(text(args, "target"))
+    if removed is None:
+        return "Silinecek not bulunamadi. Numarasini ya da içinden bir kelime söyle."
+    if (ui := _ui_or_none(ctx)) is not None:
+        ui._call("notes", lines)
+    return f"Not silindi: {removed}"
+
+
+@tool("note_edit")
+def note_edit(args, ctx):
+    from jarvis import notes
+
+    lines, old = notes.edit(text(args, "target"), text(args, "text"))
+    if old is None:
+        return "Düzenlenecek not bulunamadi ya da yeni metin boş."
+    if (ui := _ui_or_none(ctx)) is not None:
+        ui._call("notes", lines)
+    return f"Not güncellendi: '{old}' -> '{text(args, 'text').strip()}'"
+
+
+@tool("timer_set")
+def timer_set(args, ctx):
+    from jarvis.timer import clock, parse_seconds
+
+    ui = _ui_or_none(ctx)
+    seconds = parse_seconds(args.get("minutes"), args.get("seconds"))
+    if ui is None:
+        return "Zamanlayıcı şu an kullanılamıyor."
+    if seconds <= 0:
+        return "Süre belirtilmedi."
+    ui.timer_set(seconds, text(args, "label"))
+    return f"Zamanlayıcı kuruldu: {clock(seconds)}" + (f" ({text(args, 'label')})" if text(args, "label") else "") + "."
+
+
+@tool("timer_add")
+def timer_add(args, ctx):
+    import time as _time
+
+    from jarvis.timer import clock, parse_seconds
+
+    ui = _ui_or_none(ctx)
+    seconds = parse_seconds(args.get("minutes"), args.get("seconds"))
+    if ui is None:
+        return "Zamanlayıcı şu an kullanılamıyor."
+    if seconds == 0:
+        return "Eklenecek süre belirtilmedi."
+    running = ui.timer_add(seconds)
+    left = ui.timer.remaining(_time.time())
+    return (f"Sureye eklendi; kalan {clock(left)}." if running else f"Çalışan zamanlayıcı yoktu; {clock(left)} yeni zamanlayıcı kuruldu.")
+
+
+@tool("timer_cancel")
+def timer_cancel(args, ctx):
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Zamanlayıcı şu an kullanılamıyor."
+    return "Zamanlayıcı iptal edildi." if ui.timer_cancel() else "Çalışan zamanlayıcı yok."
+
+
+@tool("timer_status")
+def timer_status(args, ctx):
+    import time as _time
+
+    from jarvis.timer import clock, spoken
+
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Zamanlayıcı şu an kullanılamıyor."
+    now = _time.time()
+    left = ui.timer.remaining(now)
+    parts = [f"Zamanlayicida {spoken(left)} kaldı ({clock(left)})." if left else "Çalışan zamanlayıcı yok."]
+    watched = ui.timer.elapsed(now)
+    if watched:
+        parts.append(f"Kronometre {clock(int(watched))}" + (" (çalışıyor)." if ui.timer.watch_running else " (durdu)."))
+    return " ".join(parts)
+
+
+@tool("stopwatch")
+def stopwatch(args, ctx):
+    from jarvis.timer import clock
+
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Kronometre şu an kullanılamıyor."
+    action = text(args, "action", "toggle")
+    elapsed = ui.timer_watch(action)
+    state = "calisiyor" if ui.timer.watch_running else "durdu"
+    return f"Kronometre {state}: {clock(int(elapsed))}."
+
+
+@tool("sleep_mode")
+def sleep_mode(args, ctx):
+    asleep = bool(args.get("asleep", True))
+    ui = ctx.ui
+    if ui is None or not hasattr(ui, "_js"):
+        return "Uyku modu şu an kullanılamıyor."
+    # Kısa gecikme: önce vedalaşma cümlesi söylenir, sonra mikrofon uykuya geçer.
+    ui._js(f"window.hud && window.hud.sleep({'true' if asleep else 'false'}, {2500 if asleep else 0})")
+    if asleep:
+        return "Uyku moduna geçiliyor. Kullanıcıya kısa bir veda et; uyandırmak için cekirdege tıklamasını, F4'e basmasını ya da bir sey yazmasını söyle."
+    return "Uyandim."
+
+
+@tool("set_volume")
+def set_volume(args, ctx):
+    from tools.actions.volume import set_volume as run
+
+    mute = args.get("mute")
+    return run(text(args, "target", "spotify"), args.get("level"), args.get("change"), None if mute is None else bool(mute))
 
 
 @tool("play_media")
@@ -226,7 +369,36 @@ def send_whatsapp_message(args, ctx):
         text(args, "recipient_name"),
         bool(args.get("send_now", False)),
         text(args, "app_target", "auto"),
+        bool(args.get("confirm", False)),
     )
+
+
+@tool("send_email")
+def send_email(args, ctx):
+    from tools.actions.mail import send_email as run
+
+    return run(text(args, "to"), text(args, "subject"), text(args, "body"), text(args, "recipient_name"), bool(args.get("confirm", False)), text(args, "provider", "auto"))
+
+
+@tool("save_email_contact")
+def save_email_contact(args, ctx):
+    from tools.actions.mail import save_email_contact as run
+
+    return run(text(args, "display_name"), text(args, "email"), text(args, "aliases"))
+
+
+@tool("connect_gmail")
+def connect_gmail(args, ctx):
+    from tools.actions.mail import connect_gmail as run
+
+    return run()
+
+
+@tool("open_mail")
+def open_mail(args, ctx):
+    from tools.actions.mail import open_mail as run
+
+    return run(text(args, "provider", "auto"))
 
 
 @tool("save_whatsapp_contact")
@@ -258,12 +430,12 @@ def set_location(args, ctx):
     if bool(args.get("auto", False)):
         save_app_config({"weather_location": ""})
         clear_detected_city()
-        return "Konum otomatik yapildi; internet baglantindan yeniden bulunacak."
+        return "Konum otomatik yapıldı; internet bağlantından yeniden bulunacak."
     place = " ".join(text(args, "location").split())
     if not place or len(place) > 80:
-        return "Konum gecersiz: sehir ya da semt adi soyle."
+        return "Konum geçersiz: şehir ya da semt adı söyle."
     save_app_config({"weather_location": place})
     clear_detected_city()
     if ctx.ui:
         ctx.ui.focus_panel("weather")
-    return f"Konum kalici olarak {place} yapildi. Hava ve harita oraya gecti."
+    return f"Konum kalıcı olarak {place} yapıldı. Hava ve harita oraya gecti."

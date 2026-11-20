@@ -9,8 +9,8 @@ android {
         applicationId = "com.friday.phone"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "4.6"
+        versionCode = 41004
+        versionName = "4.10.4"
     }
     buildTypes {
         release {
@@ -28,7 +28,7 @@ android {
         compose = true
     }
     composeOptions {
-        // Kotlin 1.9.24 ile eÅŸleÅŸen Compose derleyicisi.
+        // Kotlin 1.9.24 ile eslesen Compose derleyicisi.
         kotlinCompilerExtensionVersion = "1.5.14"
     }
 }

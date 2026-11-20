@@ -33,7 +33,7 @@ function Fail([string]$msg) {
 }
 function Info([string]$msg) { Write-Host ("INFO: {0}" -f $msg) }
 
-if ($Version -notmatch '^\d+\.\d+') { Fail "Version must look like N.M (got '$Version')" }
+if ($Version -notmatch '^\d+\.\d+(\.\d+)?$') { Fail "Version must look like N.M or N.M.P (got '$Version')" }
 
 $Site = Join-Path $Root "site"
 $Indir = Join-Path $Site "public\indir"
@@ -88,18 +88,33 @@ $init = Join-Path $Root "jarvis\__init__.py"
 $iss = Join-Path $Root "packaging\friday.iss"
 $gradleKts = Join-Path $Root "phone-android\app\build.gradle.kts"
 $html = Join-Path $Site "index.html"
+# Kodlama: Windows PowerShell 5.1'de Get-Content varsayılan olarak ANSI okur; UTF-8 dosyaları her
+# yayında bozuyordu ("kaldır" -> "kaldÄ±r" -> ...; bozuk kısayol adı kurulumda IPersistFile::Save 0x800706F8).
+# Her dosya açıkça UTF-8 okunur. Inno Setup UTF-8'i yalnızca BOM ile tanır: .iss BOM'lu yazılır.
+function Read-Utf8([string]$Path) {
+  [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
+}
 function Write-Utf8NoBom([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($false))
 }
-Write-Utf8NoBom $init ((Get-Content $init -Raw) -replace '__version__\s*=\s*"[^"]+"', ('__version__ = "{0}"' -f $Version))
-Write-Utf8NoBom $iss ((Get-Content $iss -Raw) -replace 'AppVersion=\d+\.\d+', ('AppVersion={0}' -f $Version))
-Write-Utf8NoBom $gradleKts ((Get-Content $gradleKts -Raw) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version))
+function Write-Utf8Bom([string]$Path, [string]$Text) {
+  [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($true))
+}
+$verParts = $Version.Split('.')
+$verMajor = [int]$verParts[0]
+$verMinor = [int]$verParts[1]
+$verPatch = if ($verParts.Length -ge 3) { [int]$verParts[2] } else { 0 }
+$versionCode = ($verMajor * 10000) + ($verMinor * 100) + $verPatch
+Write-Utf8NoBom $init ((Read-Utf8 $init) -replace '__version__\s*=\s*"[^"]+"', ('__version__ = "{0}"' -f $Version))
+Write-Utf8Bom $iss ((Read-Utf8 $iss) -replace 'AppVersion=[\d.]+', ('AppVersion={0}' -f $Version))
+$kts = (Read-Utf8 $gradleKts) -replace 'versionName\s*=\s*"[^"]+"', ('versionName = "{0}"' -f $Version)
+Write-Utf8NoBom $gradleKts ($kts -replace 'versionCode\s*=\s*\d+', ('versionCode = {0}' -f $versionCode))
 # HTML: only query/version labels, not SVG path numbers like 10.5 4.4
-$htmlRaw = Get-Content $html -Raw
-$htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+', ('?v={0}' -f $Version))
-$htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+', ('Sürüm {0}' -f $Version))
+$htmlRaw = Read-Utf8 $html
+$htmlRaw = [regex]::Replace($htmlRaw, '\?v=\d+\.\d+(?:\.\d+)?', ('?v={0}' -f $Version))
+$htmlRaw = [regex]::Replace($htmlRaw, 'Sürüm \d+\.\d+(?:\.\d+)?', ('Sürüm {0}' -f $Version))
 Write-Utf8NoBom $html $htmlRaw
-Info "bumped __init__.py friday.iss build.gradle.kts index.html (surum.txt untouched)"
+Info ("bumped __init__.py friday.iss build.gradle.kts(versionCode={0}) index.html (surum.txt untouched)" -f $versionCode)
 # --- tests ---
 if (-not $SkipTests) {
   Step "2 unittest"

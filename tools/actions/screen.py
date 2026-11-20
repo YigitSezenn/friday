@@ -21,7 +21,7 @@ def capture_active_window() -> tuple[bool, str, dict | None]:
         import mss
         from PIL import Image
     except ImportError as exc:
-        return False, f"Ekran goruntusu icin paket eksik: {exc}", None
+        return False, f"Ekran görüntüsü için paket eksik: {exc}", None
     left = top = 0
     width = height = 0
     title = ""
@@ -55,19 +55,19 @@ def capture_active_window() -> tuple[bool, str, dict | None]:
             image.thumbnail((VISION_MAX_DIMENSION, VISION_MAX_DIMENSION))
             image.save(image_path, format="JPEG", quality=70)
     except Exception as exc:
-        return False, f"Ekran goruntusu alinamadi: {exc}", None
+        return False, f"Ekran görüntüsü alınamadı: {exc}", None
     if not image_path.exists() or image_path.stat().st_size <= 0:
-        return False, "Ekran goruntusu bos geldi.", None
+        return False, "Ekran görüntüsü boş geldi.", None
     return True, "", {"image_path": str(image_path), "window_title": title, "owner_name": owner}
 
 
 def analyze_screen(query: str, target: str = "active_window") -> str:
     target = (target or "active_window").strip().lower()
     if target != "active_window":
-        return "Screen Vision v1 yalnizca aktif pencere analizini destekliyor."
+        return "Screen Vision v1 yalnızca aktif pencere analizini destekliyor."
     api_key = str(get_app_config_value("gemini_api_key", "") or "").strip()
     if not api_key:
-        return "Gemini API anahtari eksik oldugu icin ekran analizi yapilamadi."
+        return "Gemini API anahtari eksik olduğu için ekran analizi yapılamadı."
     ok, detail, payload = capture_active_window()
     if not ok or payload is None:
         return detail
@@ -79,8 +79,8 @@ def analyze_screen(query: str, target: str = "active_window") -> str:
     except Exception as exc:
         prefix = " / ".join(part for part in (owner, title) if part)
         if prefix:
-            return f"Ekran goruntusu alindi ({prefix}) ama analiz tamamlanamadi: {exc}"
-        return f"Ekran goruntusu alindi ama analiz tamamlanamadi: {exc}"
+            return f"Ekran görüntüsü alındı ({prefix}) ama analiz tamamlanamadı: {exc}"
+        return f"Ekran görüntüsü alındı ama analiz tamamlanamadı: {exc}"
     label = " / ".join(part for part in (owner, title) if part)
     if label:
         return f"[Aktif pencere: {label}]\n{analysis}"
@@ -89,19 +89,19 @@ def analyze_screen(query: str, target: str = "active_window") -> str:
 
 def explain_vision_error(exc: BaseException | None) -> str:
     if exc is None:
-        return "Gemini ekran analizi bos dondu."
+        return "Gemini ekran analizi boş dondu."
     raw = str(exc).strip()
     code = getattr(exc, "code", None)
     message = str(getattr(exc, "message", "") or "")
     blob = f"{code or ''} {raw} {message}".lower()
     if raw == "4" or code == 4 or raw.startswith("4 ") or "deadline" in blob:
-        return "Gemini ekran analizi zaman asimina ugradi (kod 4). Goruntu kucultulup baska model denendi; biraz sonra tekrar dene."
+        return "Gemini ekran analizi zaman aşımına uğradı (kod 4). Görüntü kucultulup başka model denendi; biraz sonra tekrar dene."
     if any(word in blob for word in ("429", "quota", "resource exhausted")):
         return "Gemini vision istegi kota veya hiz limitine takildi. Biraz bekleyip tekrar dene."
     if any(word in blob for word in ("503", "unavailable", "overloaded", "internal error")):
         return "Gemini vision servisi su anda yogun. Biraz sonra tekrar dene."
     detail = message or raw or type(exc).__name__
-    return f"Gemini vision istegi basarisiz oldu: {detail[:180]}"
+    return f"Gemini vision istegi başarısız oldu: {detail[:180]}"
 
 
 def _model_gone(exc: BaseException) -> bool:
@@ -141,7 +141,7 @@ def _response_text(response) -> str:
         reason = getattr(candidates[0], "finish_reason", None)
         if reason:
             raise RuntimeError(f"Gemini yaniti kesti: {reason}")
-    raise RuntimeError("Gemini bos yanit verdi.")
+    raise RuntimeError("Gemini boş yanıt verdi.")
 
 
 def _analyze(api_key: str, query: str, image_path: Path, owner: str, title: str) -> str:
@@ -149,8 +149,8 @@ def _analyze(api_key: str, query: str, image_path: Path, owner: str, title: str)
     from google.genai import types
 
     prompt = (
-        "Ekran goruntusundeki gorunen seyi Turkce, kisa ve dogrudan anlat. "
-        "Uydurma. Kullaniciya 'Yep' deme. "
+        "Ekran görüntüsündeki görünen şeyi Türkçe, kısa ve doğrudan anlat. "
+        "Uydurma. Kullanıcıya 'Yep' deme. "
         f"Pencere: {owner} / {title}. Soru: {query}"
     )
     client = genai.Client(api_key=api_key, http_options={"api_version": "v1beta", "timeout": 30000})

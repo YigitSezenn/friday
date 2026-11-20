@@ -41,8 +41,13 @@
       <div class="dial sm" id="timer-dial"></div>
       <div>
         <div class="kicker" data-i18n="timer">ZAMANLAYICI</div>
-        <p class="whisper" data-i18n="timerHint">“On dakikalık zamanlayıcı kur” de</p>
-        <div class="tbtns">
+        <p class="whisper" id="timer-hint" data-i18n="timerHint">“On dakikalık zamanlayıcı kur” de</p>
+        <div class="tbtns" id="timer-live" hidden>
+          <button class="tbtn" data-add="60">+1 DK</button>
+          <button class="tbtn" data-add="300">+5 DK</button>
+          <button class="tbtn" id="t-cancel">İPTAL</button>
+        </div>
+        <div class="tbtns" id="timer-pick">
           <button class="tbtn" data-min="1">1 DK</button>
           <button class="tbtn" data-min="5">5 DK</button>
           <button class="tbtn" data-min="10">10 DK</button>
@@ -54,7 +59,8 @@
     <section class="mod" data-key="notes" style="--i:3">
       <div class="kicker" data-i18n="notes">NOTLAR</div>
       <div class="hero"><b id="note-count">0</b><span data-i18n="noteWord">NOT</span></div>
-      <p class="whisper" id="note-hint" data-i18n="noteEmpty">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
+      <p class="whisper" id="note-hint">Henüz not yok. “Not al: …” de ya da aşağıya yaz.</p>
+      <ul class="note-list" id="note-list" aria-label="Notlar"></ul>
       <input class="note-in" id="note-in" data-i18n-ph="notePh" placeholder="Not ekle...">
     </section>
   </div>
@@ -95,9 +101,22 @@
     <span class="hint-side" data-i18n="typeHint">/ YAZ</span>
   </div>
 </div>
+<div id="timer-done" role="alertdialog" aria-live="assertive" hidden>
+  <div class="td-ring"></div>
+  <div class="td-kicker">SÜRE DOLDU</div>
+  <div class="td-label" id="td-label"></div>
+  <div class="td-actions">
+    <button type="button" class="tbtn" id="td-snooze">+5 DK ERTELE</button>
+    <button type="button" class="tbtn" id="td-close">TAMAM</button>
+  </div>
+</div>
 <div id="br">
-  <button id="min" type="button" title="Tepside çalışmaya devam eder">–</button>
-  <button id="quit" type="button" title="Uygulamayı kapat">✕</button>
+  <button id="min" type="button" title="Küçült (tepside çalışmaya devam eder)" aria-label="Küçült">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
+  </button>
+  <button id="quit" type="button" title="FRIDAY'i kapat" aria-label="Kapat">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v7"/><path d="M7.4 7.4a6.5 6.5 0 1 0 9.2 0"/></svg>
+  </button>
 </div>
 <div class="overlay" id="ov-settings" hidden>
   <form class="sheet setsheet" id="settings-form">
@@ -120,10 +139,10 @@
       <div class="field"><input name="address_as" list="address-list" maxlength="32" autocomplete="off"></div>
       <datalist id="address-list"></datalist>
       <div class="row2"><div>RENK<small>Halkanın, yazıların ve haritanın rengi.</small></div></div>
-      <input type="hidden" name="ui_color" value="gold">
+      <input type="hidden" name="ui_color" value="teal">
       <div class="seg" id="color-seg"></div>
       <div class="row2"><div>CANLI MODEL<small>Sesli oturumun modeli. Kayıt, seçilene yeniden bağlar.</small></div></div>
-      <input type="hidden" name="live_model" value="models/gemini-2.5-flash-native-audio-latest">
+      <input type="hidden" name="live_model" value="models/gemini-3.8-live">
       <div class="seg" id="model-seg"></div>
       <div class="row2"><div data-i18n="langTitle">DİL<small data-i18n="langHelp">Seçtiğin dil arayüzü ve yanıtları değiştirir.</small></div></div>
       <input type="hidden" name="language" value="auto">
@@ -168,20 +187,38 @@
       <div id="set-panels"></div>
     </section>
     <section class="pane" data-pane="ses">
+      <div class="row2"><div>MAİL<small>Bağlı hesap yoksa FRIDAY maili tarayıcıda bu servisle doldurur, onayından sonra kendisi gönderir. Yeni Outlook kullanıyorsan Outlook seç.</small></div>
+        <select class="sel" name="mail_web"><option value="gmail">Gmail</option><option value="outlook">Outlook</option></select></div>
+      <div class="row2"><div>ARKA PLANDA GMAIL<small>Pencere açmadan göndermek için: Google Hesabı › Güvenlik › 2 adımlı doğrulama açık olmalı, sonra “Uygulama şifreleri”nden FRIDAY için 16 haneli şifre oluştur ve buraya yapıştır. Şifre yalnızca bu bilgisayarda durur.</small></div>
+        <button type="button" class="tbtn" id="app-pw-open">ŞİFRE OLUŞTUR</button></div>
+      <div class="field"><input name="gmail_address" type="email" autocomplete="off" placeholder="ornek@gmail.com"><input name="gmail_app_password" type="password" autocomplete="off" placeholder="16 haneli uygulama şifresi"></div>
+      <div class="mail-test"><button type="button" class="tbtn" id="mail-test">TEST MAİLİ GÖNDER</button><span class="whisper" id="mail-test-out">Kendi adresine bir deneme maili gönderir.</span></div>
+      <div class="row2"><div>OUTLOOK HESABI<small>Kişisel (outlook.com, hotmail) ya da iş/okul (Microsoft 365).</small></div>
+        <select class="sel" name="outlook_web_host"><option value="outlook.live.com">Kişisel</option><option value="outlook.office.com">İş / okul</option></select></div>
       <div class="row2"><div>SES KARAKTERİ<small>Kayıt, aynı modele bu sesle yeniden bağlar.</small></div>
         <select class="sel" name="voice"></select></div>
       <div class="row2 vol"><div>ASİSTANIN SESİ<small id="vol-label">%100</small></div>
         <input name="voice_volume" type="range" min="0" max="150" step="5" value="100"></div>
-      <div class="row2"><div>YANKI ENGELLEME<small>Açıkken hoparlör yankısı ve konuşma sırasındaki ortam gürültüsü mikrofona karışmadan önce silinir. Mikrofon düzgün çalışmıyorsa kapat.</small></div>
-        <button type="button" class="switch" id="set-aec" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>SES EFEKTLERİ<small>Onay sesi.</small></div>
+      <div class="row2"><div>SABIRLI DİNLEME<small>Hızlı ya da duraksayarak konuşunca cümlen yarıda kesilmez; FRIDAY bitirmeni kısa bir sessizlikle anlar. Kapatınca daha çabuk yanıtlar.</small></div>
+        <button type="button" class="switch" id="set-patient" role="switch" aria-checked="true"></button></div>
+      <div class="row2"><div>SES EFEKTLERİ<small>Açılış, kapanış ve onay sesleri.</small></div>
         <button type="button" class="switch" id="set-sfx" aria-checked="true"></button></div>
+      <div class="row2"><div>ARKA PLAN MÜZİĞİ<small>Sakin ortam müziği. Mikrofon yankısı yaşarsan kapat.</small></div>
+        <button type="button" class="switch" id="set-music" role="switch" aria-checked="false"></button></div>
     </section>
     <section class="pane" data-pane="hafiza">
       <p class="whisper">Bu bilgisayarda tutulan kayıtlar. Bir satırı silmek yalnızca onu unutturur.</p>
       <div id="mem-list"></div>
     </section>
     <section class="pane" data-pane="telefon">
+      <div class="row2"><div>TELEFONA İNDİR<small>Telefonunun kamerasıyla okut: FRIDAY'in sitesi açılır, Android uygulamasını oradan indirirsin. Sonra uygulamada aşağıdaki kapı QR'ını okutup eşleştir.</small></div></div>
+      <div class="pair">
+        <img id="site-qr" alt="FRIDAY sitesine giden QR kodu" hidden>
+        <div class="pair-side">
+          <span class="whisper" id="site-url"></span>
+          <button type="button" id="site-copy" class="tbtn">Bağlantıyı kopyala</button>
+        </div>
+      </div>
       <div class="row2"><div>KAPI ANAHTARI<small>QR kodu yalnız FRIDAY Android uygulaması okur. Telefon kamerası ve tarayıcı eşleştirme yolu değildir. Yanındaki rakam uygulamada tutmalıdır. Tek anahtar.</small></div></div>
       <div class="pair">
         <img id="gate-qr" alt="Kapı anahtarı kodu" hidden>
@@ -201,7 +238,7 @@
         <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
     </section>
     <section class="pane" data-pane="hakkinda">
-      <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
+      <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-3.8-live.</p>
       <button type="button" class="btn ghost" id="app-update" hidden>Güncelle</button>
       <button type="button" class="btn ghost" id="open-data">KAYIT KLASÖRÜNÜ AÇ</button>
       <button type="button" class="btn ghost" id="uninstall">FRIDAY'İ KALDIR</button>
@@ -287,11 +324,18 @@
 <div class="overlay" id="ov-models" hidden>
   <div class="sheet">
     <h2 data-i18n="models">AI MODELLERİ</h2>
-    <p class="whisper" id="model-blurb">FRIDAY arayüzü açık. Ses: Gemini Live, models/gemini-2.5-flash-native-audio-latest.</p>
+    <p class="whisper" id="model-blurb">FRIDAY arayüzü açık. Ses: Gemini Live, models/gemini-3.8-live.</p>
     <div class="row"><button type="button" id="mod-close" data-i18n="close">KAPAT</button></div>
   </div>
 </div>
 <script src="i18n.js"></script>
-<script src="hud.js"></script>
+<script src="hud-base.js"></script>
+<script src="hud-core.js"></script>
+<script src="hud-panels.js"></script>
+<script src="hud-api.js"></script>
+<script src="hud-settings.js"></script>
+<script src="hud-overlays.js"></script>
+<script src="hud-events.js"></script>
+<script src="core3d.js"></script>
 </body>
 </html>

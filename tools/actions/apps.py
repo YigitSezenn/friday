@@ -64,7 +64,7 @@ APP_ALIASES = {
     "denetim masası": "Control Panel",
     "control panel": "Control Panel",
     "görev yöneticisi": "Task Manager",
-    "gorev yoneticisi": "Task Manager",
+    "görev yoneticisi": "Task Manager",
     "task manager": "Task Manager",
     "activity monitor": "Task Manager",
     "aktivite monitörü": "Task Manager",
@@ -208,22 +208,22 @@ def _find_start_app(target_name: str, allow_fuzzy: bool = True) -> tuple[str, st
 def open_app(app_name: str) -> str:
     raw = (app_name or "").strip()
     if not raw:
-        return "Uygulama adi belirtilmedi."
+        return "Uygulama adı belirtilmedi."
     needle = normalize_name(raw)
     resolved = _ALIAS_LOOKUP.get(needle)
     if resolved is None:
         app_id, matched = _find_start_app(raw, allow_fuzzy=False)
         if app_id and _start(f"shell:AppsFolder\\{app_id}", via_explorer=True):
-            return f"{matched} acildi."
+            return f"{matched} açıldı."
         resolved = resolve_alias(raw)
     direct = DIRECT_TARGETS.get(resolved)
     if direct and _start(direct):
-        return f"{resolved} acildi."
+        return f"{resolved} açıldı."
     for candidate_name in (resolved, raw):
         app_id, matched = _find_start_app(candidate_name)
         if app_id and _start(f"shell:AppsFolder\\{app_id}", via_explorer=True):
-            return f"{matched} acildi."
+            return f"{matched} açıldı."
     candidate = resolved if resolved.lower().endswith(".exe") else f"{resolved}.exe"
     if _start(candidate.replace(" ", "")):
-        return f"{resolved} acildi."
-    return f"'{app_name}' bulunamadi veya acilamadi."
+        return f"{resolved} açıldı."
+    return f"'{app_name}' bulunamadi veya açılamadı."
