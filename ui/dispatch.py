@@ -197,6 +197,18 @@ def _on_mail_test(ui, payload: dict) -> None:
     threading.Thread(target=run, name="friday-mail-test", daemon=True).start()
 
 
+def _on_sound_toggle(ui, payload: dict) -> None:
+    """Hızlı ses düğmesi: yalnızca ses ayarını kaydeder; Gemini oturumunu yeniden bağlamaz."""
+    values = {key: bool(payload[key]) for key in ("music", "effects") if key in payload}
+    if not values:
+        return
+    save_app_config(values)
+    config = load_app_config()
+    ui.effects = bool(config.get("effects", True))
+    ui.music = bool(config.get("music", False))
+    ui.sync_music()
+
+
 def _on_discord_test(ui, payload: dict) -> None:
     import threading
 
@@ -270,6 +282,7 @@ HANDLERS = {
     "open": _on_open,
     "mail_test": _on_mail_test,
     "discord_test": _on_discord_test,
+    "sound_toggle": _on_sound_toggle,
     "reminder": _on_reminder,
     "home": _on_home,
 }

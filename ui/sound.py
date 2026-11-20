@@ -38,12 +38,12 @@ class SoundMixin:
         self.sync_music()
 
     def sync_music(self) -> None:
-        """Arka plan müziği: yalnızca ayar açıksa ve ses efektleri aktifse döner."""
+        """Arka plan müziği: yalnızca kendi ayarı açıksa döner (ses efektlerinden bağımsız)."""
         if self._smoke:
             return
         from jarvis import sounds
 
-        if self.music and self.effects and not self._quitting:
+        if self.music and not self._quitting:
             sounds.play("ambient", loop=True, volume=260)
         else:
             sounds.stop("ambient")

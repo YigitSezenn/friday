@@ -228,6 +228,8 @@ window.hud = {
       $("vol-label").textContent = "%" + form.voice_volume.value;
     }
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
+    $("mute-sfx").setAttribute("aria-pressed", data.config.effects === false ? "false" : "true");
+    $("mute-music").setAttribute("aria-pressed", data.config.music === true ? "true" : "false");
     $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
     $("set-patient").setAttribute("aria-checked", data.config.patient_listening === false ? "false" : "true");
     setSwitch("set-proactive", data.config.proactive_enabled);

@@ -13,6 +13,15 @@ $("discord-test")?.addEventListener("click", () => {
   $("discord-test-out").textContent = "Gönderiliyor…";
   send("discord_test", {id: $("settings-form").discord_owner_id.value.trim()});
 });
+// Hızlı ses düğmeleri: ayarları kaydedip sesi yeniden bağlamadan anında uygulanır.
+for (const [id, key, sw] of [["mute-music", "music", "set-music"], ["mute-sfx", "effects", "set-sfx"]]) {
+  $(id).addEventListener("click", () => {
+    const on = $(id).getAttribute("aria-pressed") !== "true";
+    $(id).setAttribute("aria-pressed", String(on));
+    $(sw).setAttribute("aria-checked", String(on));
+    send("sound_toggle", {[key]: on});
+  });
+}
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 // Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).

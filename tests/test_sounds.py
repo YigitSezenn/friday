@@ -99,3 +99,46 @@ class LoopAndVolumeTests(unittest.TestCase):
                 self.assertEqual(sounds._scaled(src, "x", 1000), src)
             finally:
                 os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class QuickMuteTest(unittest.TestCase):
+    def _ui(self, music, effects):
+        from unittest import mock
+        from ui.sound import SoundMixin
+
+        class Fake(SoundMixin):
+            _smoke = False
+            _quitting = False
+
+        fake = Fake()
+        fake.music, fake.effects = music, effects
+        return fake, mock
+
+    def test_music_plays_even_when_effects_are_off(self):
+        fake, mock = self._ui(True, False)
+        with mock.patch.object(sounds, "play") as play, mock.patch.object(sounds, "stop") as stop:
+            fake.sync_music()
+        play.assert_called_once()
+        stop.assert_not_called()
+
+    def test_music_off_stops_ambient_and_effects_off_is_silent(self):
+        fake, mock = self._ui(False, False)
+        with mock.patch.object(sounds, "play") as play, mock.patch.object(sounds, "stop") as stop:
+            fake.sync_music()
+            fake.play_success_sfx()
+            fake.play_startup_sfx()
+        stop.assert_called_once_with("ambient")
+        play.assert_not_called()
+
+    def test_sound_toggle_saves_only_sound_flags(self):
+        from unittest import mock
+        from ui import dispatch
+
+        ui = mock.Mock()
+        with mock.patch.object(dispatch, "save_app_config") as save, mock.patch.object(dispatch, "load_app_config", return_value={"effects": False, "music": True}):
+            dispatch._on_sound_toggle(ui, {"effects": False, "evil": True})
+        save.assert_called_once_with({"effects": False})
+        self.assertFalse(ui.effects)
+        self.assertTrue(ui.music)
+        ui.sync_music.assert_called_once()
+        ui.on_settings_saved.assert_not_called()
