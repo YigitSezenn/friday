@@ -1,0 +1,18 @@
+{
+  "version": "4.10.3",
+  "ref": "yayin",
+  "sha": "52233319f970033ec732a4a66febf6c5a6d7de3f",
+  "run": "https://github.com/YigitSezenn/friday/actions/runs/44721377517",
+  "tests": "success",
+  "windows": "success",
+  "exe_sha256": "F1E69A96AE5F029BD6E39EDAAFB435003B3F124D90B125F0731B0F19BAB60532",
+  "exe_size": "78053395",
+  "android": "success",
+  "apk_signed": "true",
+  "apk_sha256": "e3881a4cfd70e6ef1c71eb77fddbbfbd32fe9c8c7f149092b67521bd4d8372e7",
+  "apk_kept_live": "",
+  "deploy": "failure",
+  "deploy_url": "",
+  "live_surum": ""
+}
+
