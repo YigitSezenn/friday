@@ -340,7 +340,7 @@ def start_phone_server(on_text, lan: bool | None = None) -> str:
 
     # Aynı Wi-Fi'ye açıkken şifreli kapı da açılır; düz HTTP yalnızca eski telefonlar için kalır
     # (phone_http_legacy=false yapılınca LAN'da kapanır).
-    legacy = bool(load_app_config().get("phone_http_legacy", True))
+    legacy = bool(load_app_config().get("phone_http_legacy", False))
     if host == "127.0.0.1" or legacy:
         _server = ThreadingHTTPServer((host, 8766), Handler)
         _thread = threading.Thread(target=_server.serve_forever, name="jarvis-phone", daemon=True)

@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.9",
+      "tarih": "2026-11-20",
+      "baslik": "Daha güvenli telefon köprüsü",
+      "maddeler": [
+        "Yeni kurulumlarda şifresiz (HTTP) telefon köprüsü varsayılan olarak kapalı; telefon yalnızca şifreli köprüyle bağlanır.",
+        "Telefon anahtarını Yenile düğmesi geri geldi. Artık sunucuda tek tek anahtarlar tutulduğu için yeni anahtar da çalışır; telefonda QR'ı yeniden okutman yeter."
+      ]
+    },
+    {
       "surum": "4.13.8",
       "tarih": "2026-11-20",
       "baslik": "EV sekmesi: sil ve geri bildirim",
