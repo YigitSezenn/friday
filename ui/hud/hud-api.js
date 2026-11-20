@@ -246,6 +246,10 @@ window.hud = {
     paintPalette(data.palette);
     if (data.needKey) openOnboard();
   },
+  homeMsg(text) {
+    const line = $("home-msg");
+    if (line) line.textContent = String(text || "");
+  },
   phone(data) {
     showPhone(data);
   },

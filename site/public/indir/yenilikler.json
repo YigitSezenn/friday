@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.8",
+      "tarih": "2026-11-20",
+      "baslik": "EV sekmesi: sil ve geri bildirim",
+      "maddeler": [
+        "EV sekmesinde cihazı ya da tek bir komutun kodunu SİL düğmesiyle silebilirsin. IP'yi değiştirmek için aynı adla yeniden CİHAZ EKLE yeterli.",
+        "Ekleme, öğrenme ve silme sonuçları artık sekmenin içinde yazıyor (köprü bulunamadı gibi)."
+      ]
+    },
+    {
       "surum": "4.13.7",
       "tarih": "2026-11-20",
       "baslik": "Köprü kendiliğinden bulunur",

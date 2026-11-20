@@ -100,3 +100,24 @@ class DiscoverTests(unittest.TestCase):
         out = self._run(["10.0.0.7", "10.0.0.8"])
         self.assertIn("Birden fazla", out)
         self.assertIn("10.0.0.8", out)
+
+
+class RemoveTests(unittest.TestCase):
+    def test_remove_code_and_device(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import home
+
+                home._bridge = lambda host: FakeBridge()
+                home.time.sleep = lambda s: None
+                home.run("add", "x", host="1.1.1.1")
+                home.run("learn", "x", "aç")
+                self.assertIn("silindi", home.run("remove", "x", "aç"))
+                self.assertEqual(home.snapshot()["x"]["codes"], [])
+                self.assertIn("yok", home.run("remove", "x", "aç"))
+                self.assertIn("silindi", home.run("remove", "x"))
+                self.assertEqual(home.snapshot(), {})
+                self.assertIn("kayıtlı değil", home.run("remove", "x"))
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)

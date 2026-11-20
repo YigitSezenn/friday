@@ -222,6 +222,7 @@ def _on_home(ui, payload: dict) -> None:
 
         result = home_run(str(payload.get("action") or ""), str(payload.get("device") or ""), str(payload.get("command") or ""), str(payload.get("host") or ""))
         ui.write_log("SYS: " + result)
+        ui._call("homeMsg", result)
         ui.push_settings()
 
     threading.Thread(target=run, name="friday-home", daemon=True).start()  # öğrenme 30 sn bekleyebilir
