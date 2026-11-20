@@ -537,6 +537,7 @@ class JarvisLive:
         from google import genai
 
         attempts = 0
+        quiet_streak = 0
         without_proxy_for_google()
         while True:
             if self._paused:
@@ -570,6 +571,7 @@ class JarvisLive:
                     self.audio_in_queue = asyncio.Queue()
                     self.out_queue = asyncio.Queue(maxsize=8)
                     attempts = 0
+                    quiet_streak = 0
                     self.rejections.success()
                     self.ui.set_state("LISTENING")
                     if not getattr(self, "_ready_announced", False):
@@ -603,7 +605,11 @@ class JarvisLive:
                     # Boşta kalma: hata değil. Ekrana kırmızı yazı çıkarmadan yeniden bağlan.
                     self.set_speaking(False)
                     self.ui.set_state("THINKING")
-                    await asyncio.sleep(0.5)
+                    quiet_streak += 1
+                    if quiet_streak == 4:
+                        # Üst üste kopuyorsa kullanıcı bilsin: tek seferlik, kırmızı olmayan bilgi.
+                        self.ui.write_log("SYS: Bağlantı kararsız görünüyor; internetini kontrol et, yeniden denemeye devam ediyorum.")
+                    await asyncio.sleep(min(0.5 * quiet_streak, 5))
                     continue
                 traceback.print_exc()
                 _log_error(exc, key)

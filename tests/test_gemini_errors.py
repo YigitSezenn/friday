@@ -159,3 +159,20 @@ class SleepGuardTests(unittest.TestCase):
         confirm.note_user_said("friday uyu")
         handlers.sleep_mode({"asleep": True}, Ctx)
         self.assertTrue(Ctx.ui.calls)
+
+
+class AbnormalClosureTests(unittest.TestCase):
+    def test_1006_is_quiet_reconnect(self):
+        from jarvis.gemini_errors import classify
+
+        issue = classify(Exception("(unhandled errors in a TaskGroup (1 sub-exception)) 1006 None. abnormal closure [internal] no close frame received or sent"), "k")
+        self.assertTrue(issue.quiet)
+        self.assertFalse(issue.rejection)
+        self.assertTrue(issue.retry)
+
+    def test_other_errors_stay_loud(self):
+        from jarvis.gemini_errors import classify
+
+        self.assertFalse(classify(Exception("getaddrinfo failed"), "k").quiet)
+        self.assertFalse(classify(Exception("1008 denied access"), "k").quiet)
+        self.assertFalse(classify(Exception("durum 11006 tutarı"), "k").quiet)

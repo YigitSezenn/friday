@@ -75,6 +75,9 @@ def classify(exc: BaseException, key: str = "") -> ConnectIssue:
         return ConnectIssue("GOOGLE'A ULAŞILAMIYOR", "ERR: GOOGLE'A ULAŞILAMIYOR. İnternet açık görünüyor ama Google'a erişilemiyor; DNS ya da güvenlik duvarı olabilir.")
     if "api key" in low or "invalid" in low and "key" in low or "401" in low or "403" in low:
         return ConnectIssue("ANAHTAR GEÇERSİZ", "ERR: ANAHTAR GEÇERSİZ. Ayarlar'dan anahtarı yeniden yapıştır.", retry=False)
+    # 1006/1011/1001: kapanış çerçevesi gelmeden kopan bağlantı (ağ dalgalanması, Wi-Fi, uyku): geçicidir, sessizce yeniden bağlanılır.
+    if re.search(r"\b(1006|1011|1001)\b", low) or "abnormal closure" in low or "no close frame" in low:
+        return ConnectIssue("BAĞLANTI YENİLENİYOR", "SYS: Bağlantı bir an koptu, yeniden bağlanıyor.", quiet=True)
     return ConnectIssue("BAĞLANTI KOPTU", f"ERR: Bağlantı koptu. API anahtarını ve interneti kontrol et. ({_reason(detail)})")
 
 

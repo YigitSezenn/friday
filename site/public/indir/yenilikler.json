@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.16",
+      "tarih": "2026-11-21",
+      "baslik": "Bağlantı kopmaları sessizce yenileniyor",
+      "maddeler": [
+        "“Bağlantı koptu… 1006 abnormal closure” hatası artık kırmızı uyarı göstermiyor: ağ bir an dalgalanınca FRIDAY sessizce yeniden bağlanıyor, art arda kopuyorsa tek bir bilgi satırı yazıyor."
+      ]
+    },
+    {
       "surum": "4.13.15",
       "tarih": "2026-11-21",
       "baslik": "3D hava durumu, hızlı ses düğmeleri ve Discord ayarları",
