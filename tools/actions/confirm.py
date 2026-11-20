@@ -12,7 +12,37 @@ import time
 TTL = 180.0
 MIN_WAIT = 2.0
 _pending: dict[str, float] = {}
-_lock = threading.Lock()
+_lock = threading.RLock()
+
+
+# Gerçek kullanıcı onayı: model aracı iki kez çağırarak kendi kendine onay veremez.
+# Canlı oturum kullanıcının söylediği/yazdığı metni buraya yazar; onay için ask()'tan SONRA
+# olumlu bir cevap (evet/tamam/olur…) ve olumsuz kelime (hayır/dur/vazgeç…) olmaması gerekir.
+require_user_yes = False
+_said: list[tuple[float, str]] = []
+YES = ("evet", "tamam", "olur", "onayla", "onaylıyorum", "onaylıyorum", "yap", "gönder", "sil", "devam", "kabul", "yes", "ok")
+NO = ("hayır", "hayir", "yapma", "dur", "vazgeç", "vazgec", "iptal", "olmaz", "gönderme", "silme", "no", "stop")
+
+
+def note_user_said(text: str) -> None:
+    text = str(text or "").strip()
+    if not text:
+        return
+    now = time.time()
+    with _lock:
+        _said.append((now, text.lower()))
+        del _said[:-20]
+
+
+def _user_approved(since: float) -> bool:
+    import re
+
+    with _lock:
+        recent = " ".join(t for ts, t in _said if ts >= since)
+    words = set(re.findall(r"[a-zçğıöşü]+", recent))
+    if any(w in words for w in NO):
+        return False
+    return any(w in words for w in YES)
 
 
 def required() -> bool:
@@ -48,6 +78,8 @@ def check(kind: str, parts: tuple) -> str:
             return "ONAY GEREKLİ: önce taslağı kullanıcıya söyle ve 'Göndereyim mi?' diye sor; onay gelince tekrar çağır."
         if now - t < MIN_WAIT:
             return "ONAY GEREKLİ: kullanıcının cevabını bekle; onayı kendin varsayma."
+        if require_user_yes and not _user_approved(t):
+            return "ONAY GEREKLİ: kullanıcıdan açık bir 'evet' duymadım; cevabını bekle, onayı kendin varsayma."
         _pending.pop(k, None)
     return ""
 
