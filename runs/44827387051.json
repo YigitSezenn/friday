@@ -1,0 +1,20 @@
+{
+  "version": "4.13.14",
+  "ref": "yayin",
+  "sha": "d429cb1abdc8f09b4e46f5682dccfda161726d8d",
+  "run": "https://github.com/YigitSezenn/friday/actions/runs/44827387051",
+  "tests": "success",
+  "windows": "cancelled",
+  "exe_sha256": "",
+  "exe_size": "",
+  "android": "cancelled",
+  "apk_signed": "true",
+  "apk_sha256": "",
+  "apk_kept_live": "",
+  "deploy": "cancelled",
+  "deploy_url": "",
+  "live_surum": "",
+  "vercel_token_present": "",
+  "deploy_error": ""
+}
+
