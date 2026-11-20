@@ -12,7 +12,7 @@ from jarvis.audio.barge import peak
 from jarvis.config import get_app_config_value
 from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
 from jarvis.heard import REPEAT_NOTE, MicGate, RepeatPolicy, StallWatch, usable_transcript
-from jarvis.intents import is_sleep
+from jarvis.intents import is_close, is_minimize, is_sleep
 from jarvis.language import current as current_language, live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
@@ -398,6 +398,10 @@ class JarvisLive:
                             self.ui.write_log(f"Siz: {heard}")
                         if heard and is_sleep(heard) and hasattr(self.ui, "_js"):
                             self.ui._js("window.hud && window.hud.sleep(true, 2500)")
+                        if heard and is_minimize(heard) and hasattr(self.ui, "minimize_to_taskbar"):
+                            threading.Timer(1.5, self.ui.minimize_to_taskbar).start()
+                        elif heard and is_close(heard) and hasattr(self.ui, "quit_app"):
+                            threading.Timer(3.5, self.ui.quit_app).start()  # önce vedalaşma cümlesi söylensin
                         if repeated_typed_line(getattr(self, "_typed", None), heard):
                             self._typed = None
                         spoken = repair_text(" ".join(out_buf).strip())

@@ -135,7 +135,6 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         )
         self._window.events.loaded += self._on_loaded
         self._window.events.closing += self._on_closing
-        self._window.events.minimized += self.minimize_to_taskbar
         webview.start()
 
     def _on_loaded(self) -> None:

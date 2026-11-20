@@ -39,19 +39,15 @@ class WindowMixin:
         if window is None or self._quitting or self._closed or getattr(self, "_hiding", False):
             return
         self._hiding = True
-        self._ensure_tray()
-        ready = self._tray.wait_ready() if getattr(self, "_tray", None) is not None else False
-        if not ready:
-            self._hiding = False
-            self.write_log("ERR: Tepsi simgesi açılamadı.")
-            return
+        self._ensure_tray()  # geri getirmek için tepsi simgesi hazır dursun
         try:
-            window.hide()
+            # Gerçek küçültme: görev çubuğunda kalır, tıklayınca geri gelir.
+            window.minimize()
         except Exception:
             try:
-                window.minimize()
+                window.hide()
             except Exception:
-                pass
+                self.write_log("ERR: Pencere küçültülemedi.")
         self._hiding = False
 
     def restore_from_taskbar(self) -> bool:

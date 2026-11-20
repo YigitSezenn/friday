@@ -103,3 +103,22 @@ class MemoryEntriesTests(unittest.TestCase):
                 self.assertEqual(list_entries(), [])
             finally:
                 os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class WindowIntentTests(unittest.TestCase):
+    def test_minimize_and_close_phrases(self):
+        from jarvis.intents import is_close, is_minimize
+
+        for text in ("küçül", "Kendini küçült lütfen", "pencereyi küçült"):
+            self.assertTrue(is_minimize(text), text)
+        for text in ("friday kapan", "kendini kapat", "uygulamayı kapat"):
+            self.assertTrue(is_close(text), text)
+        for text in ("sesi kapat", "ekranı kapat", "müziği küçült", "kapıyı kapat"):
+            self.assertFalse(is_close(text) or is_minimize(text), text)
+
+    def test_app_window_tool(self):
+        from tools.dispatch import TOOL_DECLARATIONS
+        from tools.handlers import HANDLERS
+
+        self.assertIn("app_window", HANDLERS)
+        self.assertIn("app_window", [d["name"] for d in TOOL_DECLARATIONS])

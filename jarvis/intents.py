@@ -28,6 +28,30 @@ _SLEEP = (
 )
 _WAKE = (r"uyan", r"uyan(sana|abilir misin)", r"gunaydin", r"hadi uyan", r"geri gel")
 
+_MINIMIZE = (
+    r"kucul",
+    r"kucult",
+    r"kendini kucult",
+    r"kendini kucul",
+    r"pencereyi kucult",
+    r"pencereyi kucul",
+    r"uygulamayi kucult",
+    r"arka plana gec",
+    r"arkaya gec",
+    r"tepsiye kucult",
+)
+_CLOSE = (
+    r"kapan",
+    r"kendini kapat",
+    r"kendini kapatabilirsin",
+    r"kendin kapan",
+    r"uygulamayi kapat",
+    r"programi kapat",
+    r"friday i kapat",
+    r"kendini sonlandir",
+    r"cikis yap",
+)
+
 _NAME = r"(?:friday|fraydey|freydi|jarvis|cuma)?"
 
 
@@ -54,3 +78,11 @@ def is_sleep(text: str) -> bool:
 
 def is_wake(text: str) -> bool:
     return _matches(text, _WAKE)
+
+
+def is_minimize(text: str) -> bool:
+    return _matches(text, _MINIMIZE)
+
+
+def is_close(text: str) -> bool:
+    return _matches(text, _CLOSE)
