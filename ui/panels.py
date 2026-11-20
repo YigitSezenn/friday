@@ -135,8 +135,8 @@ class PanelsMixin:
 
             encoded = base64.b64encode(path.read_bytes()).decode("ascii")
             self._call("map", f"data:image/png;base64,{encoded}")
-        except Exception:
-            return
+        except Exception as exc:
+            self.write_debug(f"Harita görüntüsü alınamadı: {exc}")
 
     def _recolor_map(self) -> None:
         path = data_path("cache", "map-gray.png")

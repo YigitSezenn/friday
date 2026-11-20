@@ -203,6 +203,20 @@ function hourCard(hours) {
     bar.style.animationDelay = (0.6 + index * 0.1) + "s";
     svg.appendChild(bar);
   });
+  // Çizgi boyunca süzülen ışık
+  const trail = document.createElementNS(NS, "circle");
+  trail.setAttribute("r", "5");
+  trail.setAttribute("fill", "var(--accent)");
+  trail.setAttribute("class", "wxtrail");
+  const path = "M" + points.map(point => point.join(",")).join(" L");
+  const motion = document.createElementNS(NS, "animateMotion");
+  motion.setAttribute("path", path);
+  motion.setAttribute("dur", "7s");
+  motion.setAttribute("begin", "2s");
+  motion.setAttribute("repeatCount", "indefinite");
+  motion.setAttribute("calcMode", "linear");
+  trail.appendChild(motion);
+  svg.appendChild(trail);
   const now = document.createElementNS(NS, "circle");
   now.setAttribute("cx", String(points[0][0]));
   now.setAttribute("cy", String(points[0][1]));
