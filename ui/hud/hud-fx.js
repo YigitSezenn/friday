@@ -76,6 +76,30 @@
     })(start);
   };
 
+  // Küçük harita: canlı, yavaş dönen eğik görünüm. Yüklenemezse radar animasyonu görünür kalır.
+  let mini = null;
+  let spin = 0;
+  window.fxMiniMap = function (spot) {
+    const host = document.getElementById("minimap");
+    const box = host && host.parentElement;
+    if (!host || !spot || spot.lat == null || !window.maplibregl) return;
+    const center = [Number(spot.lon), Number(spot.lat)];
+    try {
+      if (!mini) {
+        mini = new maplibregl.Map({container: host, style: "https://tiles.openfreemap.org/styles/dark", center, zoom: 10.6, pitch: 48, bearing: 0,
+          interactive: false, attributionControl: false, fadeDuration: 400});
+        mini.on("load", () => { box.classList.add("live"); });
+        mini.on("error", () => { /* ağ yok: radar görünür kalır */ });
+        if (!reduce) {
+          const turn = () => { spin = (spin + 0.04) % 360; if (mini) mini.setBearing(spin); requestAnimationFrame(turn); };
+          requestAnimationFrame(turn);
+        }
+      } else {
+        mini.jumpTo({center});
+      }
+    } catch (error) { box.classList.remove("live"); }
+  };
+
   // Zamanlayıcı/kronometre çalışırken kadran ışıldar
   const timer = document.querySelector('.mod[data-key="timer"]');
   const live = document.getElementById("timer-live");

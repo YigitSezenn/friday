@@ -198,3 +198,40 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 2px rgba(var(--rgb),.3)
 .dial svg .dialring{transform-origin:50px 50px;animation:spin 40s linear infinite}
 .dial svg #arc{filter:drop-shadow(0 0 4px var(--accent))}
 @media (prefers-reduced-motion:reduce){.wxarea{opacity:1}.wxrainbar{transform:none}.wxbar i{animation:none}.wxwind,.wxnow,.dial svg .dialring{animation:none}}
+
+/* Küçük harita: canlı görünüm, yüklenemezse radar */
+.mapbox{isolation:isolate}
+#minimap{position:absolute;inset:0;opacity:0;transition:opacity .8s ease}
+.mapbox.live #minimap{opacity:1}
+.mapbox.live .mapradar,.mapbox.live img{opacity:0}
+#minimap .maplibregl-canvas{outline:0}
+.mapradar{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(var(--rgb),.18),transparent 70%),
+  linear-gradient(rgba(var(--rgb),.1) 1px,transparent 1px) 0 0/22px 22px,linear-gradient(90deg,rgba(var(--rgb),.1) 1px,transparent 1px) 0 0/22px 22px;transition:opacity .6s}
+.mapradar b{position:absolute;left:50%;top:50%;border:1px solid rgba(var(--rgb),.4);border-radius:50%;transform:translate(-50%,-50%)}
+.mapradar b:nth-child(1){width:44px;height:44px}.mapradar b:nth-child(2){width:92px;height:92px}.mapradar b:nth-child(3){width:150px;height:150px}
+.mapradar u{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;text-decoration:none;
+  background:conic-gradient(from 0deg,rgba(var(--rgb),.5),transparent 28%);animation:spin 3.6s linear infinite}
+.mapbox img[src=""],.mapbox img:not([src]){display:none}
+
+/* Hava grafikleri: sürekli hareket */
+.wxtrail{filter:drop-shadow(0 0 7px var(--accent));opacity:.95}
+circle.wxdot{transform-box:fill-box;transform-origin:center;animation:wxfade .5s ease forwards,wxbeat 3.2s ease-in-out 2s infinite}
+@keyframes wxbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.55)}}
+.wxline{filter:drop-shadow(0 0 6px currentColor)}
+.wxarea{animation:wxfade 1.2s .9s ease forwards,wxbreath 5s ease-in-out 2.2s infinite}
+@keyframes wxbreath{0%,100%{opacity:1}50%{opacity:.55}}
+.wxrainbar{animation:wxgrow .8s var(--ease) forwards,wxwave 3.4s ease-in-out 1.8s infinite}
+@keyframes wxwave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.82)}}
+.wxbar i{background-size:200% 100%;animation:wxbarin 1.1s .5s var(--ease) backwards,wxshine 3.2s linear 1.6s infinite}
+@keyframes wxshine{from{background-position:0 0}to{background-position:-200% 0}}
+.wxstat:nth-child(odd) .wxbar i{animation-delay:.5s,1.6s}
+.wxstat:nth-child(even) .wxbar i{animation-delay:.65s,2s}
+
+/* Yenilikler: önceki sürümler katlanır */
+.notes-more{justify-self:start;cursor:pointer;padding:8px 12px;border-radius:9px;border:1px solid rgba(var(--rgb),.3);background:transparent;color:var(--dim);letter-spacing:.12em;font-size:12px;
+  transition:transform .14s var(--ease),color .2s,border-color .2s}
+.notes-more:hover{color:var(--c);border-color:var(--c);transform:translateY(-1px)}
+.notes-more:active{transform:translateY(2px)}
+.notes-rest{display:grid;gap:12px}
+.notes-rest[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.mapradar u,.wxbar i,.wxarea,.wxrainbar{animation:none!important}.wxtrail{display:none}}

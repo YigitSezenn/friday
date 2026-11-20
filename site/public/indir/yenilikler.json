@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.12.3",
+      "tarih": "2026-11-20",
+      "baslik": "Canlı harita, hiç durmayan grafikler",
+      "maddeler": [
+        "Hava kartındaki küçük harita artık canlı: konumunuz üzerinde yavaşça dönen 3D harita; ulaşılamazsa hareketli radar görünür.",
+        "Saatlik sıcaklık grafiğinde çizgi boyunca akan ışık ve nabız gibi atan noktalar eklendi.",
+        "Yenilikler penceresi yalnızca güncel sürümü gösterir; eski sürümler “ÖNCEKİ SÜRÜMLER” altında toplanır."
+      ]
+    },
+    {
       "surum": "4.12.2",
       "tarih": "2026-11-20",
       "baslik": "Daha anlaşılır metinler, canlı grafikler",

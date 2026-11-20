@@ -64,6 +64,7 @@ window.hud = {
   },
   place(spot) {
     window.__spot = spot || null;
+    if (window.fxMiniMap) window.fxMiniMap(spot);
   },
   agenda(data) {
     $("cal-count").textContent = String(data.calendarCount || 0);
@@ -114,10 +115,12 @@ window.hud = {
     try { data = JSON.parse(raw); } catch { return; }
     const list = $("notes-list");
     list.textContent = "";
-    (data.entries || []).forEach((entry, index) => {
-      const card = document.createElement("article");
-      card.className = "note-card" + (entry.surum === data.current ? " current" : "");
-      card.style.setProperty("--n", index);
+    const parts = (v) => String(v).split(".").map(n => parseInt(n, 10) || 0);
+    const newer = (a, b) => { const x = parts(a), y = parts(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+    const card = (entry, index) => {
+      const node = document.createElement("article");
+      node.className = "note-card" + (entry.surum === data.current ? " current" : "");
+      node.style.setProperty("--n", index);
       const head = document.createElement("header");
       const tag = document.createElement("b");
       tag.textContent = "v" + entry.surum;
@@ -128,9 +131,29 @@ window.hud = {
       head.append(tag, title, date);
       const ul = document.createElement("ul");
       (entry.maddeler || []).forEach(line => { const li = document.createElement("li"); li.textContent = line; ul.append(li); });
-      card.append(head, ul);
-      list.append(card);
-    });
+      node.append(head, ul);
+      return node;
+    };
+    // Önce bu sürüm (ve varsa daha yeniler); eskiler kapalı bir bölümde
+    const entries = data.entries || [];
+    const fresh = entries.filter(entry => entry.surum === data.current || newer(entry.surum, data.current));
+    const older = entries.filter(entry => !fresh.includes(entry));
+    fresh.forEach((entry, index) => list.append(card(entry, index)));
+    if (older.length) {
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "notes-more";
+      toggle.textContent = `ÖNCEKİ SÜRÜMLER (${older.length}) ▾`;
+      const rest = document.createElement("div");
+      rest.className = "notes-rest";
+      rest.hidden = true;
+      older.forEach((entry, index) => rest.append(card(entry, index)));
+      toggle.addEventListener("click", () => {
+        rest.hidden = !rest.hidden;
+        toggle.textContent = `ÖNCEKİ SÜRÜMLER (${older.length}) ${rest.hidden ? "▾" : "▴"}`;
+      });
+      list.append(toggle, rest);
+    }
     $("notes-sub").textContent = data.update ? "Yeni sürüm hazır: " + data.update : "Şu an sürüm " + data.current;
     $("notes-update").hidden = !data.update;
     $("ov-notes").hidden = false;
