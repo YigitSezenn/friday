@@ -230,8 +230,28 @@ class VisibleShellTests(unittest.TestCase):
             self.assertIn("terminal penceresinde", out)
             args = popen.call_args[0][0]
             self.assertIn("-NoExit", args)
-            self.assertEqual(args[-1], "ipconfig")
+            self.assertTrue(args[-1].endswith("; ipconfig"))
             popen.reset_mock()
             self.assertIn("Güvenlik", shell.shell_run("shutdown /s", visible=True))
             self.assertIn("ONAY", shell.shell_run("mkdir yeni", visible=True).upper())
             popen.assert_not_called()
+
+
+class FrontWindowTests(unittest.TestCase):
+    def test_brings_window_forward_when_it_appears(self):
+        from tools.actions.apps import front_wait
+
+        seen = []
+        calls = {"n": 0}
+
+        def find(marker):
+            calls["n"] += 1
+            return 77 if calls["n"] >= 3 else 0
+
+        self.assertTrue(front_wait("Spotify", find=find, front=seen.append, sleep=lambda s: None))
+        self.assertEqual(seen, [77])
+
+    def test_gives_up_quietly(self):
+        from tools.actions.apps import front_wait
+
+        self.assertFalse(front_wait("yok", timeout=1.0, find=lambda m: 0, front=lambda h: None, sleep=lambda s: None))
