@@ -37,6 +37,8 @@ DEFAULT_CONFIG = {
     "effects": True,
     "music": False,
     "confirm_send": True,
+    "file_access": False,
+    "file_roots": [],
     "patient_listening": True,
     "mic_gate": True,
     "mail_web_autosend": True,
@@ -98,6 +100,8 @@ def load_app_config() -> dict:
     config["effects"] = _clean_bool(config.get("effects"), True)
     config["music"] = _clean_bool(config.get("music"), False)
     config["confirm_send"] = _clean_bool(config.get("confirm_send"), True)
+    config["file_access"] = _clean_bool(config.get("file_access"), False)
+    config["file_roots"] = [str(x) for x in (config.get("file_roots") or []) if str(x).strip()][:8] if isinstance(config.get("file_roots"), list) else []
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
@@ -245,6 +249,8 @@ def _save_app_config(updates: dict) -> dict:
     config["effects"] = _clean_bool(config.get("effects"), True)
     config["music"] = _clean_bool(config.get("music"), False)
     config["confirm_send"] = _clean_bool(config.get("confirm_send"), True)
+    config["file_access"] = _clean_bool(config.get("file_access"), False)
+    config["file_roots"] = [str(x) for x in (config.get("file_roots") or []) if str(x).strip()][:8] if isinstance(config.get("file_roots"), list) else []
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)

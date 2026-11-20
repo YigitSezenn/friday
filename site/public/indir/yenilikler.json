@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.0",
+      "tarih": "2026-11-20",
+      "baslik": "Dosya erişimi (izinle)",
+      "maddeler": [
+        "Ayarlar › İzinler'de yeni “Dosya erişimi” anahtarı (varsayılan kapalı). Açınca FRIDAY Belgeler, İndirilenler ve Masaüstü'nde dosya arar, listeler ve okur.",
+        "Dosya yazma, taşıma ve silme her seferinde okunur bir onay ister; silinen dosya kalıcı silinmez, FRIDAY klasöründeki “cop” içine taşınır.",
+        "İzinli klasörlerin dışına çıkılamaz (.. ile kaçış dahil)."
+      ]
+    },
+    {
       "surum": "4.12.4",
       "tarih": "2026-11-20",
       "baslik": "YouTube tek pencerede açılır",
