@@ -48,6 +48,13 @@ def snapshot() -> dict:
     return {name: {"host": info.get("host", ""), "codes": list(info.get("codes", {}))} for name, info in _load().items()}
 
 
+def _discover() -> list[str]:
+    """Yerel ağdaki Broadlink köprülerinin IP adresleri (testlerde değiştirilir)."""
+    import broadlink
+
+    return [device.host[0] for device in broadlink.discover(timeout=5)]
+
+
 def run(action: str, device: str = "", command: str = "", host: str = "") -> str:
     action, device, command = action.lower().strip(), _key(device), _key(command)
     data = _load()
@@ -59,10 +66,20 @@ def run(action: str, device: str = "", command: str = "", host: str = "") -> str
         return "Cihaz adı gerekli."
     if action == "add":
         if not host.strip():
-            return "Köprünün IP adresi gerekli."
+            try:
+                found = _discover()
+            except ImportError:
+                return "Broadlink paketi kurulu değil (pip install broadlink)."
+            except Exception as exc:
+                return f"Ağda arama yapılamadı: {exc}"
+            if not found:
+                return "Ağda Broadlink köprüsü bulunamadı. Köprü Wi-Fi'ye bağlı, kilitsiz ve bilgisayarla aynı modemde mi?"
+            if len(found) > 1:
+                return f"Birden fazla köprü bulundu: {', '.join(found)}. Hangisini eklemek istediğini IP ile belirt."
+            host = found[0]
         data.setdefault(device, {"codes": {}})["host"] = host.strip()
         _save(data)
-        return f"{device} eklendi."
+        return f"{device} eklendi ({host.strip()})."
     info = data.get(device)
     if not info:
         return f"{device} kayıtlı değil. Kayıtlı cihazlar: {', '.join(data) or 'yok'}."

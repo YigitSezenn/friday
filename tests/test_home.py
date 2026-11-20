@@ -76,3 +76,27 @@ class SnapshotTests(unittest.TestCase):
                 self.assertEqual(snap, {"masa led": {"host": "10.0.0.5", "codes": ["aç"]}})
             finally:
                 os.environ.pop("JARVIS_DATA_DIR", None)
+
+
+class DiscoverTests(unittest.TestCase):
+    def _run(self, found):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import home
+
+                home._discover = lambda: found
+                return home.run("add", "salon klima")
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)
+
+    def test_single_bridge_is_used(self):
+        self.assertIn("10.0.0.7", self._run(["10.0.0.7"]))
+
+    def test_none_found(self):
+        self.assertIn("bulunamadı", self._run([]))
+
+    def test_several_found_asks_user(self):
+        out = self._run(["10.0.0.7", "10.0.0.8"])
+        self.assertIn("Birden fazla", out)
+        self.assertIn("10.0.0.8", out)
