@@ -124,7 +124,7 @@ def is_read_only(command: str) -> bool:
     return True
 
 
-def shell_run(command: str, timeout: int = 30, confirm_run: bool = False) -> str:
+def shell_run(command: str, timeout: int = 30, confirm_run: bool = False, visible: bool = False) -> str:
     refusal = shell_refusal(command)
     if refusal:
         return refusal
@@ -139,6 +139,16 @@ def shell_run(command: str, timeout: int = 30, confirm_run: bool = False) -> str
         problem = confirm.check("shell", parts)
         if problem:
             return problem
+    if visible:
+        # Kullanıcı terminal penceresinde görmek istedi: komut yeni bir PowerShell penceresinde çalışır, pencere açık kalır.
+        try:
+            subprocess.Popen(
+                ["powershell.exe", "-NoProfile", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", command],
+                creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
+            )
+        except OSError as exc:
+            return f"Hata: {exc}"
+        return f"Komut yeni bir terminal penceresinde çalıştırıldı: {command.strip()[:120]}"
     wrapped = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; " + command
     try:
         result = subprocess.run(

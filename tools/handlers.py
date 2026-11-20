@@ -165,7 +165,7 @@ def browser_control(args, ctx):
 def shell_run(args, ctx):
     from tools.actions.shell import shell_run as run
 
-    return run(text(args, "command"), confirm_run=bool(args.get("confirm", False)))
+    return run(text(args, "command"), confirm_run=bool(args.get("confirm", False)), visible=bool(args.get("visible", False)))
 
 
 @tool("toggle_webcam")

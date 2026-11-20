@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.11",
+      "tarih": "2026-11-21",
+      "baslik": "Komutu terminal penceresinde çalıştır",
+      "maddeler": [
+        "“Komut istemini aç ve ipconfig çalıştır” dediğinde FRIDAY artık boş bir pencere açıp seni komut yazmaya bırakmaz: komut yeni bir terminal penceresinde kendisi çalışır. Güvenlik filtresi ve onay kuralları aynen geçerli."
+      ]
+    },
+    {
       "surum": "4.13.10",
       "tarih": "2026-11-21",
       "baslik": "EV listesi yenilendi",
