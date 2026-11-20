@@ -1,26 +1,23 @@
-# /komut için HTTPS (Kapı sunucusu)
+# /komut HTTPS (Kapı sunucusu)
 
-Bugün site `/komut` isteğini `http://94.154.34.222:8787/komut` adresine yönlendiriyor
-(`site/vercel.json`). Bu bağlantı şifresiz olduğundan anahtar ve komut metni yolda okunabilir.
-Çözüm: Kapı sunucusunun önüne HTTPS koymak. Kapı koduna dokunmadan, sunucuda şu adımlar yeterli:
+Kapı sunucusunun önünde Caddy çalışır ve `https://friday-kapi.duckdns.org` adresine
+Let's Encrypt sertifikası verir; istekler sunucu içinde `127.0.0.1:8787`'ye iletilir.
+Site (`site/vercel.json`), Windows uygulaması (`jarvis/gate_client.py`) ve Android (site
+üzerinden) bu adresi kullanır; anahtar ve komut metni artık şifreli gider.
 
-1. **Alan adı**: bir alt alan adı seçin (ör. `kapi.sizin-alan.com`) ve DNS'te A kaydını
-   `94.154.34.222` yapın.
-2. **Caddy kur** (otomatik Let's Encrypt sertifikası):
+## Sunucuda kurulum (Windows VDS)
+1. `C:\caddy\caddy.exe` indirilir (https://caddyserver.com/download, Windows amd64).
+2. `C:\caddy\Caddyfile`:
    ```
-   sudo apt install caddy
-   ```
-   `/etc/caddy/Caddyfile`:
-   ```
-   kapi.sizin-alan.com {
+   friday-kapi.duckdns.org {
        reverse_proxy 127.0.0.1:8787
    }
    ```
-   `sudo systemctl reload caddy`
-3. **Güvenlik duvarı**: 80 ve 443'ü açın; 8787'yi dışarıya kapatın (yalnızca 127.0.0.1 dinlesin).
-4. **Siteyi güncelle**: `site/vercel.json` içindeki hedefi
-   `https://kapi.sizin-alan.com/komut` yapın ve `jarvis/gate_client.py` ile
-   `phone-android/.../net/GateClient.kt` içindeki adresi aynı HTTPS adresine çevirin.
-   Alan adını söylediğinizde bu üç dosyayı ben değiştiririm.
-5. Doğrulama: `curl -i https://kapi.sizin-alan.com/komut` yanıt vermeli,
-   `http://94.154.34.222:8787` dışarıdan ulaşılamaz olmalı.
+3. Güvenlik duvarında 80 ve 443 açılır (Windows güvenlik duvarı ve VDS panelindeki kurallar).
+4. `C:\caddy\caddy.exe run --config C:\caddy\Caddyfile`
+5. Alan adı DuckDNS'te sunucu IP'sine işaret etmelidir.
+
+## Sonraki adımlar
+- Caddy'yi Windows servisi yapın (pencere kapanınca durmasın).
+- 8787 portunu dışarıya kapatın (yalnızca 127.0.0.1 dinlesin veya güvenlik duvarıyla engelleyin).
+- Windows uygulaması adresi `config/gate_url.txt` ya da `FRIDAY_GATE_URL` ile değiştirilebilir.

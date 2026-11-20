@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/komut",
-      "destination": "http://94.154.34.222:8787/komut"
+      "destination": "https://friday-kapi.duckdns.org/komut"
     }
   ],
   "git": {

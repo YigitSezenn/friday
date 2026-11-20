@@ -19,7 +19,7 @@ def gate_url() -> str:
         saved = path.read_text(encoding="utf-8").strip()
         if saved:
             return saved.rstrip("/")
-    return "http://94.154.34.222:8787"
+    return "https://friday-kapi.duckdns.org"
 
 
 def gate_key() -> str:
