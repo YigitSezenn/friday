@@ -44,6 +44,9 @@ Anahtar zaten duruyorsa karşılama atlanır.
 - **WhatsApp:** mesajı hazırlar, onayından sonra gönderir.
 - **Notlar** (silinebilir, asistan okuyabilir), **zamanlayıcı ve kronometre** (süre bitince alarm çalar, süre eklenebilir).
 - **Ses:** Spotify, uygulama ve sistem sesi komutla değişir. Hızlı konuşmaya karşı sabırlı dinleme ayarlıdır. Açılış ve kapanış sesleri vardır, isteğe bağlı arka plan müziği açılabilir.
+- **Masaüstü komutları:** “masaüstünü göster”, “pencereleri küçült”, “ekranı kilitle”, “ekran görüntüsü al”. “Uyu”, “iyi geceler” gibi sözler uyku moduna alır.
+- **Müzik varken dinleme:** sürekli çalan müzik ortam sayılır, konuşma müziğin üstünden algılanır (Ayarlar’dan kapatılabilir: `mic_gate`).
+- **Arayüz:** paneller 3B eğilir, düğmeler basılınca çöker, hava ikonu hareketlidir. Pencere düğmeleri sağ üstte. Android’de kartlar ve düğmeler dokunuşla eğilir.
 - **Güvenlik:** PowerShell’de salt okunur olmayan komutlar onay olmadan çalışmaz.
 - **Güncelleme:** uygulama sitedeki `surum.txt` ile sürümü karşılaştırır.
 

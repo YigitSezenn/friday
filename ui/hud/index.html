@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>FRIDAY</title>
 <link rel="stylesheet" href="hud.css">
+<link rel="stylesheet" href="hud-fx.css">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
@@ -21,6 +22,14 @@
   <button class="ctl" id="t-persona" data-i18n="models">AI MODELLERİ</button>
   <button class="ctl" id="t-settings" data-i18n="settings">AYARLAR</button>
   <span class="clock" id="t-clock">--:--</span>
+  <span class="winctl" id="br">
+    <button id="min" type="button" title="Küçült (tepside çalışmaya devam eder)" aria-label="Küçült">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
+    </button>
+    <button id="quit" type="button" title="FRIDAY'i kapat" aria-label="Kapat">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v7"/><path d="M7.4 7.4a6.5 6.5 0 1 0 9.2 0"/></svg>
+    </button>
+  </span>
 </div>
 <div id="stage"><div id="core"></div></div>
 <div id="tiles">
@@ -67,6 +76,7 @@
   <div id="colR">
     <section class="mod wx" data-key="weather" style="--i:0">
       <div class="wxcard">
+        <i class="wxico" id="wx-ico" data-kind="clear" aria-hidden="true"><u></u><u></u><u></u></i>
         <b id="wx-temp">--°</b>
         <div><strong id="wx-city">KONUM</strong><span id="wx-desc"></span></div>
       </div>
@@ -109,14 +119,6 @@
     <button type="button" class="tbtn" id="td-snooze">+5 DK ERTELE</button>
     <button type="button" class="tbtn" id="td-close">TAMAM</button>
   </div>
-</div>
-<div id="br">
-  <button id="min" type="button" title="Küçült (tepside çalışmaya devam eder)" aria-label="Küçült">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
-  </button>
-  <button id="quit" type="button" title="FRIDAY'i kapat" aria-label="Kapat">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v7"/><path d="M7.4 7.4a6.5 6.5 0 1 0 9.2 0"/></svg>
-  </button>
 </div>
 <div class="overlay" id="ov-settings" hidden>
   <form class="sheet setsheet" id="settings-form">
@@ -337,5 +339,6 @@
 <script src="hud-overlays.js"></script>
 <script src="hud-events.js"></script>
 <script src="core3d.js"></script>
+<script src="hud-fx.js"></script>
 </body>
 </html>

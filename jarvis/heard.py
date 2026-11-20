@@ -161,6 +161,41 @@ class StallWatch:
         self.frames = 0
 
 
+class MicGate:
+    """Müzik ya da uğultu varken mikrofonu temiz tutar.
+
+    Sürekli çalan müzik, sunucunun "konuşma bitti" kararını bozar ve şarkı sözü konuşma sanılır.
+    Kapı ortam seviyesini yavaşça öğrenir; yalnızca ortamın belirgin üstüne çıkan ses geçer.
+    Kapalıyken sessizlik gönderilir, böylece sunucu cümlenin bittiğini görebilir.
+    """
+
+    MIN_OPEN = 0.03
+    RATIO = 2.2
+    HANGOVER = 9  # ~0,6 sn
+    RISE = 0.004
+
+    def __init__(self) -> None:
+        self.floor = 0.0
+        self.hold = 0
+
+    def threshold(self) -> float:
+        return max(self.MIN_OPEN, self.floor * self.RATIO + 0.008)
+
+    def passes(self, level: float) -> bool:
+        if level <= self.floor:
+            self.floor = level * 0.4 + self.floor * 0.6
+        else:
+            # Yavaş yükselir: kısa konuşma ortamı oynatmaz, sürekli ses (müzik) birkaç saniyede ortam olur.
+            self.floor += (level - self.floor) * self.RISE
+        if level > self.threshold():
+            self.hold = self.HANGOVER
+            return True
+        if self.hold > 0:
+            self.hold -= 1
+            return True
+        return False
+
+
 REPEAT_NOTE = (
     "Kullanıcının son sözünü anlayamadın (ses belirsizdi ya da kesikti). Tahmin yürütme, bir şey uydurma ve başka bir dile çevirme; "
     "kullanıcının dilinde tek kısa cümleyle tekrar etmesini rica et."

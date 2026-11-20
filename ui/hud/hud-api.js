@@ -57,6 +57,7 @@ window.hud = {
     $("wx-temp").textContent = data.temp || "--°";
     $("wx-city").textContent = data.city || "KONUM";
     $("wx-desc").textContent = data.desc || "";
+    if (window.fxWeather) window.fxWeather(data.desc || "");
     $("wx-detail").textContent = data.detail || "";
     $("map-cap").textContent = data.city ? `${data.city} · SABİT KONUM · küçük görüntü © Esri` : "";
   },
