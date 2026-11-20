@@ -2,6 +2,12 @@
 // Kalan düğme/klavye bağlantıları: pencere, Yenile, güncelleme, ayar kaydı, zamanlayıcı, notlar, komut.
 // Klasik betikler: üst düzey const/let/function tüm hud-*.js dosyalarında ortaktır; sıra index.html'deki gibidir.
 $("app-pw-open")?.addEventListener("click", () => send("open", {url: "https://myaccount.google.com/apppasswords"}));
+$("mail-test")?.addEventListener("click", () => {
+  const form = $("settings-form");
+  $("mail-test").disabled = true;
+  $("mail-test-out").textContent = "Gönderiliyor…";
+  send("mail_test", {address: form.gmail_address.value.trim(), password: form.gmail_app_password.value});
+});
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 // Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).

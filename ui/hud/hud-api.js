@@ -75,6 +75,13 @@ window.hud = {
   preview(src) {
     if (src) $("map-img").src = src;
   },
+  mailTest(result) {
+    $("mail-test").disabled = false;
+    const out = $("mail-test-out");
+    out.textContent = result;
+    out.classList.toggle("ok", /gönderildi/.test(result));
+    out.classList.toggle("bad", !/gönderildi/.test(result));
+  },
   notes(lines) {
     notes = lines || [];
     renderNotes();
