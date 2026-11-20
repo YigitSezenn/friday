@@ -22,6 +22,11 @@ for (const [id, key, sw] of [["mute-music", "music", "set-music"], ["mute-sfx", 
     send("sound_toggle", {[key]: on});
   });
 }
+$("settings-form").discord_owner_id?.addEventListener("input", (event) => {
+  const clean = event.target.value.replace(/\D/g, "");
+  event.target.style.outline = clean !== event.target.value ? "1px solid #ff5c7a" : "";
+  event.target.value = clean;
+});
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 // Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).
