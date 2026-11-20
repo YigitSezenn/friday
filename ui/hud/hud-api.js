@@ -85,6 +85,13 @@ window.hud = {
     out.classList.toggle("ok", /gönderildi/.test(result));
     out.classList.toggle("bad", !/gönderildi/.test(result));
   },
+  discordTest(result) {
+    $("discord-test").disabled = false;
+    const out = $("discord-test-out");
+    out.textContent = result;
+    out.classList.toggle("ok", /gönderildi/.test(result));
+    out.classList.toggle("bad", !/gönderildi/.test(result));
+  },
   notes(lines) {
     notes = lines || [];
     renderNotes();
@@ -221,6 +228,8 @@ window.hud = {
       $("vol-label").textContent = "%" + form.voice_volume.value;
     }
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
+    $("mute-sfx").setAttribute("aria-pressed", data.config.effects === false ? "false" : "true");
+    $("mute-music").setAttribute("aria-pressed", data.config.music === true ? "true" : "false");
     $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
     $("set-patient").setAttribute("aria-checked", data.config.patient_listening === false ? "false" : "true");
     setSwitch("set-proactive", data.config.proactive_enabled);

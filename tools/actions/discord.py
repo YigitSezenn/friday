@@ -52,6 +52,10 @@ def send_discord_message(message: str, recipient_name: str = "", user_id: str = 
     problem = confirm.check("discord", parts)
     if problem:
         return problem
+    return _deliver(name, uid, text)
+
+
+def _deliver(name: str, uid: str, text: str, save: bool = True) -> str:
     import os
 
     from jarvis.win32 import available, press_keys, set_clipboard
@@ -59,7 +63,7 @@ def send_discord_message(message: str, recipient_name: str = "", user_id: str = 
     start = getattr(os, "startfile", None)
     if not start or not available():
         return "Discord mesajı yalnızca Windows'ta gönderilebilir."
-    if name and _normalize_lookup(name) not in {_normalize_lookup(k) for k in _book()}:
+    if save and name and _normalize_lookup(name) not in {_normalize_lookup(k) for k in _book()}:
         book = _book()
         book[name] = uid
         _save(book)
@@ -74,3 +78,11 @@ def send_discord_message(message: str, recipient_name: str = "", user_id: str = 
     time.sleep(0.4)
     press_keys(0x0D)
     return f"Discord'da {name or uid} kişisine mesaj gönderildi (sohbet açıkken gönderildi; doğrulamak için ekrana bakılabilir)."
+
+
+def self_test(user_id: str) -> str:
+    """Ayarlardaki düğme: kullanıcı kendi kimliğine deneme mesajı gönderir (düğmeye basmak onaydır)."""
+    uid = re.sub(r"\D", "", user_id or "")
+    if not 15 <= len(uid) <= 22:
+        return "Önce Discord kimliğini yaz (17-19 haneli sayı)."
+    return _deliver("", uid, "FRIDAY test mesajı: Discord bağlantısı çalışıyor.", save=False)

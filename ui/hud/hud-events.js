@@ -8,6 +8,37 @@ $("mail-test")?.addEventListener("click", () => {
   $("mail-test-out").textContent = "Gönderiliyor…";
   send("mail_test", {address: form.gmail_address.value.trim(), password: form.gmail_app_password.value});
 });
+$("discord-test")?.addEventListener("click", () => {
+  $("discord-test").disabled = true;
+  $("discord-test-out").textContent = "Gönderiliyor…";
+  send("discord_test", {id: $("settings-form").discord_owner_id.value.trim()});
+});
+// Hızlı ses düğmeleri: ayarları kaydedip sesi yeniden bağlamadan anında uygulanır.
+for (const [id, key, sw] of [["mute-music", "music", "set-music"], ["mute-sfx", "effects", "set-sfx"]]) {
+  $(id).addEventListener("click", () => {
+    const on = $(id).getAttribute("aria-pressed") !== "true";
+    $(id).setAttribute("aria-pressed", String(on));
+    $(sw).setAttribute("aria-checked", String(on));
+    send("sound_toggle", {[key]: on});
+  });
+}
+$("settings-form").discord_owner_id?.addEventListener("input", (event) => {
+  const clean = event.target.value.replace(/\D/g, "");
+  const warn = $("discord-warn");
+  if (clean !== event.target.value) {
+    event.target.style.outline = "1px solid #ff5c7a";
+    warn.textContent = "Yalnızca rakam yazılabilir. Kullanıcı adı değil, Discord Kullanıcı Kimliği (17-19 haneli sayı) gerekir.";
+    warn.hidden = false;
+  } else if (clean.length && (clean.length < 15 || clean.length > 22)) {
+    event.target.style.outline = "1px solid #ff5c7a";
+    warn.textContent = "Kimlik 17-19 haneli olmalı; eksik ya da fazla görünüyor.";
+    warn.hidden = false;
+  } else {
+    event.target.style.outline = "";
+    warn.hidden = true;
+  }
+  event.target.value = clean;
+});
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 // Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).

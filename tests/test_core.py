@@ -652,3 +652,14 @@ class DiscordOwnerIdTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(config, "config_path", return_value=Path(tmp) / "c.json"):
             self.assertEqual(config.save_app_config({"discord_owner_id": " 1234 5678abc "})["discord_owner_id"], "12345678")
             self.assertEqual(config.save_app_config({"discord_owner_id": ""})["discord_owner_id"], "")
+
+
+class WeatherSceneTests(unittest.TestCase):
+    def test_scene_script_is_loaded_after_fx_and_hooked(self):
+        root = Path(__file__).resolve().parents[1] / "ui" / "hud"
+        html = (root / "index.html").read_text(encoding="utf-8")
+        self.assertLess(html.index("hud-fx.js"), html.index("weather3d.js"))
+        self.assertIn("weatherScene.mount", (root / "hud-overlays.js").read_text(encoding="utf-8"))
+        script = (root / "weather3d.js").read_text(encoding="utf-8")
+        for kind in ("clear", "cloud", "rain", "storm", "snow", "fog", "night"):
+            self.assertIn(f'["{kind}"', script)

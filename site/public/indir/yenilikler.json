@@ -1,6 +1,18 @@
 {
   "surumler": [
     {
+      "surum": "4.13.15",
+      "tarih": "2026-11-21",
+      "baslik": "3D hava durumu, hızlı ses düğmeleri ve Discord ayarları",
+      "maddeler": [
+        "Hava durumu kartında 3D sahne: güneş, bulut, yağmur, fırtına (şimşek), kar, sis ve gece animasyonları; sürükleyerek döndür, tekerlekle yakınlaştır, tür ve yoğunluk seç.",
+        "Hava durumuna göre sesler: yağmur, rüzgâr, gök gürültüsü, kuş ve cırcır böceği; ♪ düğmesiyle kapatılır.",
+        "Üst çubukta hızlı ses düğmeleri: arka plan müziğini ve açılış/kapanış/onay seslerini ayrı ayrı sustur. Müzik artık ses efektlerinden bağımsız.",
+        "Ayarlar'da Discord kimliği alanı yalnızca rakam kabul eder ve yanlış girilince uyarır; TEST MESAJI GÖNDER düğmesi eklendi, TEST MAİLİ GÖNDER Discord'un üstüne alındı.",
+        "FRIDAY Discord'dan kayıtlı kişilere özel mesaj gönderebilir (onay sorar)."
+      ]
+    },
+    {
       "surum": "4.13.14",
       "tarih": "2026-11-21",
       "baslik": "Müzik, yumuşak sesler ve taşıma düzeltmeleri",
