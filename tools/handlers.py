@@ -323,6 +323,13 @@ def sleep_mode(args, ctx):
     return "Uyandim."
 
 
+@tool("desktop_action")
+def desktop_action(args, ctx):
+    from tools.actions.desktop import run
+
+    return run(text(args, "action"))
+
+
 @tool("set_volume")
 def set_volume(args, ctx):
     from tools.actions.volume import set_volume as run

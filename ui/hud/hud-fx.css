@@ -1,0 +1,72 @@
+/* 3B derinlik ve hareket katmanı. Hareket azaltma tercihinde kapanır. */
+:root{--tilt:10deg}
+
+/* Pencere düğmeleri: üst çubuğun sağ ucunda, cam gibi iki yuvarlak düğme */
+.winctl{display:flex;gap:8px;margin-left:6px;padding-left:14px;border-left:1px solid rgba(var(--rgb),.16)}
+.winctl button{position:relative;width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(var(--rgb),.3);
+  border-radius:50%;cursor:pointer;color:var(--ink);overflow:hidden;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.2),rgba(var(--rgb),.1) 55%,rgba(0,0,0,.35));
+  box-shadow:0 3px 0 rgba(var(--rgb),.22),0 8px 16px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),color .18s,border-color .18s}
+.winctl button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;position:relative}
+.winctl button:hover{transform:translateY(-2px) scale(1.06);color:var(--c);border-color:var(--c);
+  box-shadow:0 5px 0 rgba(var(--rgb),.22),0 12px 22px rgba(0,0,0,.5),0 0 18px rgba(var(--rgb),.4)}
+.winctl #quit:hover{color:#ff5c7a;border-color:#ff5c7a;box-shadow:0 5px 0 rgba(255,92,122,.25),0 12px 22px rgba(0,0,0,.5),0 0 18px rgba(255,92,122,.45)}
+.winctl button:active{transform:translateY(2px) scale(.97);box-shadow:0 1px 0 rgba(var(--rgb),.22),0 3px 8px rgba(0,0,0,.5)}
+.winctl button:focus-visible{outline:1px solid var(--c);outline-offset:3px}
+
+/* Paneller: eğilen cam kartlar, içerik öne çıkar */
+.mod{padding:12px 14px;border-radius:16px;transform-style:preserve-3d;will-change:transform;
+  border:1px solid rgba(var(--rgb),.13);
+  background:linear-gradient(155deg,rgba(var(--rgb),.09),rgba(var(--rgb),.02) 48%,rgba(0,0,0,.28));
+  box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07);
+  transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(var(--tz,0px));
+  transition:transform .28s var(--ease),box-shadow .28s var(--ease),border-color .28s}
+.mod:hover{--tz:14px;border-color:rgba(var(--rgb),.38);box-shadow:0 22px 44px rgba(0,0,0,.5),0 0 24px rgba(var(--rgb),.16),inset 0 1px 0 rgba(255,255,255,.1)}
+.mod > *{transform:translateZ(22px)}
+.mod::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .25s;
+  background:radial-gradient(260px circle at var(--gx,50%) var(--gy,0%),rgba(255,255,255,.16),transparent 62%)}
+.mod:hover::after{opacity:1}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -4px}}
+
+/* Düğmeler: kalın kenarlı, basılınca çöken 3B tuşlar */
+.tbtn,#topbar .ctl,.btn3d{position:relative;overflow:hidden;
+  box-shadow:0 3px 0 rgba(var(--rgb),.28),0 6px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),background .2s,color .2s}
+.tbtn:hover,#topbar .ctl:hover{transform:translateY(-2px);box-shadow:0 5px 0 rgba(var(--rgb),.28),0 10px 18px rgba(0,0,0,.4),0 0 14px rgba(var(--rgb),.25)}
+.tbtn:active,#topbar .ctl:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(var(--rgb),.28),0 2px 6px rgba(0,0,0,.4)}
+.fx-ripple{position:absolute;border-radius:50%;pointer-events:none;background:rgba(var(--rgb),.45);transform:scale(0);animation:ripple .6s ease-out forwards}
+@keyframes ripple{to{transform:scale(1);opacity:0}}
+
+/* Çekirdek ve sahne: fareyle hafif paralaks */
+#stage{transform:translate3d(var(--px,0px),var(--py,0px),0);transition:transform .35s var(--ease)}
+
+/* Hava ikonu: güneş, bulut, yağmur, kar, şimşek */
+.wxico{position:relative;width:46px;height:46px;flex:0 0 46px;display:block;perspective:200px}
+.wxico u{position:absolute;display:block;text-decoration:none}
+.wxico[data-kind="clear"] u:nth-child(1){inset:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc83d 60%,#f08a00);box-shadow:0 0 18px rgba(255,200,61,.7);animation:sunpulse 3s ease-in-out infinite}
+.wxico[data-kind="clear"] u:nth-child(2){inset:0;border-radius:50%;border:2px dashed rgba(255,200,61,.55);animation:spin 14s linear infinite}
+.wxico[data-kind="night"] u:nth-child(1){inset:8px;border-radius:50%;background:#e6ecff;box-shadow:inset -9px -3px 0 0 #9fb0e8,0 0 14px rgba(160,180,255,.5);animation:sunpulse 4s ease-in-out infinite}
+.wxico[data-kind="cloud"] u:nth-child(1),.wxico[data-kind="rain"] u:nth-child(1),.wxico[data-kind="storm"] u:nth-child(1),.wxico[data-kind="snow"] u:nth-child(1),.wxico[data-kind="fog"] u:nth-child(1){left:3px;top:12px;width:40px;height:20px;border-radius:12px;
+  background:linear-gradient(#f4f8ff,#aebbd6);box-shadow:0 6px 12px rgba(0,0,0,.35);animation:drift 5s ease-in-out infinite}
+.wxico[data-kind="cloud"] u:nth-child(2),.wxico[data-kind="rain"] u:nth-child(2),.wxico[data-kind="storm"] u:nth-child(2),.wxico[data-kind="snow"] u:nth-child(2),.wxico[data-kind="fog"] u:nth-child(2){left:11px;top:5px;width:20px;height:20px;border-radius:50%;background:linear-gradient(#fff,#c4cfe6);animation:drift 5s ease-in-out infinite}
+.wxico[data-kind="rain"] u:nth-child(3){left:12px;top:32px;width:3px;height:10px;border-radius:2px;background:#5fb3ff;box-shadow:10px 3px 0 #5fb3ff,20px 0 0 #5fb3ff;animation:fall .9s linear infinite}
+.wxico[data-kind="storm"] u:nth-child(3){left:19px;top:28px;width:10px;height:18px;background:#ffd23d;clip-path:polygon(60% 0,0 58%,45% 58%,30% 100%,100% 38%,55% 38%);animation:flash 1.6s steps(1) infinite}
+.wxico[data-kind="snow"] u:nth-child(3){left:12px;top:32px;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:10px 4px 0 #fff,20px 0 0 #fff;animation:fall 1.8s linear infinite}
+.wxico[data-kind="fog"] u:nth-child(3){left:6px;top:34px;width:34px;height:3px;border-radius:2px;background:rgba(220,230,245,.7);box-shadow:4px 7px 0 rgba(220,230,245,.5);animation:drift 4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sunpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes drift{0%,100%{translate:-2px 0}50%{translate:3px 0}}
+@keyframes fall{from{translate:0 -4px;opacity:0}30%{opacity:1}to{translate:-3px 8px;opacity:0}}
+@keyframes flash{0%,60%,100%{opacity:1}70%,85%{opacity:.15}}
+
+/* Kronometre/zamanlayıcı kadranı: akan ışık halkası */
+.mod[data-key="timer"] .dial{filter:drop-shadow(0 0 8px rgba(var(--rgb),.35))}
+.mod[data-key="timer"].running .dial{animation:dialglow 2s ease-in-out infinite}
+@keyframes dialglow{0%,100%{filter:drop-shadow(0 0 6px rgba(var(--rgb),.3))}50%{filter:drop-shadow(0 0 16px rgba(var(--rgb),.75))}}
+
+@media (prefers-reduced-motion:reduce){
+  .mod,.mod:hover,.tbtn,#topbar .ctl,#stage{animation:none!important;transition:none!important}
+  .mod{transform:none}.mod > *{transform:none}
+  .wxico u,.fx-ripple{animation:none!important}
+}

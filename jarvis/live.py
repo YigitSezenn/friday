@@ -11,7 +11,8 @@ from tools.actions.webcam import WebcamStreamer
 from jarvis.audio.barge import peak
 from jarvis.config import get_app_config_value
 from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
-from jarvis.heard import REPEAT_NOTE, RepeatPolicy, StallWatch, usable_transcript
+from jarvis.heard import REPEAT_NOTE, MicGate, RepeatPolicy, StallWatch, usable_transcript
+from jarvis.intents import is_sleep
 from jarvis.language import current as current_language, live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
 from jarvis.prompt import load_system_prompt
@@ -336,6 +337,7 @@ class JarvisLive:
                 if frame:
                     await self.out_queue.put(frame)
         mic = SafeStream(audio, stream)
+        gate = MicGate()
         try:
             while True:
                 data = await asyncio.to_thread(mic.read, CHUNK)
@@ -345,6 +347,8 @@ class JarvisLive:
                     speaking = self._is_speaking
                 from jarvis.phone_server import take_phone_audio
 
+                if bool(get_app_config_value("mic_gate", True)) and not gate.passes(peak(data)):
+                    data = bytes(len(data))  # sessizlik: sunucu cümlenin bittiğini görsün
                 for pcm in (data, take_phone_audio() or b""):
                     frame = queue_mic_frame(
                         pcm,
@@ -392,6 +396,8 @@ class JarvisLive:
                         heard = repair_text(" ".join(in_buf).strip())
                         if heard and not repeated_typed_line(getattr(self, "_typed", None), heard):
                             self.ui.write_log(f"Siz: {heard}")
+                        if heard and is_sleep(heard) and hasattr(self.ui, "_js"):
+                            self.ui._js("window.hud && window.hud.sleep(true, 2500)")
                         if repeated_typed_line(getattr(self, "_typed", None), heard):
                             self._typed = None
                         spoken = repair_text(" ".join(out_buf).strip())
