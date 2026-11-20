@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.7",
+      "tarih": "2026-11-20",
+      "baslik": "Köprü kendiliğinden bulunur",
+      "maddeler": [
+        "EV sekmesinde köprü IP'sini boş bırakırsan FRIDAY Broadlink köprüsünü ağda kendisi bulur."
+      ]
+    },
+    {
       "surum": "4.13.6",
       "tarih": "2026-11-20",
       "baslik": "Ev kumandası ve tepsiye küçülme",
