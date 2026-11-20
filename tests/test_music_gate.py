@@ -61,3 +61,45 @@ class DesktopTests(unittest.TestCase):
 
         self.assertIn("desktop_action", HANDLERS)
         self.assertIn("desktop_action", [d["name"] for d in TOOL_DECLARATIONS])
+
+
+class WeatherLocationTests(unittest.TestCase):
+    def test_parse_ip_location(self):
+        from tools.actions.weather import parse_ip_location
+
+        good = parse_ip_location({"success": True, "city": "Kepez", "region": "Antalya", "latitude": 36.9, "longitude": 30.7})
+        self.assertEqual(good["label"], "Kepez, Antalya")
+        self.assertAlmostEqual(good["lat"], 36.9)
+        self.assertEqual(parse_ip_location({"success": False}), {})
+        self.assertEqual(parse_ip_location({"latitude": "x", "longitude": 1}), {})
+        self.assertEqual(parse_ip_location({"latitude": 0, "longitude": 0}), {})
+        same = parse_ip_location({"city": "Ankara", "region": "Ankara", "latitude": 39.9, "longitude": 32.8})
+        self.assertEqual(same["label"], "Ankara")
+
+
+class MemoryEntriesTests(unittest.TestCase):
+    def test_list_entries_includes_flat_and_nested(self):
+        from jarvis.memory_store import list_entries
+
+        rows = list_entries({"kisisel": {"ad": {"value": "Yiğit"}, "yas": "20"}, "dil": "tr", "bos": {}, "x": ""})
+        self.assertEqual(
+            [(r["category"], r["key"], r["text"]) for r in rows],
+            [("kisisel", "ad", "Yiğit"), ("kisisel", "yas", "20"), ("dil", "", "tr")],
+        )
+
+    def test_save_and_forget_roundtrip(self):
+        import os
+        import tempfile
+
+        from jarvis.memory_store import delete_memory, list_entries, save_entry
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                self.assertIn("Kaydedildi", save_entry("kisisel", "ad", "Yiğit"))
+                self.assertEqual(list_entries()[0]["text"], "Yiğit")
+                self.assertIn("Anahtar", save_entry("kisisel", "", "x"))
+                delete_memory(category="kisisel", key="ad")
+                self.assertEqual(list_entries(), [])
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)

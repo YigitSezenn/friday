@@ -37,6 +37,60 @@ def configured_location() -> str:
     return ""
 
 
+AUTO_TTL = 600.0
+_auto: dict = {"at": 0.0, "lat": None, "lon": None, "label": ""}
+
+
+def parse_ip_location(data: dict) -> dict:
+    """ipwho.is / ipapi.co yanıtından {lat, lon, label}. Bozuk yanıtta boş sözlük."""
+    if not isinstance(data, dict) or data.get("success") is False or data.get("error"):
+        return {}
+    try:
+        lat = float(data.get("latitude"))
+        lon = float(data.get("longitude"))
+    except (TypeError, ValueError):
+        return {}
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180) or (lat == 0 and lon == 0):
+        return {}
+    city = str(data.get("city") or "").strip()
+    region = str(data.get("region") or data.get("region_name") or "").strip()
+    label = city if not region or region.lower() == city.lower() else f"{city}, {region}" if city else region
+    return {"lat": lat, "lon": lon, "label": label}
+
+
+def auto_location(force: bool = False) -> dict:
+    """Ayarlarda konum yoksa IP'den bulunur ve her 10 dakikada bir yenilenir (ağ değişince yer de değişir)."""
+    import time
+
+    with _lock:
+        fresh = _auto["lat"] is not None and time.time() - _auto["at"] < AUTO_TTL
+        if fresh and not force:
+            return dict(_auto)
+    found: dict = {}
+    try:
+        import requests
+
+        for url in ("https://ipwho.is/", "https://ipapi.co/json/"):
+            try:
+                response = requests.get(url, timeout=6, headers={"User-Agent": "FRIDAY"})
+                response.raise_for_status()
+                found = parse_ip_location(response.json())
+            except Exception:
+                found = {}
+            if found:
+                break
+    except ImportError:
+        pass
+    with _lock:
+        if found:
+            _auto.update(found, at=time.time())
+        return dict(_auto) if _auto["lat"] is not None else {}
+
+
+def location_source() -> str:
+    return "elle" if configured_location() else "otomatik"
+
+
 def detected_city() -> str:
     with _lock:
         return _detected_city
@@ -263,7 +317,12 @@ def _fetch_payload(location: str | None = None) -> tuple[str, dict | None]:
 
     explicit = (location or "").strip()
     target = explicit or configured_location()
-    url = f"https://wttr.in/{target}" if target else "https://wttr.in"
+    query = target
+    if not target:
+        spot = auto_location()
+        if spot:
+            query, target = f"{spot['lat']:.4f},{spot['lon']:.4f}", spot["label"]
+    url = f"https://wttr.in/{query}" if query else "https://wttr.in"
     try:
         response = requests.get(
             url,
@@ -295,4 +354,8 @@ def get_weather_report(location: str | None = None) -> dict:
     if payload is None:
         known = target or detected_city() or "Konum"
         return {"place": known, "temp": "", "feels": "", "desc": "", "humidity": "", "wind": "", "days": []}
-    return weather_card(payload, target)
+    card = weather_card(payload, target)
+    card["source"] = "elle" if (location or configured_location()) else "otomatik"
+    if card["source"] == "otomatik" and _auto["lat"] is not None:
+        card["lat"], card["lon"] = _auto["lat"], _auto["lon"]
+    return card

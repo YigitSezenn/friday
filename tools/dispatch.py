@@ -60,14 +60,7 @@ def looks_like_error(result) -> bool:
 
 
 def execute_tool(name: str, args: dict, webcam=None, ui=None) -> str:
-    result = _run_tool(name, args, webcam, ui)
-    try:
-        from jarvis.story import note_tool
-
-        note_tool(name, result)
-    except Exception:
-        pass
-    return result
+    return _run_tool(name, args, webcam, ui)
 
 
 def _run_tool(name: str, args: dict, webcam=None, ui=None) -> str:

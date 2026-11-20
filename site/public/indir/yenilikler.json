@@ -1,6 +1,18 @@
 {
   "surumler": [
     {
+      "surum": "4.12.0",
+      "tarih": "2026-11-20",
+      "baslik": "Hareketli hava ve harita, düzgün hafıza",
+      "maddeler": [
+        "Hava durumu sayfası canlandı: kartlar sırayla giriyor, sıcaklık sayarak yükseliyor, hava durumuna göre yağmur, kar, güneş veya bulut arka planı oynuyor.",
+        "Harita sayfası dünyadan şehre süzülerek açılıyor, konum işareti nabız gibi atıyor.",
+        "Konum artık dinamik: ayarlarda konum yoksa internet bağlantından bulunuyor, 15 dakikada bir tazeleniyor ve ağ değişince yeni yere geçiyor. Hava sayfasında konumun nereden geldiği yazıyor, YENİLE düğmesiyle hemen yeniden bulunuyor.",
+        "Hafıza sekmesi yenilendi: kategoriye göre gruplu, aranabilir, satıra tıklayıp düzeltilebilir, yeni kayıt eklenebilir, silerken onay soruyor.",
+        "Hikâye modu kaldırıldı."
+      ]
+    },
+    {
       "surum": "4.11.1",
       "tarih": "2026-11-20",
       "baslik": "Yenilikler bölümü",

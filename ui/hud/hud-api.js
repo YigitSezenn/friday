@@ -199,7 +199,6 @@ window.hud = {
     $("set-sfx").setAttribute("aria-checked", data.config.effects === false ? "false" : "true");
     $("set-music").setAttribute("aria-checked", data.config.music === true ? "true" : "false");
     $("set-patient").setAttribute("aria-checked", data.config.patient_listening === false ? "false" : "true");
-    setSwitch("set-story", data.config.story_enabled);
     setSwitch("set-proactive", data.config.proactive_enabled);
     setSwitch("set-water", data.config.water_enabled);
     setSwitch("set-break", data.config.break_enabled);
@@ -210,7 +209,6 @@ window.hud = {
     window.__liveModel = data.config.live_model;
     window.__dataDir = data.dataDir || "";
     window.__appVersion = data.version || "";
-    paintStory(data.story);
     showPhone(data.phone);
     paintGate(data.gateKeyQr, data.pairCode);
     paintSiteQr(data.siteQr, data.siteUrl);
@@ -223,9 +221,6 @@ window.hud = {
   },
   phone(data) {
     showPhone(data);
-  },
-  story(data) {
-    paintStory(data);
   },
 };
 

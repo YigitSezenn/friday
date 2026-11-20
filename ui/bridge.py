@@ -155,30 +155,22 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         self.timer_push()
         self.set_state(self._state)
         threading.Thread(target=self._refresh_loop, name="jarvis-hud", daemon=True).start()
-        threading.Thread(target=self._load_remote, name="jarvis-remote", daemon=True).start()
+        threading.Thread(target=self._remote_loop, name="jarvis-remote", daemon=True).start()
         # Açılış sesi (+ ayar açıksa arka plan müziği). push_settings effects/music'i yükledikten sonra.
         self.play_startup_sfx()
 
     def push_settings(self) -> None:
         from jarvis.config import ADDRESS_PRESETS, LIVE_MODELS, PANEL_KEYS, UI_COLORS, address_phrase, persona_palette
         from jarvis.language import choices, ui_language
-        from jarvis.memory_store import load_memory
+        from jarvis.memory_store import list_entries
         from jarvis.gate_client import ensure_gate_key, gate_join_url, pair_code, site_download_url
         from jarvis.phone_server import phone_qr_data_url, phone_status
-        from jarvis.story import view
-
         config = load_app_config()
         self.effects = bool(config.get("effects", True))
         self.music = bool(config.get("music", False))
-        keys = ("gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "live_model", "language", "story_enabled", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "start_with_windows", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password")
+        keys = ("gemini_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "live_model", "language", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "start_with_windows", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password")
         safe = {key: config.get(key, "") for key in keys}
-        memories = []
-        for category, items in load_memory().items():
-            if not isinstance(items, dict):
-                continue
-            for key, value in items.items():
-                text = value.get("value") if isinstance(value, dict) else value
-                memories.append({"category": str(category), "key": str(key), "text": str(text)[:180]})
+        memories = list_entries()
         self._call(
             "settings",
             {
@@ -193,7 +185,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
                 "palette": persona_palette(config),
                 "name": config["assistant_name"],
                 "address": address_phrase(config),
-                "memories": memories[:40],
+                "memories": memories,
                 "phone": _settings_phone(phone_status(), phone_qr_data_url),
                 "gateKeyQr": phone_qr_data_url(gate_join_url(ensure_gate_key())),
                 "siteQr": phone_qr_data_url(site_download_url()),
@@ -202,7 +194,6 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
                 "languages": choices(),
                 "uiLanguage": ui_language(config),
                 "models": list(LIVE_MODELS),
-                "story": view(),
             },
         )
         self._recolor_map()

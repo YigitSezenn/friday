@@ -59,6 +59,5 @@ def load_system_prompt() -> str:
         text = adapt_prompt(text)
     from jarvis.config import persona_note
     from jarvis.language import instruction
-    from jarvis.story import prompt_block
 
-    return instruction() + text + persona_note() + prompt_block()
+    return instruction() + text + persona_note()

@@ -54,7 +54,6 @@ $("settings-form").addEventListener("submit", event => {
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
   values.music = $("set-music").getAttribute("aria-checked") === "true";
   values.patient_listening = $("set-patient").getAttribute("aria-checked") !== "false";
-  values.story_enabled = $("set-story").getAttribute("aria-checked") === "true";
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";
   values.water_enabled = $("set-water").getAttribute("aria-checked") === "true";
   values.break_enabled = $("set-break").getAttribute("aria-checked") === "true";
