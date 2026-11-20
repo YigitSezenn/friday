@@ -137,7 +137,18 @@ def _on_weather_refresh(ui, payload: dict) -> None:
     ui.refresh_weather()
 
 
+UPDATE_COOLDOWN = 10.0
+_last_update = [0.0]
+
+
 def _on_update(ui, payload: dict) -> None:
+    """Güncelle düğmesine art arda basılırsa ikinci tık 10 sn boyunca yok sayılır (çift kurulum başlamasın)."""
+    import time
+
+    now = time.monotonic()
+    if now - _last_update[0] < UPDATE_COOLDOWN:
+        return
+    _last_update[0] = now
     ui.install_update()
 
 

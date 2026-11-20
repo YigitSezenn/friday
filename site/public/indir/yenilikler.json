@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.17",
+      "tarih": "2026-11-21",
+      "baslik": "Güncelle düğmesi çift tıklamaya karşı korundu",
+      "maddeler": [
+        "Güncelle düğmesine bir kez basınca 10 saniye boyunca ikinci tık yok sayılıyor; düğme “Güncelleniyor…” gösteriyor. Böylece güncelleme iki kez başlamıyor."
+      ]
+    },
+    {
       "surum": "4.13.16",
       "tarih": "2026-11-21",
       "baslik": "Bağlantı kopmaları sessizce yenileniyor",

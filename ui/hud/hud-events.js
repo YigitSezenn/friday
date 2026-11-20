@@ -66,9 +66,22 @@ $("quit").addEventListener("click", () => send("quit"));
 ["home-name", "home-host", "home-cmd"].forEach(id => $(id)?.addEventListener("keydown", event => { if (event.key === "Enter") event.preventDefault(); }));
 $("home-add")?.addEventListener("click", () => { $("home-msg").textContent = "Aranıyor…"; send("home", {action: "add", device: $("home-name").value, host: $("home-host").value}); });
 $("home-learn")?.addEventListener("click", () => { $("home-msg").textContent = "Dinleniyor: 30 saniye içinde kumandayı köprüye doğrultup tuşa bas…"; send("home", {action: "learn", device: $("home-name").value, command: $("home-cmd").value}); });
-$("home-update")?.addEventListener("click", () => send("update"));
-$("app-update")?.addEventListener("click", () => send("update"));
-$("notes-update")?.addEventListener("click", () => send("update"));
+// Güncelle: üç düğme de aynı kilidi kullanır; ilk tıktan sonra 10 sn boyunca ikinci tık yok sayılır.
+let updateLocked = false;
+for (const id of ["home-update", "app-update", "notes-update"]) {
+  $(id)?.addEventListener("click", () => {
+    if (updateLocked) return;
+    updateLocked = true;
+    const buttons = ["home-update", "app-update", "notes-update"].map($).filter(Boolean);
+    const labels = buttons.map((button) => button.textContent);
+    buttons.forEach((button) => { button.disabled = true; button.textContent = "Güncelleniyor…"; });
+    send("update");
+    setTimeout(() => {
+      updateLocked = false;
+      buttons.forEach((button, index) => { button.disabled = false; button.textContent = labels[index]; });
+    }, 10000);
+  });
+}
 $("app-notes")?.addEventListener("click", () => send("notes"));
 $("t-ver")?.addEventListener("click", () => send("notes"));
 const closeNotes = () => { $("ov-notes").hidden = true; };
