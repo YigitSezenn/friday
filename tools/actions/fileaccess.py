@@ -140,10 +140,63 @@ def _confirm(kind: str, parts: tuple, summary: str, confirmed: bool) -> str:
     return confirm.check(kind, parts)
 
 
+def _plan_move(target: Path, dest: Path, raw_destination: str) -> tuple[Path | None, str]:
+    """Taşıma hedefini belirler. Yoksa ve uzantısızsa hedef bir klasör sayılır (ilk dosya klasör adını almasın)."""
+    wants_folder = dest.is_dir() or raw_destination.strip().endswith(("/", "\\")) or (
+        not dest.exists() and dest.suffix == "" and target.suffix != ""
+    )
+    final = dest / target.name if wants_folder else dest
+    if final.exists():
+        return None, "Hedefte aynı adlı bir dosya var; üzerine taşımıyorum."
+    if final.suffix.lower() in RISKY_SUFFIXES and final.suffix.lower() != target.suffix.lower():
+        return None, "Dosya türünü çalıştırılabilir bir türe çevirerek taşımıyorum."
+    return final, ""
+
+
+def _move_many(paths: list[str], destination: str, confirmed: bool) -> str:
+    """Birden çok dosyayı tek onayla taşır. Yollar '|' ile ayrılır ('|' Windows dosya adında geçemez)."""
+    dest, why = resolve(destination)
+    if dest is None:
+        return why
+    plan: list[tuple[Path, Path]] = []
+    skipped: list[str] = []
+    for raw in paths:
+        source, why = resolve(raw)
+        if source is None or not source.exists():
+            skipped.append(f"{raw.strip()} ({why or 'bulunamadı'})")
+            continue
+        final, problem = _plan_move(source, dest, str(dest) + "/")
+        if final is None:
+            skipped.append(f"{source.name} ({problem})")
+            continue
+        plan.append((source, final))
+    if not plan:
+        return "Taşınacak uygun dosya yok: " + "; ".join(skipped)
+    names = ", ".join(src.name for src, _ in plan[:8]) + (" …" if len(plan) > 8 else "")
+    gate = _confirm("file_move_many", tuple(x for pair in plan for x in map(str, pair)), f"Dosya işlemi: {len(plan)} dosya taşınacak ({names}) → {dest}", confirmed)
+    if gate:
+        return gate
+    moved = 0
+    for source, final in plan:
+        try:
+            final.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source), str(final))
+            moved += 1
+        except OSError as exc:
+            skipped.append(f"{source.name} ({exc})")
+    note = f" Taşınamayanlar: {'; '.join(skipped)}." if skipped else ""
+    return f"{moved}/{len(plan)} dosya taşındı: {dest}.{note}"
+
+
 def run(action: str, path: str = "", destination: str = "", content: str = "", query: str = "", confirmed: bool = False) -> str:
     if not enabled():
         return "Dosya erişimi kapalı. Ayarlar › İzinler'den “Dosya erişimi” anahtarını açman gerekiyor."
     action = (action or "").strip().lower()
+    if action == "move" and "|" in path:
+        try:
+            return _move_many([p for p in path.split("|") if p.strip()], destination, confirmed)
+        except PermissionError:
+            return "Windows bu dosyaya erişimi engelledi."
     if action == "find" and not path:
         return _find(roots()[0] if roots() else Path.home(), query)
     target, why = resolve(path)
@@ -174,18 +227,15 @@ def run(action: str, path: str = "", destination: str = "", content: str = "", q
                 return why
             if not target.exists():
                 return "Taşınacak dosya bulunamadı."
-            if dest.is_dir():
-                dest = dest / target.name
-            if dest.exists():
-                return "Hedefte aynı adlı bir dosya var; üzerine taşımıyorum."
-            if dest.suffix.lower() in RISKY_SUFFIXES and dest.suffix.lower() != target.suffix.lower():
-                return "Dosya türünü çalıştırılabilir bir türe çevirerek taşımıyorum."
-            gate = _confirm("file_move", (str(target), str(dest)), f"Dosya işlemi: taşınacak — {target} → {dest}", confirmed)
+            final, problem = _plan_move(target, dest, destination)
+            if final is None:
+                return problem
+            gate = _confirm("file_move", (str(target), str(final)), f"Dosya işlemi: taşınacak — {target} → {final}", confirmed)
             if gate:
                 return gate
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(target), str(dest))
-            return f"{target.name} taşındı: {dest}"
+            final.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(target), str(final))
+            return f"{target.name} taşındı: {final}"
         if action == "delete":
             if not target.exists():
                 return "Silinecek dosya bulunamadı."

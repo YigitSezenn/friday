@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.14",
+      "tarih": "2026-11-21",
+      "baslik": "Dosya taşıma düzeltmeleri",
+      "maddeler": [
+        "Yeni bir klasöre taşırken ilk dosya klasörün adını alıyordu ve geri kalanı taşınmıyordu; düzeltildi. Hedef klasör yoksa oluşturulur.",
+        "Birden çok dosya (ör. tüm oyun kısayolları) tek onayla taşınır.",
+        "Bir işlem hata ya da onay bekliyorsa FRIDAY artık “taşıdım” demez; ne olduğunu söyler. “Taşı” da onay sayılır."
+      ]
+    },
+    {
       "surum": "4.13.13",
       "tarih": "2026-11-21",
       "baslik": "Uzun komutlar ve onay kelimeleri",
