@@ -13,6 +13,7 @@ from jarvis.config import load_app_config
 from jarvis.paths import data_path
 
 _server: ThreadingHTTPServer | None = None
+_tls_server: ThreadingHTTPServer | None = None
 _thread: threading.Thread | None = None
 _bind_host = "127.0.0.1"
 _phone_audio: queue.Queue[bytes] = queue.Queue(maxsize=32)
@@ -149,14 +150,27 @@ def phone_qr_data_url(url: str | None = None) -> str:
     return f"data:image/png;base64,{encoded}"
 
 
+def _secure_base():
+    """Aynı Wi-Fi açıksa şifreli (sabitlenmiş sertifikalı) adres; değilse ''."""
+    if _tls_server is None or not load_app_config().get("web_remote_access"):
+        return None
+    from jarvis.phone_tls import TLS_PORT, fingerprint
+
+    return f"https://{_shown_host()}:{TLS_PORT}", fingerprint()
+
+
 def phone_url() -> str:
-    shown = _shown_host()
-    return f"http://{shown}:8766/?token={phone_token()}"
+    secure = _secure_base()
+    if secure:
+        return f"{secure[0]}/?token={phone_token()}&fp={secure[1]}"
+    return f"http://{_shown_host()}:8766/?token={phone_token()}"
 
 
 def phone_join_url() -> str:
-    shown = _shown_host()
-    return f"http://{shown}:8766/join?token={phone_token()}"
+    secure = _secure_base()
+    if secure:
+        return f"{secure[0]}/join?token={phone_token()}&fp={secure[1]}"
+    return f"http://{_shown_host()}:8766/join?token={phone_token()}"
 
 
 def _shown_host() -> str:
@@ -279,7 +293,7 @@ def handle_phone_request(method: str, path: str, body: bytes, on_text) -> tuple[
 
 
 def start_phone_server(on_text, lan: bool | None = None) -> str:
-    global _server, _thread, _bind_host, _on_text
+    global _server, _thread, _bind_host, _on_text, _tls_server
     from jarvis.config import save_app_config
 
     _on_text = on_text
@@ -288,7 +302,7 @@ def start_phone_server(on_text, lan: bool | None = None) -> str:
     elif lan is False:
         save_app_config({"web_remote_access": False})
     host = "0.0.0.0" if load_app_config().get("web_remote_access") else "127.0.0.1"
-    if _server is not None and _bind_host == host:
+    if (_server is not None or _tls_server is not None) and _bind_host == host:
         return phone_join_url()
     stop_phone_server()
     _bind_host = host
@@ -324,19 +338,38 @@ def start_phone_server(on_text, lan: bool | None = None) -> str:
         def do_POST(self) -> None:
             self._respond()
 
-    _server = ThreadingHTTPServer((host, 8766), Handler)
-    _thread = threading.Thread(target=_server.serve_forever, name="jarvis-phone", daemon=True)
-    _thread.start()
+    # Aynı Wi-Fi'ye açıkken şifreli kapı da açılır; düz HTTP yalnızca eski telefonlar için kalır
+    # (phone_http_legacy=false yapılınca LAN'da kapanır).
+    legacy = bool(load_app_config().get("phone_http_legacy", True))
+    if host == "127.0.0.1" or legacy:
+        _server = ThreadingHTTPServer((host, 8766), Handler)
+        _thread = threading.Thread(target=_server.serve_forever, name="jarvis-phone", daemon=True)
+        _thread.start()
+    if host == "0.0.0.0":
+        try:
+            from jarvis.phone_tls import TLS_PORT, server_context
+
+            _tls_server = ThreadingHTTPServer((host, TLS_PORT), Handler)
+            _tls_server.socket = server_context().wrap_socket(_tls_server.socket, server_side=True)
+            threading.Thread(target=_tls_server.serve_forever, name="jarvis-phone-tls", daemon=True).start()
+        except Exception:  # sertifika üretilemezse düz HTTP ile devam
+            _tls_server = None
+            if _server is None:
+                _server = ThreadingHTTPServer((host, 8766), Handler)
+                _thread = threading.Thread(target=_server.serve_forever, name="jarvis-phone", daemon=True)
+                _thread.start()
     return phone_join_url()
 
 
 def stop_phone_server() -> None:
-    global _server
-    if _server is not None:
-        _server.shutdown()
-        _server.server_close()
-        _server = None
+    global _server, _tls_server
+    for name in ("_server", "_tls_server"):
+        srv = globals().get(name)
+        if srv is not None:
+            srv.shutdown()
+            srv.server_close()
+            globals()[name] = None
 
 
 def phone_status() -> dict:
-    return {"running": _server is not None, "url": phone_join_url() if _server else ""}
+    return {"running": _server is not None or _tls_server is not None, "url": phone_join_url() if _server else ""}

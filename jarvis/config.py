@@ -51,6 +51,7 @@ DEFAULT_CONFIG = {
     # kullanıcı bunu true yapabilir. Adres yine token ile korunur.
     "web_remote_access": False,
     "phone_autostart": False,
+    "phone_http_legacy": True,
     "start_with_windows": False,
     "weather_location": "",
     "live_model": LIVE_MODELS[0],
@@ -115,6 +116,7 @@ def load_app_config() -> dict:
     config["calendar_backend"] = backend
     config["web_remote_access"] = bool(config.get("web_remote_access", False))
     config["phone_autostart"] = _clean_bool(config.get("phone_autostart"), False)
+    config["phone_http_legacy"] = _clean_bool(config.get("phone_http_legacy"), True)
     config["start_with_windows"] = _clean_bool(config.get("start_with_windows"), False)
     config["live_model"] = _clean_model(config.get("live_model"))
     config["language"] = _clean_language(config.get("language"))
@@ -262,6 +264,7 @@ def _save_app_config(updates: dict) -> dict:
     config["break_enabled"] = _clean_bool(config.get("break_enabled"), False)
     config["event_alerts"] = _clean_bool(config.get("event_alerts"), False)
     config["phone_autostart"] = _clean_bool(config.get("phone_autostart"), False)
+    config["phone_http_legacy"] = _clean_bool(config.get("phone_http_legacy"), True)
     config["start_with_windows"] = _clean_bool(config.get("start_with_windows"), False)
     config["quiet_minutes"] = _clean_quiet(config.get("quiet_minutes"))
     config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"

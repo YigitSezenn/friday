@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.2",
+      "tarih": "2026-11-20",
+      "baslik": "Şifreli telefon köprüsü",
+      "maddeler": [
+        "Aynı Wi-Fi telefon köprüsü artık şifreli (HTTPS). Bilgisayar kendi sertifikasını üretir, parmak izi QR kodunun içinde telefona gider ve telefon yalnızca o sertifikayı kabul eder; ağdaki biri araya giremez.",
+        "Yeni QR yalnızca bu sürümün Android uygulamasıyla okunur: telefonda yeni APK'yı kurup QR'ı yeniden okutun. Eski telefonlar geçiş için bir süre düz HTTP ile çalışmaya devam eder.",
+        "Harita betiği internetten değil uygulamanın içinden yüklenir (CDN'e bağımlılık ve olası kod enjeksiyonu kapandı)."
+      ]
+    },
+    {
       "surum": "4.13.1",
       "tarih": "2026-11-20",
       "baslik": "Gerçek onay, kaydırılabilir sohbet, sıkılaştırılmış güvenlik",
