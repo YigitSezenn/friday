@@ -34,6 +34,13 @@ def note_user_said(text: str) -> None:
         del _said[:-20]
 
 
+def recent_said(seconds: float = 40.0) -> list[str]:
+    """Kullanıcının son söylediği/yazdığı cümleler (model kendi başına karar vermesin diye)."""
+    cutoff = time.time() - seconds
+    with _lock:
+        return [t for ts, t in _said if ts >= cutoff]
+
+
 def _user_approved(since: float) -> bool:
     import re
 
