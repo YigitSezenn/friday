@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.12.4",
+      "tarih": "2026-11-20",
+      "baslik": "YouTube tek pencerede açılır",
+      "maddeler": [
+        "“YouTube aç” ya da “YouTube’da şunu çal” dediğinizde artık iki pencere açılmıyor; aynı siteye art arda gelen açma istekleri tek pencereye indirildi."
+      ]
+    },
+    {
       "surum": "4.12.3",
       "tarih": "2026-11-20",
       "baslik": "Canlı harita, hiç durmayan grafikler",

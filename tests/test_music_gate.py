@@ -122,3 +122,27 @@ class WindowIntentTests(unittest.TestCase):
 
         self.assertIn("app_window", HANDLERS)
         self.assertIn("app_window", [d["name"] for d in TOOL_DECLARATIONS])
+
+
+class DuplicateOpenTests(unittest.TestCase):
+    def test_same_site_twice_opens_once(self):
+        from tools.actions import browser
+
+        browser._RECENT.clear()
+        self.assertFalse(browser.recently_opened("https://www.youtube.com/watch?v=a", now=100.0))
+        self.assertTrue(browser.recently_opened("https://youtube.com", now=102.0))
+        self.assertFalse(browser.recently_opened("https://youtube.com", now=120.0))
+
+    def test_home_open_cancelled_by_video(self):
+        from unittest import mock
+        from tools.actions import browser
+
+        browser._RECENT.clear()
+        browser._PENDING.clear()
+        with mock.patch.object(browser.webbrowser, "open") as opened:
+            browser.open_home_soon("https://www.youtube.com")
+            browser.open_url("https://www.youtube.com/watch?v=abc")
+            import time as _t
+            _t.sleep(browser.WEAK_DELAY + 0.5)
+        self.assertEqual(opened.call_count, 1)
+        self.assertIn("watch", opened.call_args[0][0])
