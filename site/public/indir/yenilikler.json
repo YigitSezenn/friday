@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.12.1",
+      "tarih": "2026-11-20",
+      "baslik": "Küçült ve kapat",
+      "maddeler": [
+        "Küçült düğmesi artık gerçek küçültme yapıyor; pencere görev çubuğunda kalıyor.",
+        "“Küçül”, “kendini küçült”, “arka plana geç” pencereyi küçültüyor.",
+        "“Kendini kapat”, “kapan”, “uygulamayı kapat” önce veda edip uygulamayı kapatıyor.",
+        "Hafıza sekmesinde kategori adları Türkçe görünüyor."
+      ]
+    },
+    {
       "surum": "4.12.0",
       "tarih": "2026-11-20",
       "baslik": "Hareketli hava ve harita, düzgün hafıza",
