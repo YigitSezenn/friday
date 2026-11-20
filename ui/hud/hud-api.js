@@ -85,6 +85,13 @@ window.hud = {
     out.classList.toggle("ok", /gönderildi/.test(result));
     out.classList.toggle("bad", !/gönderildi/.test(result));
   },
+  discordTest(result) {
+    $("discord-test").disabled = false;
+    const out = $("discord-test-out");
+    out.textContent = result;
+    out.classList.toggle("ok", /gönderildi/.test(result));
+    out.classList.toggle("bad", !/gönderildi/.test(result));
+  },
   notes(lines) {
     notes = lines || [];
     renderNotes();

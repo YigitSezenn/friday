@@ -275,3 +275,12 @@ class DiscordMessageTests(unittest.TestCase):
             out = discord.send_discord_message("selam", "Ali", "123456789012345678", confirm_send=True)
         self.assertNotIn("gönderildi", out)
         opener.assert_not_called()
+
+    def test_self_test_validates_id_and_skips_saving(self):
+        from tools.actions import discord
+
+        self.assertIn("Önce Discord kimliğini", discord.self_test("12"))
+        with mock.patch.object(discord, "_deliver", return_value="ok gönderildi") as deliver:
+            discord.self_test("123456789012345678")
+        deliver.assert_called_once()
+        self.assertFalse(deliver.call_args.kwargs.get("save", True))

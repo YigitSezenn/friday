@@ -8,6 +8,11 @@ $("mail-test")?.addEventListener("click", () => {
   $("mail-test-out").textContent = "Gönderiliyor…";
   send("mail_test", {address: form.gmail_address.value.trim(), password: form.gmail_app_password.value});
 });
+$("discord-test")?.addEventListener("click", () => {
+  $("discord-test").disabled = true;
+  $("discord-test-out").textContent = "Gönderiliyor…";
+  send("discord_test", {id: $("settings-form").discord_owner_id.value.trim()});
+});
 $("min").addEventListener("click", () => send("minimize"));
 $("quit").addEventListener("click", () => send("quit"));
 // Yenile: ilk basış uyarır, 4 sn içinde ikinci basış yeni anahtar üretir (eski telefon eşleşmesi bozulur).

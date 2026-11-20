@@ -197,6 +197,19 @@ def _on_mail_test(ui, payload: dict) -> None:
     threading.Thread(target=run, name="friday-mail-test", daemon=True).start()
 
 
+def _on_discord_test(ui, payload: dict) -> None:
+    import threading
+
+    def run() -> None:
+        from tools.actions.discord import self_test
+
+        result = self_test(str(payload.get("id") or ""))
+        ui.write_log(("SYS: " if "gönderildi" in result else "ERR: ") + result)
+        ui._call("discordTest", result)
+
+    threading.Thread(target=run, name="friday-discord-test", daemon=True).start()
+
+
 def _on_open(ui, payload: dict) -> None:
     _open_allowed(str(payload.get("url") or ""))
 
@@ -256,6 +269,7 @@ HANDLERS = {
     "copy": _on_copy,
     "open": _on_open,
     "mail_test": _on_mail_test,
+    "discord_test": _on_discord_test,
     "reminder": _on_reminder,
     "home": _on_home,
 }
