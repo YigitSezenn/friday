@@ -1,10 +1,13 @@
 ﻿; Per-user FRIDAY setup. Python is not required on the target PC.
-#define AppRoot "C:\Users\yigit\Desktop\jarvis-rebuild"
+; AppRoot komut satırından verilebilir (yayın hattı: ISCC /DAppRoot=...). Verilmezse geliştirici bilgisayarı.
+#ifndef AppRoot
+  #define AppRoot "C:\Users\yigit\Desktop\jarvis-rebuild"
+#endif
 
 [Setup]
 AppId={{8F3A1C2E-6B47-4D19-9A55-F21DA7000001}
 AppName=FRIDAY
-AppVersion=4.10.2
+AppVersion=4.10.3
 AppPublisher=FRIDAY
 DefaultDirName={localappdata}\FRIDAY
 DisableDirPage=yes

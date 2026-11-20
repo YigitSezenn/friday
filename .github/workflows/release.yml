@@ -1,0 +1,240 @@
+# FRIDAY yayın hattı: etiket (v4.10.3 gibi) itilince Windows kurulumu + Android APK derlenir,
+# site Vercel'e TEK yayınla çıkar, canlı sürüm doğrulanır ve sonuç `ci-status` dalına yazılır.
+#
+# Gerekli depo sırları (Settings › Secrets and variables › Actions):
+#   VERCEL_TOKEN                 (zorunlu) Vercel › Account Settings › Tokens
+#   ANDROID_DEBUG_KEYSTORE_B64   (önerilir) mevcut APK ile aynı imza; yoksa canlı APK değiştirilmez
+name: Yayın
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: friday-release
+  cancel-in-progress: false
+
+env:
+  SITE: https://site-seven-bay-75.vercel.app
+  VERCEL_ORG_ID: team_qP2RxJZQ3iQZomXv33OdrfJW
+  VERCEL_PROJECT_ID: prj_jyFsyJzjYWBFHKcpbeehp1scn43j
+
+jobs:
+  prepare:
+    name: Sürüm ve testler
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        name: Sürümü oku
+        run: |
+          VERSION=$(python3 -c "import re;print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('jarvis/__init__.py', encoding='utf-8').read()).group(1))")
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF#refs/tags/v}" != "$VERSION" ]]; then
+            echo "::error::Etiket ${GITHUB_REF#refs/tags/v} ile __version__ $VERSION uyuşmuyor"; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Testler (Linux)
+        env:
+          FRIDAY_OFFLINE: "1"
+        run: |
+          python -m pip install --quiet google-genai pillow psutil qrcode requests numpy opencv-python-headless
+          python -m unittest discover -s tests
+
+  windows:
+    name: Windows kurulumu
+    needs: prepare
+    runs-on: windows-latest
+    outputs:
+      sha: ${{ steps.out.outputs.sha }}
+      size: ${{ steps.out.outputs.size }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bağımlılıklar
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+      - name: PyInstaller
+        run: python -m PyInstaller --noconfirm --distpath dist --workpath build packaging\friday.spec
+      - name: Paket içeriği
+        shell: pwsh
+        run: |
+          foreach ($p in @("dist\FRIDAY\FRIDAY.exe", "dist\FRIDAY\_internal\ui\hud\index.html", "dist\FRIDAY\_internal\assets\sounds\startup.wav")) {
+            if (-not (Test-Path $p)) { Write-Error "Pakette eksik: $p"; exit 1 }
+          }
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppRoot=$env:GITHUB_WORKSPACE" packaging\friday.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - id: out
+        shell: pwsh
+        run: |
+          $f = Get-Item dist\FRIDAY-Kurulum.exe
+          "sha=$((Get-FileHash $f -Algorithm SHA256).Hash)" >> $env:GITHUB_OUTPUT
+          "size=$($f.Length)" >> $env:GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/FRIDAY-Kurulum.exe
+          if-no-files-found: error
+
+  android:
+    name: Android APK
+    needs: prepare
+    runs-on: ubuntu-latest
+    outputs:
+      signed: ${{ steps.key.outputs.signed }}
+      sha: ${{ steps.out.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - id: key
+        name: İmza anahtarı
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p ~/.android
+            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::ANDROID_DEBUG_KEYSTORE_B64 yok: APK farklı imzalanır, canlıdaki APK değiştirilmeyecek."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Derle ve test et
+        working-directory: phone-android
+        run: gradle --no-daemon assembleDebug testDebugUnitTest
+      - id: out
+        run: |
+          cp phone-android/app/build/outputs/apk/debug/app-debug.apk FRIDAY.apk
+          echo "sha=$(sha256sum FRIDAY.apk | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: FRIDAY.apk
+          if-no-files-found: error
+
+  deploy:
+    name: Vercel yayını
+    needs: [prepare, windows, android]
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+      live: ${{ steps.verify.outputs.live }}
+      apk_kept: ${{ steps.files.outputs.apk_kept }}
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vercel anahtarı var mı
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then echo "::error::VERCEL_TOKEN sırrı eksik (Settings › Secrets and variables › Actions)"; exit 1; fi
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - id: files
+        name: İndirme dosyaları (surum.txt en son, aynı yayında)
+        run: |
+          mkdir -p site/public/indir
+          cp artifacts/windows/FRIDAY-Kurulum.exe site/public/indir/
+          if [ "${{ needs.android.outputs.signed }}" = "true" ]; then
+            cp artifacts/android/FRIDAY.apk site/public/indir/
+            echo "apk_kept=false" >> "$GITHUB_OUTPUT"
+          else
+            # İmza farklı olursa telefonlar güncelleme olarak kabul etmez: canlıdaki APK korunur.
+            curl -fsSL "$SITE/indir/FRIDAY.apk" -o site/public/indir/FRIDAY.apk
+            echo "apk_kept=true" >> "$GITHUB_OUTPUT"
+          fi
+          printf '%s\n' "$VERSION" > site/public/indir/surum.txt
+          ls -la site/public/indir
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - id: deploy
+        name: Yayınla (tek dağıtım; Vercel dağıtımları atomik)
+        working-directory: site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm ci
+          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+          URL=$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - id: verify
+        name: Canlı doğrulama
+        run: |
+          size=$(stat -c%s site/public/indir/FRIDAY-Kurulum.exe)
+          for i in $(seq 1 20); do
+            live=$(curl -fsSL "$SITE/indir/surum.txt?cb=$RANDOM" | tr -d '[:space:]' || true)
+            len=$(curl -fsSI "$SITE/indir/FRIDAY-Kurulum.exe?cb=$RANDOM" | awk 'tolower($1)=="content-length:"{print $2}' | tr -d '\r' || true)
+            html=$(curl -fsSL "$SITE/?cb=$RANDOM" || true)
+            if [ "$live" = "$VERSION" ] && [ "$len" = "$size" ] && grep -q "Sürüm $VERSION" <<<"$html"; then
+              echo "live=$live" >> "$GITHUB_OUTPUT"; echo "Canlı: $live, exe $len bayt"; exit 0
+            fi
+            sleep 15
+          done
+          echo "live=${live:-?}" >> "$GITHUB_OUTPUT"
+          echo "::error::Canlı doğrulanamadı (surum=$live exe=$len beklenen $VERSION/$size)"; exit 1
+
+  report:
+    name: Sonuç raporu
+    needs: [prepare, windows, android, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: ci-status dalına yaz
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPORT: |
+            {
+              "version": "${{ needs.prepare.outputs.version }}",
+              "ref": "${{ github.ref_name }}",
+              "sha": "${{ github.sha }}",
+              "run": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "tests": "${{ needs.prepare.result }}",
+              "windows": "${{ needs.windows.result }}",
+              "exe_sha256": "${{ needs.windows.outputs.sha }}",
+              "exe_size": "${{ needs.windows.outputs.size }}",
+              "android": "${{ needs.android.result }}",
+              "apk_signed": "${{ needs.android.outputs.signed }}",
+              "apk_sha256": "${{ needs.android.outputs.sha }}",
+              "apk_kept_live": "${{ needs.deploy.outputs.apk_kept }}",
+              "deploy": "${{ needs.deploy.result }}",
+              "deploy_url": "${{ needs.deploy.outputs.url }}",
+              "live_surum": "${{ needs.deploy.outputs.live }}"
+            }
+        run: |
+          mkdir rep && cd rep
+          git init -q
+          git config user.name "friday-ci"
+          git config user.email "friday-ci@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q origin ci-status; then git checkout -q -b ci-status FETCH_HEAD; else git checkout -q --orphan ci-status; fi
+          mkdir -p runs
+          printf '%s\n' "$REPORT" > latest.json
+          cp latest.json "runs/${GITHUB_RUN_ID}.json"
+          git add -A
+          git commit -q -m "CI ${GITHUB_REF_NAME} (${GITHUB_RUN_ID})"
+          git push -q origin ci-status
