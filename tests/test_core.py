@@ -612,3 +612,33 @@ class JarvisTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MinimizeToTrayTests(unittest.TestCase):
+    def _ui(self, window):
+        from ui.bridge import JarvisUI
+
+        ui = JarvisUI()
+        ui._window = window
+        ui._ensure_tray = lambda: None
+        return ui
+
+    def test_minimize_hides_window_so_taskbar_button_goes(self):
+        calls = []
+
+        class Win:
+            def hide(self): calls.append("hide")
+            def minimize(self): calls.append("minimize")
+
+        self._ui(Win()).minimize_to_taskbar()
+        self.assertEqual(calls, ["hide"])
+
+    def test_falls_back_to_minimize_when_hide_fails(self):
+        calls = []
+
+        class Win:
+            def hide(self): raise RuntimeError("x")
+            def minimize(self): calls.append("minimize")
+
+        self._ui(Win()).minimize_to_taskbar()
+        self.assertEqual(calls, ["minimize"])

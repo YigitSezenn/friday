@@ -661,17 +661,6 @@ def _log_error(exc: BaseException, key: str) -> None:
         pass
 
 
-def _public_connect_error(exc: BaseException, key: str) -> str:
-    detail = str(exc)
-    secret = str(key or "").strip()
-    if secret:
-        detail = detail.replace(secret, "")
-    detail = " ".join(detail.split())
-    if len(detail) > 160:
-        detail = detail[:160] + "…"
-    return f"ERR: Bağlantı koptu. API anahtarını ve interneti kontrol et. ({detail})"
-
-
 def _reconnect_error(exc: BaseException) -> bool:
     if isinstance(exc, Reconnect):
         return True

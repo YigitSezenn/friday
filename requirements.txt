@@ -12,3 +12,4 @@ qrcode
 pycaw
 comtypes
 cryptography>=42
+broadlink

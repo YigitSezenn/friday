@@ -214,6 +214,19 @@ def _on_reminder(ui, payload: dict) -> None:
     ui._push_agenda()
 
 
+def _on_home(ui, payload: dict) -> None:
+    import threading
+
+    def run() -> None:
+        from tools.actions.home import run as home_run
+
+        result = home_run(str(payload.get("action") or ""), str(payload.get("device") or ""), str(payload.get("command") or ""), str(payload.get("host") or ""))
+        ui.write_log("SYS: " + result)
+        ui.push_settings()
+
+    threading.Thread(target=run, name="friday-home", daemon=True).start()  # öğrenme 30 sn bekleyebilir
+
+
 HANDLERS = {
     "command": _on_command,
     "mute": _on_mute,
@@ -243,6 +256,7 @@ HANDLERS = {
     "open": _on_open,
     "mail_test": _on_mail_test,
     "reminder": _on_reminder,
+    "home": _on_home,
 }
 
 

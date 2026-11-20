@@ -23,10 +23,6 @@ class FridayTray:
         self._thread = threading.Thread(target=self._run, name="friday-tray", daemon=True)
         self._thread.start()
 
-    def wait_ready(self, timeout: float = 3) -> bool:
-        self.start()
-        self._done.wait(timeout)
-        return self._shown
 
     def stop(self) -> None:
         hwnd = self._hwnd

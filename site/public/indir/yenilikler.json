@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.6",
+      "tarih": "2026-11-20",
+      "baslik": "Ev kumandası ve tepsiye küçülme",
+      "maddeler": [
+        "Yeni Ayarlar › EV sekmesi: Broadlink IR köprüsüyle klima ve led gibi kumandalı cihazlar eklenir, kumanda tuşları öğretilir. “Salon klimayı aç” demek yeter. (Köprü gerekir.)",
+        "Küçült komutu ve – düğmesi artık pencereyi görev çubuğundan kaldırır; FRIDAY tepsi simgesinde durur, simgeye tıklayınca geri gelir.",
+        "Kullanılmayan eski kodlar temizlendi."
+      ]
+    },
+    {
       "surum": "4.13.5",
       "tarih": "2026-11-20",
       "baslik": "Boşta kalma hatası ve kendi kendine uyku",

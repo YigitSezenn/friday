@@ -67,7 +67,3 @@ def stop(name: str) -> None:
     except Exception:
         pass
 
-
-def stop_all() -> None:
-    for alias in list(_ALIASES):
-        stop(alias.removeprefix("friday_"))
