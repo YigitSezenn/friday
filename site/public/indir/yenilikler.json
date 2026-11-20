@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.5",
+      "tarih": "2026-11-20",
+      "baslik": "Boşta kalma hatası ve kendi kendine uyku",
+      "maddeler": [
+        "Mikrofon sessizken Google'ın oturumu kapatması (1008 “client inactivity”) artık kırmızı hata olarak görünmez; FRIDAY sessizce yeniden bağlanır.",
+        "FRIDAY “cevap alamadım, uyku moduna geçiyorum” diyerek kendi kendine uyuyamaz: uyku modu yalnızca sen istediğinde açılır."
+      ]
+    },
+    {
       "surum": "4.13.4",
       "tarih": "2026-11-20",
       "baslik": "Kapı durumu görünür",

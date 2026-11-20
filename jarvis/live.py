@@ -597,6 +597,14 @@ class JarvisLive:
                     if not self._paused:
                         self.ui.write_log("SYS: Ses ayarı uygulandı, yeniden bağlanıyor.")
                     continue
+                from jarvis.gemini_errors import classify as _classify
+
+                if _classify(exc, key).quiet:
+                    # Boşta kalma: hata değil. Ekrana kırmızı yazı çıkarmadan yeniden bağlan.
+                    self.set_speaking(False)
+                    self.ui.set_state("THINKING")
+                    await asyncio.sleep(0.5)
+                    continue
                 traceback.print_exc()
                 _log_error(exc, key)
                 self.set_speaking(False)

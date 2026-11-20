@@ -120,3 +120,42 @@ class LocationToolTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class IdleTimeoutTests(unittest.TestCase):
+    def test_client_inactivity_is_quiet_reconnect(self):
+        from jarvis.gemini_errors import RejectionBudget, classify
+
+        text = "(unhandled errors in a TaskGroup (1 sub-exception)) 1008 None. Session closed due to client inactivity. received 1008 (policy violation) Session closed due to client inactivity."
+        issue = classify(Exception(text), "anahtar")
+        self.assertTrue(issue.quiet)
+        self.assertFalse(issue.rejection)
+        budget = RejectionBudget()
+        budget.note(issue, "anahtar")
+        self.assertFalse(budget.should_wait("anahtar"))
+
+    def test_real_denied_access_still_blocks(self):
+        from jarvis.gemini_errors import classify
+
+        issue = classify(Exception("1008 (policy violation): Your project has been denied access."))
+        self.assertFalse(issue.quiet)
+        self.assertTrue(issue.rejection)
+
+
+class SleepGuardTests(unittest.TestCase):
+    def test_model_cannot_sleep_on_its_own(self):
+        from tools import handlers
+        from tools.actions import confirm
+
+        class Ctx:
+            class ui:
+                calls = []
+                @staticmethod
+                def _js(s): Ctx.ui.calls.append(s)
+        confirm._said.clear()
+        out = handlers.sleep_mode({"asleep": True}, Ctx)
+        self.assertIn("yalnızca kullanıcı", out)
+        self.assertEqual(Ctx.ui.calls, [])
+        confirm.note_user_said("friday uyu")
+        handlers.sleep_mode({"asleep": True}, Ctx)
+        self.assertTrue(Ctx.ui.calls)
