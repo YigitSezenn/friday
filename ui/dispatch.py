@@ -26,7 +26,10 @@ def _on_camera(ui, payload: dict) -> None:
 
 
 def _on_settings(ui, payload: dict) -> None:
+    before = str(load_app_config().get("weather_location", "") or "").strip()
     saved = save_app_config(dict(payload.get("values") or {}))
+    if str(saved.get("weather_location", "") or "").strip() != before:
+        ui.refresh_weather()  # konum değişti: hava ve harita hemen yeni yere geçsin
     if "start_with_windows" in (payload.get("values") or {}):
         from jarvis.startup import apply_windows_startup
 
@@ -58,6 +61,13 @@ def _on_forget(ui, payload: dict) -> None:
     ui.push_settings()
 
 
+def _on_memory_save(ui, payload: dict) -> None:
+    from jarvis.memory_store import save_entry
+
+    ui.write_log("SYS: " + save_entry(payload.get("category", ""), payload.get("key", ""), payload.get("text", "")))
+    ui.push_settings()
+
+
 def _on_phone(ui, payload: dict) -> None:
     url = ""
     if ui.phone_opener:
@@ -70,15 +80,6 @@ def _on_phone_rotate(ui, payload: dict) -> None:
 
     rotate_phone_token()
     ui._call("phone", _phone_payload(str(phone_status().get("url") or "")))
-
-
-def _on_story(ui, payload: dict) -> None:
-    from jarvis.story import choose, view
-
-    ending = str(payload.get("ending") or "")
-    if ending:
-        ui.write_log("SYS: " + choose(ending))
-    ui._call("story", view())
 
 
 def _on_note(ui, payload: dict) -> None:
@@ -130,6 +131,10 @@ def _on_notes(ui, payload: dict) -> None:
     import threading
 
     threading.Thread(target=ui.push_patch_notes, name="friday-notes", daemon=True).start()
+
+
+def _on_weather_refresh(ui, payload: dict) -> None:
+    ui.refresh_weather()
 
 
 def _on_update(ui, payload: dict) -> None:
@@ -216,9 +221,9 @@ HANDLERS = {
     "settings": _on_settings,
     "sleep": _on_sleep,
     "forget": _on_forget,
+    "memory_save": _on_memory_save,
     "phone": _on_phone,
     "phone_rotate": _on_phone_rotate,
-    "story": _on_story,
     "note": _on_note,
     "note_delete": _on_note_delete,
     "note_edit": _on_note_edit,
@@ -226,6 +231,7 @@ HANDLERS = {
     "beep": _on_beep,
     "minimize": _on_minimize,
     "update": _on_update,
+    "weather_refresh": _on_weather_refresh,
     "notes": _on_notes,
     "gate_refresh": _on_gate_refresh,
     "quit": _on_quit,

@@ -392,15 +392,13 @@ class JarvisTestCase(unittest.TestCase):
         self.assertIn("applyLanguage", hud)
         self.assertIn("send(\"settings\", {values: {language: value}})", hud)
 
-    def test_story_search_files_and_vision_code(self):
+    def test_search_files_and_vision_code(self):
         from pathlib import Path
 
         from tools.actions.files import list_user_files
         from tools.actions.screen import VISION_MODELS, explain_vision_error
         from tools.actions.search import web_search
-        from jarvis.config import save_app_config
         from jarvis.proactive import due_nudges
-        from jarvis.story import note_tool, view
         from jarvis.tools import execute_tool
 
         self.assertIn("models/gemini-3.1-flash-lite", VISION_MODELS)
@@ -415,13 +413,6 @@ class JarvisTestCase(unittest.TestCase):
         listed = list_user_files("desktop", folder.parent)
         self.assertIn("not.txt", listed)
         self.assertIn("bakamam", list_user_files("..", folder.parent).lower())
-        save_app_config({"story_enabled": True})
-        note_tool("get_weather", "Antalya icin acik.")
-        seen = view()
-        self.assertTrue(any(row["got"] and row["key"] == "weather" for row in seen["achievements"]))
-        self.assertTrue(seen["hints"])
-        save_app_config({"story_enabled": False})
-        self.assertEqual(view()["hints"], [])
         self.assertIn("mavi", execute_tool("save_memory", {"category": "notes", "key": "renk", "value": "mavi"}))
         state = {"heard": 0, "water": 0, "break": 10**12, "silence": 10**12, "event": 10**12}
         notes = due_nudges(4000, state, {"proactive_enabled": True, "water_enabled": True, "quiet_minutes": 20}, paused=False)

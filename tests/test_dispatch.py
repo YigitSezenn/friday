@@ -28,7 +28,7 @@ class DispatchSmokeTest(unittest.TestCase):
             ("sleep", {"asleep": True}), ("sleep", {"asleep": False}),
             ("note", {"lines": ["a", "b"]}), ("note_edit", {"index": 0, "text": "A"}), ("note_delete", {"index": 1}),
             ("timer", {"action": "set", "seconds": 60, "label": "x"}), ("timer", {"action": "add", "seconds": 30}),
-            ("timer", {"action": "watch", "watch": "toggle"}), ("timer", {"action": "cancel"}), ("story", {}),
+            ("timer", {"action": "watch", "watch": "toggle"}), ("timer", {"action": "cancel"}),
         ]:
             self.assertEqual(post(kind, data), {"ok": True}, kind)
         self.assertEqual(notes.load(), ["A"])

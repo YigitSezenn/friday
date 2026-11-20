@@ -40,15 +40,28 @@ function openWeather() {
   host.replaceChildren();
   const head = el("div", "wxhead");
   const titles = el("div");
-  titles.append(el("h2", "", "HAVA DURUMU"), el("p", "", [card.place, card.country, card.observed ? `GÜNCELLENDİ ${card.observed}` : ""].filter(Boolean).join(" · ").toUpperCase()));
-  head.append(titles, el("button", "", "×"));
-  head.lastChild.id = "wx-close";
-  head.lastChild.type = "button";
+  const sourceText = card.source === "elle" ? "KONUM: AYARLARDAN" : "KONUM: OTOMATİK";
+  titles.append(el("h2", "", "HAVA DURUMU"), el("p", "", [card.place, card.country, card.observed ? `GÜNCELLENDİ ${card.observed}` : ""].filter(Boolean).join(" · ").toUpperCase()), el("p", "wxsource", sourceText));
+  const refresh = el("button", "wxrefresh", "⟳ YENİLE");
+  refresh.type = "button";
+  refresh.title = "Konumu ve havayı yeniden bul";
+  refresh.addEventListener("click", () => { refresh.classList.add("spin"); send("weather_refresh"); setTimeout(() => { $("ov-weather").hidden = true; refresh.classList.remove("spin"); }, 900); });
+  const close = el("button", "", "×");
+  close.id = "wx-close";
+  close.type = "button";
+  head.append(titles, refresh, close);
   host.appendChild(head);
 
   const hero = el("div", "wxhero");
   const main = el("div", "wxmain");
-  main.append(el("b", "", card.temp ? `${card.temp}°` : "—"), el("div", "wxcopy"));
+  const kind = window.fxKind ? window.fxKind(card.desc) : "clear";
+  $("ov-weather").dataset.wx = kind;
+  const icon = el("i", "wxico big");
+  icon.dataset.kind = kind;
+  icon.append(document.createElement("u"), document.createElement("u"), document.createElement("u"));
+  const temp = el("b", "", "—");
+  if (card.temp) window.fxCount ? window.fxCount(temp, card.temp, "°") : (temp.textContent = card.temp + "°");
+  main.append(icon, temp, el("div", "wxcopy"));
   main.lastChild.append(el("strong", "", card.desc || "—"), el("span", "", `Hissedilen ${card.feels || "—"}°`), el("span", "", `En yüksek ${card.high || "—"}° · En düşük ${card.low || "—"}°`));
   hero.append(main, sunCard(card), moonCard(card));
   host.appendChild(hero);
@@ -77,6 +90,8 @@ function openWeather() {
     days.appendChild(box);
   });
   host.appendChild(days);
+  // Kartlar sırayla içeri girer
+  host.querySelectorAll(".wxhero > *, .wxstat, .wxhours, .wxday").forEach((node, index) => node.style.setProperty("--n", index));
   $("ov-weather").hidden = false;
 }
 function sunCard(card) {
@@ -102,7 +117,21 @@ function sunCard(card) {
   dot.setAttribute("cy", String(y));
   dot.setAttribute("r", "5");
   dot.setAttribute("fill", "var(--accent)");
+  dot.setAttribute("class", "sundot");
   svg.appendChild(dot);
+  const place = (u) => {
+    dot.setAttribute("cx", String((1 - u) * (1 - u) * 12 + 2 * (1 - u) * u * 80 + u * u * 148));
+    dot.setAttribute("cy", String((1 - u) * (1 - u) * 72 + 2 * (1 - u) * u * 4 + u * u * 72));
+  };
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    place(0);
+    const started = performance.now();
+    requestAnimationFrame(function step(now) {
+      const k = Math.min(1, (now - started - 400) / 1500);
+      place(Math.max(0, 1 - Math.pow(1 - Math.max(0, k), 3)) * progress);
+      if (k < 1) requestAnimationFrame(step);
+    });
+  }
   box.appendChild(svg);
   box.append(el("p", "", `${card.sunrise || "—"}  GÜNEŞ  ${card.sunset || "—"}`));
   return box;
@@ -132,6 +161,8 @@ function hourCard(hours) {
   line.setAttribute("fill", "none");
   line.setAttribute("stroke", "currentColor");
   line.setAttribute("stroke-width", "3");
+  line.setAttribute("class", "wxline");
+  line.setAttribute("pathLength", "1");
   svg.appendChild(line);
   points.forEach((point, index) => {
     const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -139,6 +170,8 @@ function hourCard(hours) {
     dot.setAttribute("cy", String(point[1]));
     dot.setAttribute("r", "4");
     dot.setAttribute("fill", "#fff");
+    dot.setAttribute("class", "wxdot");
+    dot.style.animationDelay = (0.5 + index * 0.12) + "s";
     svg.appendChild(dot);
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("x", String(point[0]));
@@ -147,6 +180,8 @@ function hourCard(hours) {
     label.setAttribute("fill", "var(--ink)");
     label.setAttribute("font-size", "14");
     label.textContent = `${temps[index]}°`;
+    label.setAttribute("class", "wxdot");
+    label.style.animationDelay = (0.5 + index * 0.12) + "s";
     svg.appendChild(label);
   });
   box.appendChild(svg);
@@ -160,6 +195,7 @@ function hourCard(hours) {
   return box;
 }
 let bigMap = null;
+let bigMarker = null;
 function openMap() {
   const spot = window.__spot;
   $("map-title").textContent = (spot && spot.label) || $("wx-city").textContent || "KONUM";
@@ -179,10 +215,19 @@ function openMap() {
       });
       bigMap.addControl(new maplibregl.NavigationControl(), "top-left");
     }
+    const target = [Number(spot.lon), Number(spot.lat)];
+    if (bigMarker) bigMarker.remove();
+    const pin = document.createElement("div");
+    pin.className = "mappin";
+    bigMarker = new maplibregl.Marker({element: pin}).setLngLat(target).addTo(bigMap);
     setTimeout(() => {
       bigMap.resize();
-      bigMap.jumpTo({center: [Number(spot.lon), Number(spot.lat)], zoom: 11});
-    }, 40);
+      const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (calm) { bigMap.jumpTo({center: target, zoom: 11}); return; }
+      // Dünyadan şehre süzülen açılış: uzaktan başlar, eğilir, hafifçe döner
+      bigMap.jumpTo({center: target, zoom: 2.2, pitch: 0, bearing: 0});
+      bigMap.flyTo({center: target, zoom: 11.6, pitch: 52, bearing: -24, duration: 3800, essential: true, curve: 1.6});
+    }, 60);
     return;
   }
   frame.hidden = true;

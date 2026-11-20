@@ -437,6 +437,8 @@ def set_location(args, ctx):
     if bool(args.get("auto", False)):
         save_app_config({"weather_location": ""})
         clear_detected_city()
+        if ctx.ui and hasattr(ctx.ui, "refresh_weather"):
+            ctx.ui.refresh_weather()
         return "Konum otomatik yapıldı; internet bağlantından yeniden bulunacak."
     place = " ".join(text(args, "location").split())
     if not place or len(place) > 80:
@@ -444,5 +446,7 @@ def set_location(args, ctx):
     save_app_config({"weather_location": place})
     clear_detected_city()
     if ctx.ui:
+        if hasattr(ctx.ui, "refresh_weather"):
+            ctx.ui.refresh_weather()
         ctx.ui.focus_panel("weather")
     return f"Konum kalıcı olarak {place} yapıldı. Hava ve harita oraya gecti."

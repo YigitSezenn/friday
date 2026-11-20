@@ -49,7 +49,7 @@
   }, {passive: true});
 
   // Hava metninden ikon türü
-  window.fxWeather = function (desc) {
+  window.fxKind = function (desc) {
     const text = String(desc || "").toLowerCase();
     let kind = "clear";
     if (/fırtına|gök gürültü|şimşek|thunder|storm/.test(text)) kind = "storm";
@@ -58,8 +58,22 @@
     else if (/sis|pus|duman|fog|mist|haze/.test(text)) kind = "fog";
     else if (/bulut|kapalı|cloud|overcast/.test(text)) kind = "cloud";
     else if (/gece|night/.test(text)) kind = "night";
+    return kind;
+  };
+  window.fxWeather = function (desc) {
     const icon = document.getElementById("wx-ico");
-    if (icon) icon.dataset.kind = kind;
+    if (icon) icon.dataset.kind = window.fxKind(desc);
+  };
+  // Sayıyı 0'dan sayarak yükselt
+  window.fxCount = function (node, target, suffix) {
+    const end = Number(target);
+    if (reduce || !Number.isFinite(end)) { node.textContent = target + (suffix || ""); return; }
+    const start = performance.now();
+    (function step(now) {
+      const t = Math.min(1, (now - start) / 900);
+      node.textContent = Math.round(end * (1 - Math.pow(1 - t, 3))) + (suffix || "");
+      if (t < 1) requestAnimationFrame(step);
+    })(start);
   };
 
   // Zamanlayıcı/kronometre çalışırken kadran ışıldar

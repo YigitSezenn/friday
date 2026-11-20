@@ -66,28 +66,52 @@ class PanelsMixin:
                 "card": card,
             })
             self._map_city = city
-            self._load_map(city)
+            self._load_map(city, card.get("lat"), card.get("lon"))
         except Exception as exc:
             self._call("weather", {"temp": "--°", "city": "KONUM", "desc": "", "detail": f"Hava alınamadı: {exc}", "card": {}})
 
-    def _load_map(self, city: str) -> None:
+    def _remote_loop(self) -> None:
+        """Hava ve harita 15 dakikada bir tazelenir; konum otomatikse IP'den yeniden bulunur."""
+        import time
+
+        while not getattr(self, "_closed", False):
+            self._load_remote()
+            for _ in range(90):
+                if getattr(self, "_closed", False):
+                    return
+                time.sleep(10)
+
+    def refresh_weather(self) -> None:
+        import threading
+
+        from tools.actions.weather import auto_location
+
+        def work() -> None:
+            auto_location(force=True)
+            self._load_remote()
+
+        threading.Thread(target=work, name="friday-weather", daemon=True).start()
+
+    def _load_map(self, city: str, lat=None, lon=None) -> None:
         try:
             import io
 
             import requests
             from PIL import Image
 
-            found = requests.get(
-                "https://nominatim.openstreetmap.org/search",
-                params={"q": city, "format": "json", "limit": 1},
-                headers={"User-Agent": "FRIDAY/4.4 (desktop assistant)"},
-                timeout=12,
-            )
-            found.raise_for_status()
-            rows = found.json()
-            if not rows:
-                return
-            lat, lon = float(rows[0]["lat"]), float(rows[0]["lon"])
+            if lat is None or lon is None:
+                found = requests.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={"q": city, "format": "json", "limit": 1},
+                    headers={"User-Agent": "FRIDAY/4.4 (desktop assistant)"},
+                    timeout=12,
+                )
+                found.raise_for_status()
+                rows = found.json()
+                if not rows:
+                    return
+                lat, lon = float(rows[0]["lat"]), float(rows[0]["lon"])
+            lat, lon = float(lat), float(lon)
             self._call("place", {"lat": lat, "lon": lon, "label": city})
             zoom = 11
             n = 2 ** zoom
