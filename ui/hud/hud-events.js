@@ -34,6 +34,12 @@ $("quit").addEventListener("click", () => send("quit"));
 })();
 $("home-update")?.addEventListener("click", () => send("update"));
 $("app-update")?.addEventListener("click", () => send("update"));
+$("notes-update")?.addEventListener("click", () => send("update"));
+$("app-notes")?.addEventListener("click", () => send("notes"));
+$("t-ver")?.addEventListener("click", () => send("notes"));
+const closeNotes = () => { $("ov-notes").hidden = true; };
+$("notes-ok")?.addEventListener("click", closeNotes);
+$("notes-close")?.addEventListener("click", closeNotes);
 $("uninstall").addEventListener("click", () => {
   const ok = confirm("FRIDAY kaldırılsın mı? Uygulama ve FRIDAY kayıt klasörü silinir. Başka klasörler silinmez.");
   if (ok) send("uninstall");
@@ -108,5 +114,5 @@ addEventListener("keydown", event => {
     toggleMic();
   }
   if (event.key === "F6") { event.preventDefault(); $("t-cam").click(); }
-  if (event.key === "Escape") { $("ov-settings").hidden = true; $("ov-models").hidden = true; }
+  if (event.key === "Escape") { $("ov-settings").hidden = true; $("ov-models").hidden = true; $("ov-notes").hidden = true; }
 });

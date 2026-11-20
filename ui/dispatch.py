@@ -126,6 +126,12 @@ def _on_minimize(ui, payload: dict) -> None:
     ui.minimize_to_taskbar()
 
 
+def _on_notes(ui, payload: dict) -> None:
+    import threading
+
+    threading.Thread(target=ui.push_patch_notes, name="friday-notes", daemon=True).start()
+
+
 def _on_update(ui, payload: dict) -> None:
     ui.install_update()
 
@@ -220,6 +226,7 @@ HANDLERS = {
     "beep": _on_beep,
     "minimize": _on_minimize,
     "update": _on_update,
+    "notes": _on_notes,
     "gate_refresh": _on_gate_refresh,
     "quit": _on_quit,
     "uninstall": _on_uninstall,

@@ -241,6 +241,7 @@
     </section>
     <section class="pane" data-pane="hakkinda">
       <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-3.8-live.</p>
+      <button type="button" class="btn ghost" id="app-notes">YENİLİKLER</button>
       <button type="button" class="btn ghost" id="app-update" hidden>Güncelle</button>
       <button type="button" class="btn ghost" id="open-data">KAYIT KLASÖRÜNÜ AÇ</button>
       <button type="button" class="btn ghost" id="uninstall">FRIDAY'İ KALDIR</button>
@@ -321,6 +322,14 @@
       <button class="btn ghost" id="kh-video" type="button">VİDEOYU İZLE</button>
       <button class="btn ghost" id="kh-studio" type="button">AI STUDIO’YU AÇ</button>
     </div>
+  </div>
+</div>
+<div class="overlay" id="ov-notes" hidden>
+  <div class="sheet notesheet" role="dialog" aria-labelledby="notes-title">
+    <div class="sethead"><h2 id="notes-title">YENİLİKLER</h2><button type="button" class="setx" id="notes-close" aria-label="Kapat">✕</button></div>
+    <p class="whisper" id="notes-sub"></p>
+    <div class="notes-list" id="notes-list"></div>
+    <div class="row"><button type="button" class="btn" id="notes-update" hidden>Güncelle</button><button type="button" id="notes-ok">TAMAM</button></div>
   </div>
 </div>
 <div class="overlay" id="ov-models" hidden>
