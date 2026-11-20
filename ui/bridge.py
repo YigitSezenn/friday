@@ -37,7 +37,7 @@ class HudBridge:
 
             traceback.print_exc()
             try:
-                self.ui.write_log(f"ERR: Arayüz işlemi ({kind}) başarısız: {exc}")
+                self.ui.write_log(f"ERR: Bir arayüz işlemi tamamlanamadı. ({exc})")
             except Exception:
                 pass
             return {"ok": False}

@@ -187,7 +187,7 @@ def delete_calendar_event(
                     continue
             matched.append(index)
         if not matched:
-            return f"'{title}' baslikli bir etkinlik bulunamadi."
+            return f"'{title}' başlıklı bir etkinlik bulunamadı."
         if len(matched) > 1 and not delete_all_matches:
             return (
                 f"'{title}' ile eslesen {len(matched)} etkinlik var. "

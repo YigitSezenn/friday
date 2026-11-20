@@ -72,7 +72,7 @@ def browser_control(action: str, url: str | None = None, query: str | None = Non
             encoded = urllib.parse.quote(query)
             fallback = f"https://www.youtube.com/results?search_query={encoded}"
             open_url(fallback)
-            return f"YouTube'da doğrudan video bulunamadi. Arama sonuçları açıldı: {query}"
+            return f"YouTube'da doğrudan video bulunamadı. Arama sonuçları açıldı: {query}"
         watch = f"https://www.youtube.com/watch?v={video_id}&autoplay=1"
         open_url(watch)
         return f"YouTube'da oynatiliyor: {watch}"

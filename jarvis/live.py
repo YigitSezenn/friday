@@ -259,15 +259,23 @@ class JarvisLive:
             result = await asyncio.to_thread(execute_tool, name, args, self.webcam, self.ui)
         except Exception as exc:
             result = f"Hata: {exc}"
-            self.ui.write_log(f"ERR: {name} — {exc}")
+            from jarvis.shown import tool_label
+
+            self.ui.write_log(f"ERR: {tool_label(name)} tamamlanamadı. ({exc})")
             traceback.print_exc()
         if looks_like_error(result):
             self.ui.set_state("ERROR")
-            text = repair_text(str(result))
+            from jarvis.shown import for_screen
+
+            text = for_screen(result)
             shown = text if len(text) <= 240 else text[:70] + " … " + text[-140:]
-            self.ui.write_log(f"ERR: {name} — {shown}")
+            from jarvis.shown import tool_label
+
+            self.ui.write_log(f"ERR: {tool_label(name)}: {shown}")
         else:
-            shown = repair_text(str(result or "")).strip()
+            from jarvis.shown import for_screen
+
+            shown = for_screen(result)
             if shown:
                 self.ui.write_log(f"JARVIS: {shown}")
                 self._said_result = True
@@ -571,14 +579,14 @@ class JarvisLive:
                 self.session = None
                 self.set_speaking(False)
                 if not self._paused:
-                    self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
+                    self.ui.write_log("SYS: Ses ayarı uygulandı, yeniden bağlanıyor.")
                 continue
             except Exception as exc:
                 self.session = None
                 if _reconnect_error(exc):
                     self.set_speaking(False)
                     if not self._paused:
-                        self.ui.write_log("SYS: Ses ayari uygulandi, yeniden bağlanıyor.")
+                        self.ui.write_log("SYS: Ses ayarı uygulandı, yeniden bağlanıyor.")
                     continue
                 traceback.print_exc()
                 _log_error(exc, key)

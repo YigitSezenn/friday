@@ -35,7 +35,7 @@
   // Basınca dalga
   document.addEventListener("pointerdown", (event) => {
     if (reduce) return;
-    const button = event.target.closest && event.target.closest(".tbtn, .winctl button, #topbar .ctl");
+    const button = event.target.closest && event.target.closest(".tbtn, .winctl button, #topbar .ctl, .btn, .setx, .sheet .row button, .stab, .seg button");
     if (!button) return;
     const box = button.getBoundingClientRect();
     const size = Math.max(box.width, box.height) * 2;

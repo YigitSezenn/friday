@@ -58,8 +58,9 @@ window.hud = {
     $("wx-city").textContent = data.city || "KONUM";
     $("wx-desc").textContent = data.desc || "";
     if (window.fxWeather) window.fxWeather(data.desc || "");
+    if (!$("ov-weather").hidden) openWeather();  // sayfa açıkken yenileme yerinde görünsün
     $("wx-detail").textContent = data.detail || "";
-    $("map-cap").textContent = data.city ? `${data.city} · SABİT KONUM · küçük görüntü © Esri` : "";
+    $("map-cap").textContent = data.city ? `${data.city} · ${(data.card && data.card.source) === "elle" ? "AYARLARDAN" : "OTOMATİK KONUM"} · küçük görüntü © Esri` : "";
   },
   place(spot) {
     window.__spot = spot || null;

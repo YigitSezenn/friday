@@ -1,6 +1,19 @@
 {
   "surumler": [
     {
+      "surum": "4.12.2",
+      "tarih": "2026-11-20",
+      "baslik": "Daha anlaşılır metinler, canlı grafikler",
+      "maddeler": [
+        "Onay soruları artık okunur: “WhatsApp mesajı hazır. Kime: Yiğit · Mesaj: “Teşekkürler”. Göndereyim mi?”",
+        "Modele giden iç talimatlar ekranda görünmüyor; hata mesajları işlemin adını Türkçe söylüyor.",
+        "Bozuk yazılan Türkçe metinler düzeltildi (bulunamadı, kamera açıldı, hafızadan kaldırıldı…).",
+        "Hava sayfasında YENİLE artık pencereyi kapatmıyor, yerinde tazeliyor.",
+        "Grafikler canlandı: saatlik çizgi dolguyla çiziliyor, yağış çubukları büyüyor, nem, bulut ve UV göstergeleri doluyor, rüzgâr oku yöne dönüyor.",
+        "Ayarlardaki düğmeler, sekmeler ve anahtarlar basılınca gerçekten çöküyor ve dalga yayıyor."
+      ]
+    },
+    {
       "surum": "4.12.1",
       "tarih": "2026-11-20",
       "baslik": "Küçült ve kapat",

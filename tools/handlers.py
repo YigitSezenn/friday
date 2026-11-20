@@ -47,7 +47,7 @@ def save_memory(args, ctx):
     key = str(args.get("key") or "").strip()
     value = str(args.get("value") or "").strip()
     if not key or not value:
-        return "Hafızaya yazilamadi: key ve value dolu olmalı."
+        return "Hafızaya yazılamadı: başlık ve değer dolu olmalı."
     update_memory({category: {key: {"value": value}}})
     return f"Hafızaya kaydedildi: {category}/{key} = {value}"
 
@@ -172,20 +172,20 @@ def shell_run(args, ctx):
 def toggle_webcam(args, ctx):
     action = text(args, "action", "start").strip().lower()
     if ctx.webcam is None:
-        return "Webcam bu oturumda kullanılamıyor."
+        return "Kamera bu oturumda kullanılamıyor."
     if action == "start":
         status = ctx.webcam.start()
         if ctx.ui:
             ctx.ui.set_webcam_active(status in {"ok", "already_active"})
         if status == "ok":
-            return "Webcam akisi baslatildi. Artik kamerani goruyorum."
+            return "Kamera açıldı. Artık görüntünü görebiliyorum."
         if status == "already_active":
-            return "Webcam zaten açık, görüntü aliyorum."
-        return "Webcam baslatilamadi."
+            return "Kamera zaten açık, görüntü alıyorum."
+        return "Kamera açılamadı."
     ctx.webcam.stop()
     if ctx.ui:
         ctx.ui.set_webcam_active(False)
-    return "Webcam akisi durduruldu."
+    return "Kamera kapatıldı."
 
 
 def _ui_or_none(ctx):
@@ -222,7 +222,7 @@ def note_delete(args, ctx):
 
     lines, removed = notes.remove(text(args, "target"))
     if removed is None:
-        return "Silinecek not bulunamadi. Numarasini ya da içinden bir kelime söyle."
+        return "Silinecek not bulunamadı. Numarasını ya da içinden bir kelimeyi söyle."
     if (ui := _ui_or_none(ctx)) is not None:
         ui._call("notes", lines)
     return f"Not silindi: {removed}"
@@ -234,7 +234,7 @@ def note_edit(args, ctx):
 
     lines, old = notes.edit(text(args, "target"), text(args, "text"))
     if old is None:
-        return "Düzenlenecek not bulunamadi ya da yeni metin boş."
+        return "Düzenlenecek not bulunamadı ya da yeni metin boş."
     if (ui := _ui_or_none(ctx)) is not None:
         ui._call("notes", lines)
     return f"Not güncellendi: '{old}' -> '{text(args, 'text').strip()}'"
@@ -306,7 +306,7 @@ def stopwatch(args, ctx):
         return "Kronometre şu an kullanılamıyor."
     action = text(args, "action", "toggle")
     elapsed = ui.timer_watch(action)
-    state = "calisiyor" if ui.timer.watch_running else "durdu"
+    state = "çalışıyor" if ui.timer.watch_running else "durdu"
     return f"Kronometre {state}: {clock(int(elapsed))}."
 
 
@@ -319,8 +319,10 @@ def sleep_mode(args, ctx):
     # Kısa gecikme: önce vedalaşma cümlesi söylenir, sonra mikrofon uykuya geçer.
     ui._js(f"window.hud && window.hud.sleep({'true' if asleep else 'false'}, {2500 if asleep else 0})")
     if asleep:
-        return "Uyku moduna geçiliyor. Kullanıcıya kısa bir veda et; uyandırmak için cekirdege tıklamasını, F4'e basmasını ya da bir sey yazmasını söyle."
-    return "Uyandim."
+        from jarvis.shown import with_note
+
+        return with_note("Uyku moduna geçiyorum. Uyandırmak için çekirdeğe tıkla, F4'e bas ya da bir şey yaz.", "Kullanıcıya kısa bir veda et; uyandırmak için çekirdeğe tıklamasını, F4'e basmasını ya da bir şey yazmasını söyle.")
+    return "Uyandım."
 
 
 @tool("app_window")
@@ -333,10 +335,14 @@ def app_window(args, ctx):
     action = text(args, "action").lower()
     if action in {"minimize", "kucult", "küçült", "kucul", "küçül"}:
         threading.Timer(1.5, ui.minimize_to_taskbar).start()
-        return "Pencere küçültülüyor. Kısa bir onay söyle."
+        from jarvis.shown import with_note
+
+        return with_note("Pencere küçültülüyor.", "Kısa bir onay söyle.")
     if action in {"close", "quit", "kapat", "kapan"}:
         threading.Timer(3.5, ui.quit_app).start()
-        return "FRIDAY kapanıyor. Kullanıcıya kısa bir veda et."
+        from jarvis.shown import with_note
+
+        return with_note("FRIDAY kapanıyor.", "Kullanıcıya kısa bir veda et.")
     if action in {"restore", "show", "ac", "aç", "geri"}:
         ui.restore_from_taskbar()
         return "Pencere geri getirildi."
@@ -469,4 +475,4 @@ def set_location(args, ctx):
         if hasattr(ctx.ui, "refresh_weather"):
             ctx.ui.refresh_weather()
         ctx.ui.focus_panel("weather")
-    return f"Konum kalıcı olarak {place} yapıldı. Hava ve harita oraya gecti."
+    return f"Konum kalıcı olarak {place} yapıldı. Hava ve harita oraya geçti."
