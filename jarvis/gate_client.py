@@ -70,6 +70,19 @@ def gate_join_url(key: str | None = None) -> str:
     return f"{SITE}/#k={quote(current, safe='')}"
 
 
+_state = {"value": "unknown"}
+
+
+def gate_state() -> str:
+    """ok: sunucu anahtarı kabul ediyor · denied: anahtar sunucuda kayıtlı değil (403) ·
+    offline: sunucuya ulaşılamıyor · unknown: henüz denenmedi."""
+    return _state["value"]
+
+
+def _set_state(value: str) -> None:
+    _state["value"] = value
+
+
 def run_gate(on_text) -> None:
     while True:
         key = gate_key()
@@ -82,11 +95,18 @@ def run_gate(on_text) -> None:
                 headers={"X-Friday-Key": key},
                 timeout=20,
             )
+            if response.status_code == 403:
+                _set_state("denied")
+                time.sleep(60)  # anahtar kabul edilmiyorsa sunucuyu sık yoklama
+                continue
             if response.status_code != 200:
+                _set_state("offline")
                 time.sleep(5)
                 continue
             payload = response.json()
+            _set_state("ok")
         except Exception:
+            _set_state("offline")
             time.sleep(5)
             continue
         for item in payload.get("commands") or []:

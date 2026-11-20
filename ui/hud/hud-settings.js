@@ -22,6 +22,19 @@ function paintChoice(host, values, current, onPick, labels) {
     host.appendChild(button);
   }
 }
+const GATE_TEXT = {
+  ok: "Kapı: bağlı. Siteden ve uzaktaki telefondan komut gönderebilirsin.",
+  denied: "Kapı: bu bilgisayarın anahtarı sunucuda kayıtlı değil, siteden uzaktan komut göndermek şu an çalışmaz. Aynı Wi-Fi'deki telefon bağlantısı bundan etkilenmez.",
+  offline: "Kapı: sunucuya ulaşılamıyor. İnternet bağlantını kontrol et; bağlanınca kendiliğinden düzelir.",
+  unknown: "Kapı: kontrol ediliyor…",
+};
+function paintGateState(state) {
+  const line = $("gate-state");
+  if (!line) return;
+  const key = GATE_TEXT[state] ? state : "unknown";
+  line.dataset.state = key;
+  line.textContent = GATE_TEXT[key];
+}
 function paintGate(qr, code) {
   const image = $("gate-qr");
   const digits = $("pair-code");
