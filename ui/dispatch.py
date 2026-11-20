@@ -173,6 +173,19 @@ def _on_copy(ui, payload: dict) -> None:
     _copy_text(str(payload.get("text") or ""))
 
 
+def _on_mail_test(ui, payload: dict) -> None:
+    import threading
+
+    def run() -> None:
+        from tools.actions.mail import smtp_test
+
+        result = smtp_test(str(payload.get("address") or ""), str(payload.get("password") or ""))
+        ui.write_log(("SYS: " if "gönderildi" in result else "ERR: ") + result)
+        ui._call("mailTest", result)
+
+    threading.Thread(target=run, name="friday-mail-test", daemon=True).start()
+
+
 def _on_open(ui, payload: dict) -> None:
     _open_allowed(str(payload.get("url") or ""))
 
@@ -215,6 +228,7 @@ HANDLERS = {
     "open_privacy": _on_open_privacy,
     "copy": _on_copy,
     "open": _on_open,
+    "mail_test": _on_mail_test,
     "reminder": _on_reminder,
 }
 

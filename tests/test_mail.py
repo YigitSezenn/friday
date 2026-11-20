@@ -286,6 +286,25 @@ class MailTest(unittest.TestCase):
         self.assertEqual(pressed, [1])
         self.assertEqual(out, "sent")
 
+    def test_smtp_test_button(self):
+        import smtplib
+
+        from tools.actions import mail
+
+        self.assertIn("16 harf", mail.smtp_test("ornek@example.com", "kisa"))
+        self.assertIn("geçerli", mail.smtp_test("yanlis", "x" * 16))
+        sent = []
+        with mock.patch.object(mail, "_send_smtp", lambda *a: sent.append(a)):
+            out = mail.smtp_test("ornek@example.com", "xxxx xxxx xxxx xxxx")
+        self.assertIn("gönderildi", out)
+        self.assertEqual(sent[0][0], "ornek@example.com")  # gönderen
+        self.assertEqual(sent[0][2], "ornek@example.com")  # alıcı: kendi adresi
+        self.assertNotIn("x" * 16, out)  # şifre mesajda geçmez
+        def fail(*_a):
+            raise smtplib.SMTPAuthenticationError(535, b"bad")
+        with mock.patch.object(mail, "_send_smtp", fail):
+            self.assertIn("kabul etmedi", mail.smtp_test("ornek@example.com", "x" * 16))
+
     def test_mime_utf8(self):
         from tools.actions.mail import build_message
 

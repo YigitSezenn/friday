@@ -433,6 +433,28 @@ def _send_smtp(sender: str, password: str, address: str, subject: str, body: str
         server.send_message(message)
 
 
+def smtp_test(address: str, password: str) -> str:
+    """Ayarlardaki 'Test maili gönder': girilen adres/şifreyle kullanıcının KENDİ adresine deneme maili.
+
+    Şifre hiçbir yere yazılmaz ve mesajda geçmez. Yalnızca kullanıcı düğmeye bastığında çalışır.
+    """
+    import smtplib
+
+    address = (address or "").strip()
+    password = "".join(str(password or "").split())
+    if not EMAIL_RE.match(address):
+        return "Önce geçerli bir Gmail adresi yaz."
+    if len(password) != 16:
+        return "Uygulama şifresi 16 harf olmalı (boşluklar önemli değil)."
+    try:
+        _send_smtp(address, password, address, "FRIDAY test maili", "Bu mail FRIDAY'in arka planda Gmail gönderimini doğrulamak için gönderildi.")
+    except smtplib.SMTPAuthenticationError:
+        return "Gmail şifreyi kabul etmedi. Uygulama şifresini yeniden oluşturup yapıştır (normal Gmail şifren çalışmaz)."
+    except Exception as exc:
+        return f"Test maili gönderilemedi: {exc.__class__.__name__}"
+    return f"Test maili {address} adresine gönderildi. Gelen kutunu kontrol et; arka planda gönderim çalışıyor."
+
+
 def _preferred_web() -> str:
     try:
         from jarvis.config import load_app_config
