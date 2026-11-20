@@ -78,6 +78,8 @@ function paintPanels(panels) {
 }
 
 let memoryRows = [];
+const MEMORY_LABELS = {email_contacts: "E-posta kişileri", whatsapp_contacts: "WhatsApp kişileri", notes: "Notlar", kisisel: "Kişisel", tercih: "Tercihler", preferences: "Tercihler", personal: "Kişisel"};
+const memoryLabel = (name) => MEMORY_LABELS[name] || name;
 function paintMemory(rows) {
   if (Array.isArray(rows)) memoryRows = rows;
   const box = $("mem-list");
@@ -98,7 +100,7 @@ function paintMemory(rows) {
       lastCategory = row.category;
       const head = document.createElement("div");
       head.className = "mem-cat";
-      head.textContent = row.category;
+      head.textContent = memoryLabel(row.category);
       box.appendChild(head);
     }
     const line = document.createElement("div");

@@ -323,6 +323,26 @@ def sleep_mode(args, ctx):
     return "Uyandim."
 
 
+@tool("app_window")
+def app_window(args, ctx):
+    import threading
+
+    ui = _ui_or_none(ctx)
+    if ui is None:
+        return "Pencere komutu şu an kullanılamıyor."
+    action = text(args, "action").lower()
+    if action in {"minimize", "kucult", "küçült", "kucul", "küçül"}:
+        threading.Timer(1.5, ui.minimize_to_taskbar).start()
+        return "Pencere küçültülüyor. Kısa bir onay söyle."
+    if action in {"close", "quit", "kapat", "kapan"}:
+        threading.Timer(3.5, ui.quit_app).start()
+        return "FRIDAY kapanıyor. Kullanıcıya kısa bir veda et."
+    if action in {"restore", "show", "ac", "aç", "geri"}:
+        ui.restore_from_taskbar()
+        return "Pencere geri getirildi."
+    return "Bilinmeyen pencere komutu: minimize, close ya da restore."
+
+
 @tool("desktop_action")
 def desktop_action(args, ctx):
     from tools.actions.desktop import run
