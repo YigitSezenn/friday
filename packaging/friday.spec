@@ -8,6 +8,7 @@ ROOT = Path(SPECPATH).resolve().parent
 datas = [
     (str(ROOT / "ui" / "hud"), "ui/hud"),
     (str(ROOT / "jarvis" / "prompts"), "jarvis/prompts"),
+    (str(ROOT / "site" / "public" / "indir" / "yenilikler.json"), "jarvis"),
     (str(ROOT / "assets" / "friday.ico"), "assets"),
     (str(ROOT / "assets" / "sounds"), "assets/sounds"),
 ]

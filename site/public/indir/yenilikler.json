@@ -1,0 +1,37 @@
+{
+  "surumler": [
+    {
+      "surum": "4.11.0",
+      "tarih": "2026-11-20",
+      "baslik": "3B arayüz ve daha akıllı dinleme",
+      "maddeler": [
+        "Paneller fareyle eğiliyor, düğmeler basılınca çöküyor, hava durumunda hareketli ikon var.",
+        "Kapat ve küçült düğmeleri sağ üste taşındı, artık her zaman görünüyor.",
+        "Müzik çalarken konuşman daha iyi algılanıyor.",
+        "“Uyu”, “iyi geceler”, “sus” gibi sözler uyku moduna alıyor.",
+        "Yeni komutlar: masaüstünü göster, pencereleri küçült, ekranı kilitle, ekran görüntüsü al.",
+        "Android uygulamasında kartlar ve düğmeler dokunuşla eğiliyor, sekmeler kayarak geçiyor.",
+        "Yenilikler bölümü eklendi."
+      ]
+    },
+    {
+      "surum": "4.10.6",
+      "tarih": "2026-11-20",
+      "baslik": "Site sadeleşti",
+      "maddeler": [
+        "Sitedeki komut kutusu kaldırıldı; komut gönderme yalnızca Android uygulamasında.",
+        "Ekran görüntüleri yenilendi."
+      ]
+    },
+    {
+      "surum": "4.10.4",
+      "tarih": "2026-11-19",
+      "baslik": "Mail ve ayarlar",
+      "maddeler": [
+        "Ayarlar’da “Test maili gönder” düğmesi.",
+        "Seçim kutuları arayüze uyumlu hale geldi.",
+        "Kurulum hatası (0x800706F8) düzeltildi."
+      ]
+    }
+  ]
+}
