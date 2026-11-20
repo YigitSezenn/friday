@@ -35,6 +35,13 @@ def as_int(value, default: int) -> int:
         return default
 
 
+def as_float(value) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def text(args: dict, key: str, default: str = "") -> str:
     return str(args.get(key, default))
 
@@ -137,6 +144,7 @@ def add_reminder(args, ctx):
         text(args, "list_name"),
         text(args, "priority"),
         bool(args.get("all_day", False)),
+        as_float(args.get("after_minutes")),
     )
 
 

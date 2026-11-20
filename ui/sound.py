@@ -13,7 +13,7 @@ class SoundMixin:
             return
         from jarvis import sounds
 
-        if sounds.play("success", volume=700):
+        if sounds.play("success", volume=400):
             return
         try:
             import winsound
@@ -27,7 +27,7 @@ class SoundMixin:
             return
         from jarvis import sounds
 
-        if not sounds.play("startup"):
+        if not sounds.play("startup", volume=300):
             try:
                 import winsound
 
@@ -55,7 +55,7 @@ class SoundMixin:
         from jarvis import sounds
 
         sounds.stop("ambient")
-        if sounds.play("shutdown", wait=True):
+        if sounds.play("shutdown", wait=True, volume=300):
             return
         try:
             import winsound

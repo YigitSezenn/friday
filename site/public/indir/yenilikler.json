@@ -3,11 +3,13 @@
     {
       "surum": "4.13.14",
       "tarih": "2026-11-21",
-      "baslik": "Dosya taşıma düzeltmeleri",
+      "baslik": "Müzik, yumuşak sesler ve taşıma düzeltmeleri",
       "maddeler": [
-        "Yeni bir klasöre taşırken ilk dosya klasörün adını alıyordu ve geri kalanı taşınmıyordu; düzeltildi. Hedef klasör yoksa oluşturulur.",
-        "Birden çok dosya (ör. tüm oyun kısayolları) tek onayla taşınır.",
-        "Bir işlem hata ya da onay bekliyorsa FRIDAY artık “taşıdım” demez; ne olduğunu söyler. “Taşı” da onay sayılır."
+        "Arka plan müziği çalışmıyordu (Windows ses sürücüsü döngü bayrağını desteklemiyor); döngü artık uygulama içinde kuruluyor.",
+        "Açılış, kapanış ve onay sesleri belirgin biçimde daha yumuşak.",
+        "Yeni bir klasöre taşırken ilk dosya klasörün adını alıyordu ve geri kalanı taşınmıyordu; düzeltildi. Birden çok dosya tek seferde taşınır ve taşıma artık onay sormaz (silme ve üzerine yazma sorar).",
+        "“N dakika sonra hatırlat” tek anımsatıcı ekler ve saati sunucu hesaplar; aynı anımsatıcı iki kez eklenmez.",
+        "Bir işlem hata ya da onay bekliyorsa FRIDAY artık “yaptım” demez. “Taşı”, “çalıştır” da onay sayılır."
       ]
     },
     {

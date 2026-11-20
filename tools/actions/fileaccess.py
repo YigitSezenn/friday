@@ -153,7 +153,7 @@ def _plan_move(target: Path, dest: Path, raw_destination: str) -> tuple[Path | N
     return final, ""
 
 
-def _move_many(paths: list[str], destination: str, confirmed: bool) -> str:
+def _move_many(paths: list[str], destination: str) -> str:
     """Birden çok dosyayı tek onayla taşır. Yollar '|' ile ayrılır ('|' Windows dosya adında geçemez)."""
     dest, why = resolve(destination)
     if dest is None:
@@ -172,10 +172,6 @@ def _move_many(paths: list[str], destination: str, confirmed: bool) -> str:
         plan.append((source, final))
     if not plan:
         return "Taşınacak uygun dosya yok: " + "; ".join(skipped)
-    names = ", ".join(src.name for src, _ in plan[:8]) + (" …" if len(plan) > 8 else "")
-    gate = _confirm("file_move_many", tuple(x for pair in plan for x in map(str, pair)), f"Dosya işlemi: {len(plan)} dosya taşınacak ({names}) → {dest}", confirmed)
-    if gate:
-        return gate
     moved = 0
     for source, final in plan:
         try:
@@ -194,7 +190,7 @@ def run(action: str, path: str = "", destination: str = "", content: str = "", q
     action = (action or "").strip().lower()
     if action == "move" and "|" in path:
         try:
-            return _move_many([p for p in path.split("|") if p.strip()], destination, confirmed)
+            return _move_many([p for p in path.split("|") if p.strip()], destination)
         except PermissionError:
             return "Windows bu dosyaya erişimi engelledi."
     if action == "find" and not path:
@@ -230,9 +226,7 @@ def run(action: str, path: str = "", destination: str = "", content: str = "", q
             final, problem = _plan_move(target, dest, destination)
             if final is None:
                 return problem
-            gate = _confirm("file_move", (str(target), str(final)), f"Dosya işlemi: taşınacak — {target} → {final}", confirmed)
-            if gate:
-                return gate
+            # Taşıma onay istemez: izinli klasörler içinde kalır, hiçbir dosyanın üzerine yazmaz, kullanıcı zaten istedi.
             final.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(target), str(final))
             return f"{target.name} taşındı: {final}"

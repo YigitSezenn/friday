@@ -192,3 +192,22 @@ class ActionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReminderRelativeTests(unittest.TestCase):
+    def test_after_minutes_and_duplicate_guard(self):
+        import datetime as dt
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["JARVIS_DATA_DIR"] = tmp
+            try:
+                from tools.actions import reminders
+
+                out = reminders.add_reminder("Su iç", after_minutes=1)
+                self.assertIn("eklendi", out)
+                again = reminders.add_reminder("Su iç", after_minutes=1)
+                self.assertIn("zaten var", again)
+            finally:
+                os.environ.pop("JARVIS_DATA_DIR", None)
