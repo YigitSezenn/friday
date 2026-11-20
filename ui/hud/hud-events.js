@@ -24,7 +24,19 @@ for (const [id, key, sw] of [["mute-music", "music", "set-music"], ["mute-sfx", 
 }
 $("settings-form").discord_owner_id?.addEventListener("input", (event) => {
   const clean = event.target.value.replace(/\D/g, "");
-  event.target.style.outline = clean !== event.target.value ? "1px solid #ff5c7a" : "";
+  const warn = $("discord-warn");
+  if (clean !== event.target.value) {
+    event.target.style.outline = "1px solid #ff5c7a";
+    warn.textContent = "Yalnızca rakam yazılabilir. Kullanıcı adı değil, Discord Kullanıcı Kimliği (17-19 haneli sayı) gerekir.";
+    warn.hidden = false;
+  } else if (clean.length && (clean.length < 15 || clean.length > 22)) {
+    event.target.style.outline = "1px solid #ff5c7a";
+    warn.textContent = "Kimlik 17-19 haneli olmalı; eksik ya da fazla görünüyor.";
+    warn.hidden = false;
+  } else {
+    event.target.style.outline = "";
+    warn.hidden = true;
+  }
   event.target.value = clean;
 });
 $("min").addEventListener("click", () => send("minimize"));
