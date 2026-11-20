@@ -47,6 +47,36 @@ def check(kind: str, parts: tuple) -> str:
         if t is None or now - t > TTL:
             return "ONAY GEREKLİ: önce taslağı kullanıcıya söyle ve 'Göndereyim mi?' diye sor; onay gelince tekrar çağır."
         if now - t < MIN_WAIT:
-            return "ONAY GEREKLİ: kullanıcının cevabini bekle; onayi kendin varsayma."
+            return "ONAY GEREKLİ: kullanıcının cevabını bekle; onayı kendin varsayma."
         _pending.pop(k, None)
     return ""
+
+
+MARKER = "ONAY GEREKLİ:"
+
+
+def friendly(result: str) -> str:
+    """Modele giden onay talimatını ekranda okunur bir soruya çevirir. Diğer metinlere dokunmaz."""
+    import re
+
+    text = str(result or "")
+    if not text.startswith(MARKER):
+        return text
+    body = text[len(MARKER):].strip()
+    for cut in (" Göndermeden önce", " Evet derse"):
+        body = body.split(cut)[0]
+    body = body.strip().rstrip(".")
+    chat = re.search(r"WhatsApp taslağı — Kime: (.+?), Mesaj: (.+)$", body, re.S)
+    if chat:
+        return f"WhatsApp mesajı hazır. Kime: {chat.group(1)} · Mesaj: “{chat.group(2).strip()}”. Göndereyim mi? (evet / hayır)"
+    mail = re.search(r"E-posta taslağı \((.+?)\) — Kime: (.+?), Konu: (.+?), Metin: (.+)$", body, re.S)
+    if mail:
+        return f"E-posta hazır. Kime: {mail.group(2)} · Konu: {mail.group(3)} · Metin: “{mail.group(4).strip()}”. Göndereyim mi? (evet / hayır)"
+    shell = re.search(r"Bu komut bilgisayarda değişiklik yapabilir: `(.+)`", body, re.S)
+    if shell:
+        return f"Bu işlem bilgisayarda değişiklik yapabilir: {shell.group(1).strip()}. Çalıştırayım mı? (evet / hayır)"
+    if "cevabini bekle" in body or "cevabını bekle" in body:
+        return "Cevabını bekliyorum."
+    if "taslağı" in body and "sor" in body:
+        return "Önce taslağı sana göstermem gerekiyor; sonra göndereyim mi diye soracağım."
+    return "Devam etmeden önce onayını bekliyorum. (evet / hayır)"

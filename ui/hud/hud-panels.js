@@ -4,6 +4,7 @@
 function dial(host, size) {
   host.replaceChildren();
   const node = svg("svg", {viewBox: "0 0 100 100"});
+  node.appendChild(svg("circle", {cx: 50, cy: 50, r: 47, fill: "none", stroke: "rgba(var(--rgb),.35)", "stroke-width": 0.8, "stroke-dasharray": "2 5", class: "dialring"}));
   node.appendChild(svg("circle", {cx: 50, cy: 50, r: 42, fill: "none", stroke: "rgba(var(--rgb),.28)", "stroke-width": 1.4}));
   const arc = svg("path", {id: "arc", fill: "none", stroke: "var(--accent)", "stroke-width": 2.2, "stroke-linecap": "round"});
   const label = svg("text", {x: 50, y: 50, "text-anchor": "middle", "dominant-baseline": "middle", fill: "#fff", "font-size": size, "font-family": "Segoe UI"});
