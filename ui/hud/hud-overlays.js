@@ -118,6 +118,7 @@ function openWeather() {
   // Kartlar sırayla içeri girer
   host.querySelectorAll(".wxhero > *, .wxstat, .wxhours, .wxday").forEach((node, index) => node.style.setProperty("--n", index));
   $("ov-weather").hidden = false;
+  if (window.weatherScene) window.weatherScene.mount(host, kind);
 }
 function sunCard(card) {
   const box = el("div", "wxsun");
