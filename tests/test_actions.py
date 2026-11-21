@@ -308,3 +308,18 @@ class WebSearchRetryTests(unittest.TestCase):
 
             out = search.web_search("x", ask=always, fallback=lambda q: "")
         self.assertIn("ConnectionError", out)
+
+
+class SearchResultParsingTests(unittest.TestCase):
+    def test_parses_titles_and_snippets(self):
+        from tools.actions.search import _parse_results
+
+        page = (
+            '<a rel="nofollow" class="result__a" href="//x">PS5 <b>825GB</b> vs 1TB</a>'
+            '<a class="result__snippet" href="//x">1 TB model daha fazla alan sunar &amp; pahalıdır.</a>'
+            '<a class="result__a" href="//y">İkinci sonuç</a>'
+        )
+        lines = _parse_results(page)
+        self.assertEqual(lines[0], "PS5 825GB vs 1TB — 1 TB model daha fazla alan sunar & pahalıdır.")
+        self.assertEqual(lines[1], "İkinci sonuç")
+        self.assertEqual(_parse_results("<html></html>"), [])
