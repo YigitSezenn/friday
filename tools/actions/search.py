@@ -19,7 +19,7 @@ def _gemini_search(key: str, model: str, query: str) -> str:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=15000))
+    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=30000))
     response = client.models.generate_content(
         model=model,
         contents=PROMPT.format(query=query),
@@ -28,7 +28,53 @@ def _gemini_search(key: str, model: str, query: str) -> str:
     return " ".join(str(response.text or "").split())
 
 
+def _parse_results(page: str, limit: int = 5) -> list[str]:
+    """DuckDuckGo HTML sonuç sayfasından 'başlık — özet' satırları çıkarır."""
+    import html
+    import re
+
+    def plain(fragment: str) -> str:
+        return " ".join(html.unescape(re.sub(r"<[^>]+>", "", fragment)).split())
+
+    titles = re.findall(r'<a[^>]+class="result__a"[^>]*>(.*?)</a>', page, re.S)
+    snippets = re.findall(r'<a[^>]+class="result__snippet"[^>]*>(.*?)</a>', page, re.S)
+    lines = []
+    for index, title in enumerate(titles[:limit]):
+        snippet = plain(snippets[index]) if index < len(snippets) else ""
+        line = plain(title) + (f" — {snippet}" if snippet else "")
+        if line.strip():
+            lines.append(line)
+    return lines
+
+
+def _duckduckgo_html(query: str) -> str:
+    """Gerçek web araması: ilk sonuçların başlık ve özetleri. Model bunları kendi cümleleriyle anlatır."""
+    import requests
+
+    response = requests.get(
+        "https://html.duckduckgo.com/html/",
+        params={"q": query, "kl": "tr-tr"},
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) FRIDAY"},
+        timeout=12,
+    )
+    response.raise_for_status()
+    lines = _parse_results(response.text)
+    if not lines:
+        return ""
+    return "Web arama sonuçları (bunları kendi cümlelerinle özetleyip anlat):\n" + "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
+
+
 def _duckduckgo(query: str) -> str:
+    try:
+        found = _duckduckgo_html(query)
+    except Exception:
+        found = ""
+    if found:
+        return found
+    return _duckduckgo_instant(query)
+
+
+def _duckduckgo_instant(query: str) -> str:
     import requests
 
     response = requests.get(
@@ -83,10 +129,16 @@ def _search_with_gemini(text: str, ask, reasons: list[str]) -> str:
     without_proxy_for_google()
     for model in SEARCH_MODELS:
         try:
-            answer = ask(key, model, text)
+            try:
+                answer = ask(key, model, text)
+            except Exception as exc:
+                if not classify(exc, key).retry or classify(exc, key).rejection:
+                    raise
+                answer = ask(key, model, text)  # geçici ağ kopmasına karşı aynı modeli bir kez daha dene
         except Exception as exc:
             issue = classify(exc, key)
-            reasons.append(f"{_label(model)}: {issue.code}")
+            # Genel "BAĞLANTI KOPTU" nedeni gizlemesin: hata türünü de yaz.
+            reasons.append(f"{_label(model)}: {issue.code} ({type(exc).__name__})")
             if issue.rejection:
                 break  # hesap duzeyinde kapali: diger modeller de ayni sonucu verir
             continue

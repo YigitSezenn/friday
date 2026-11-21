@@ -284,3 +284,42 @@ class DiscordMessageTests(unittest.TestCase):
             discord.self_test("123456789012345678")
         deliver.assert_called_once()
         self.assertFalse(deliver.call_args.kwargs.get("save", True))
+
+
+class WebSearchRetryTests(unittest.TestCase):
+    def test_transient_failure_is_retried_once_and_reason_names_the_error(self):
+        from unittest import mock
+        from tools.actions import search
+
+        calls = []
+
+        def flaky(key, model, query):
+            calls.append(model)
+            if len(calls) == 1:
+                raise ConnectionError("boom")
+            return "Cevap"
+
+        with mock.patch("jarvis.config.get_app_config_value", return_value="K" * 39):
+            self.assertEqual(search.web_search("x", ask=flaky, fallback=lambda q: ""), "Cevap")
+            self.assertEqual(calls[0], calls[1])
+
+            def always(key, model, query):
+                raise ConnectionError("boom")
+
+            out = search.web_search("x", ask=always, fallback=lambda q: "")
+        self.assertIn("ConnectionError", out)
+
+
+class SearchResultParsingTests(unittest.TestCase):
+    def test_parses_titles_and_snippets(self):
+        from tools.actions.search import _parse_results
+
+        page = (
+            '<a rel="nofollow" class="result__a" href="//x">PS5 <b>825GB</b> vs 1TB</a>'
+            '<a class="result__snippet" href="//x">1 TB model daha fazla alan sunar &amp; pahalıdır.</a>'
+            '<a class="result__a" href="//y">İkinci sonuç</a>'
+        )
+        lines = _parse_results(page)
+        self.assertEqual(lines[0], "PS5 825GB vs 1TB — 1 TB model daha fazla alan sunar & pahalıdır.")
+        self.assertEqual(lines[1], "İkinci sonuç")
+        self.assertEqual(_parse_results("<html></html>"), [])

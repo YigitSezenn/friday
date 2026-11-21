@@ -148,7 +148,8 @@ class WebSearchTests(unittest.TestCase):
             raise RuntimeError("getaddrinfo failed")
 
         self.assertEqual(web_search("x", ask=ask, fallback=lambda q: "ddg ozeti"), "ddg ozeti")
-        self.assertEqual(calls, list(SEARCH_MODELS))
+        # Geçici ağ hatasında her model bir kez daha denenir.
+        self.assertEqual(calls, [m for m in SEARCH_MODELS for _ in range(2)])
 
     def test_account_level_rejection_stops_model_loop(self):
         from tools.actions.search import web_search
