@@ -19,7 +19,7 @@ def _gemini_search(key: str, model: str, query: str) -> str:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=15000))
+    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=30000))
     response = client.models.generate_content(
         model=model,
         contents=PROMPT.format(query=query),
@@ -83,10 +83,16 @@ def _search_with_gemini(text: str, ask, reasons: list[str]) -> str:
     without_proxy_for_google()
     for model in SEARCH_MODELS:
         try:
-            answer = ask(key, model, text)
+            try:
+                answer = ask(key, model, text)
+            except Exception as exc:
+                if not classify(exc, key).retry or classify(exc, key).rejection:
+                    raise
+                answer = ask(key, model, text)  # geçici ağ kopmasına karşı aynı modeli bir kez daha dene
         except Exception as exc:
             issue = classify(exc, key)
-            reasons.append(f"{_label(model)}: {issue.code}")
+            # Genel "BAĞLANTI KOPTU" nedeni gizlemesin: hata türünü de yaz.
+            reasons.append(f"{_label(model)}: {issue.code} ({type(exc).__name__})")
             if issue.rejection:
                 break  # hesap duzeyinde kapali: diger modeller de ayni sonucu verir
             continue
