@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.18",
+      "tarih": "2026-11-21",
+      "baslik": "Yeni 3D hava durumu sahnesi",
+      "maddeler": [
+        "Hava durumu kartı artık gerçek bir 3D sahne: tepeler, ağaçlar, hareketli bulutlar, güneş/ay, yağmur, kar, sis ve şimşek. Sürükleyerek döndür, tekerlekle yakınlaştır.",
+        "Sesler gerçek havaya bağlı: rüzgâr hızı, yağış miktarı ve gündüz/gece sesin şiddetini ve türünü belirliyor.",
+        "Saat ve gün kartlarındaki yapışık yazılar düzeltildi."
+      ]
+    },
+    {
       "surum": "4.13.17",
       "tarih": "2026-11-21",
       "baslik": "Güncelle düğmesi çift tıklamaya karşı korundu",
