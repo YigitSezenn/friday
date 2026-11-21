@@ -309,6 +309,23 @@ class WebSearchRetryTests(unittest.TestCase):
             out = search.web_search("x", ask=always, fallback=lambda q: "")
         self.assertIn("ConnectionError", out)
 
+    def test_http_error_code_and_message_are_reported_without_the_key(self):
+        from unittest import mock
+        from tools.actions import search
+
+        class ClientError(Exception):
+            code = 429
+            message = "Quota exceeded for KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK"
+
+        def deny(key, model, query):
+            raise ClientError()
+
+        with mock.patch("jarvis.config.get_app_config_value", return_value="K" * 39):
+            out = search.web_search("x", ask=deny, fallback=lambda q: "")
+        self.assertIn("ClientError 429", out)
+        self.assertIn("Quota exceeded", out)
+        self.assertNotIn("K" * 20, out)
+
 
 class SearchResultParsingTests(unittest.TestCase):
     def test_parses_titles_and_snippets(self):

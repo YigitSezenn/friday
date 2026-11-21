@@ -10,6 +10,19 @@ ANSWER_LIMIT = 900
 PROMPT = "Türkçe, en fazla üç kısa cümleyle ve güncel bilgiyle yanıtla. Sesli okunacak: liste, başlık ve kaynak adresi yazma.\n\nSoru: {query}"
 
 
+def _detail(exc: BaseException, key: str) -> str:
+    """Hata türü + varsa HTTP kodu ve kısa Google mesajı (anahtar çıkarılır)."""
+    import re
+
+    code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+    message = str(getattr(exc, "message", "") or exc)
+    if key:
+        message = message.replace(key, "")
+    message = re.sub(r"\s+", " ", message).strip()[:110]
+    head = type(exc).__name__ + (f" {code}" if code else "")
+    return f"{head}: {message}" if message else head
+
+
 def _label(model: str) -> str:
     return model.removeprefix("models/")
 
@@ -138,7 +151,7 @@ def _search_with_gemini(text: str, ask, reasons: list[str]) -> str:
         except Exception as exc:
             issue = classify(exc, key)
             # Genel "BAĞLANTI KOPTU" nedeni gizlemesin: hata türünü de yaz.
-            reasons.append(f"{_label(model)}: {issue.code} ({type(exc).__name__})")
+            reasons.append(f"{_label(model)}: {issue.code} ({_detail(exc, key)})")
             if issue.rejection:
                 break  # hesap duzeyinde kapali: diger modeller de ayni sonucu verir
             continue
