@@ -3,9 +3,9 @@ from __future__ import annotations
 # Sirayla denenir: ilk yanit veren kazanir. Adlar ekran analizindeki listeyle ayni kaynaktan gelir.
 SEARCH_MODELS = (
     "models/gemini-3.8-flash",
-    "models/gemini-2.5-flash",
     "models/gemini-flash-latest",
 )
+PLAIN_NOTE = "(Canlı arama şu an kullanılamadığı için bu yanıt modelin kendi bilgisine dayanıyor, güncel olmayabilir.) "
 ANSWER_LIMIT = 900
 PROMPT = "Türkçe, en fazla üç kısa cümleyle ve güncel bilgiyle yanıtla. Sesli okunacak: liste, başlık ve kaynak adresi yazma.\n\nSoru: {query}"
 
@@ -58,6 +58,16 @@ def _parse_results(page: str, limit: int = 5) -> list[str]:
         if line.strip():
             lines.append(line)
     return lines
+
+
+def _gemini_plain(key: str, model: str, query: str) -> str:
+    """Aramasız Gemini yanıtı: arama kotası dolduğunda kendi bilgisiyle cevap verir."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=30000))
+    response = client.models.generate_content(model=model, contents=PROMPT.format(query=query))
+    return " ".join(str(response.text or "").split())
 
 
 def _duckduckgo_html(query: str) -> str:
@@ -129,6 +139,10 @@ def web_search(query: str, ask=None, fallback=None) -> str:
         if not reasons:
             return f"'{text}' için kısa bir özet dönmedi. Tarayıcıda aramayi acmayi onerebilirsin."
         reasons.append("DuckDuckGo: özet dönmedi")
+    if ask is None:
+        plain = _plain_answer(text)
+        if plain:
+            return (PLAIN_NOTE + plain)[:ANSWER_LIMIT]
     return "Arama yapılamadı: " + "; ".join(reasons)
 
 
@@ -158,4 +172,22 @@ def _search_with_gemini(text: str, ask, reasons: list[str]) -> str:
         if answer:
             return answer
         reasons.append(f"{_label(model)}: boş yanıt")
+    return ""
+
+
+def _plain_answer(text: str) -> str:
+    from jarvis.config import get_app_config_value
+    from jarvis.gemini_errors import clean_api_key
+
+    key = clean_api_key(get_app_config_value("gemini_api_key", ""))
+    if not key:
+        return ""
+    for model in SEARCH_MODELS:
+        for _ in range(2):  # 503 (yoğunluk) geçicidir: bir kez daha dene
+            try:
+                answer = _gemini_plain(key, model, text)
+            except Exception:
+                continue
+            if answer:
+                return answer
     return ""
