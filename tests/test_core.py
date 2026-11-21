@@ -658,7 +658,9 @@ class WeatherSceneTests(unittest.TestCase):
     def test_scene_script_is_loaded_after_fx_and_hooked(self):
         root = Path(__file__).resolve().parents[1] / "ui" / "hud"
         html = (root / "index.html").read_text(encoding="utf-8")
+        self.assertLess(html.index("vendor/three.min.js"), html.index("weather3d.js"))
         self.assertLess(html.index("hud-fx.js"), html.index("weather3d.js"))
+        self.assertTrue((root / "vendor" / "three.min.js").is_file())
         self.assertIn("weatherScene.mount", (root / "hud-overlays.js").read_text(encoding="utf-8"))
         script = (root / "weather3d.js").read_text(encoding="utf-8")
         for kind in ("clear", "cloud", "rain", "storm", "snow", "fog", "night"):

@@ -118,7 +118,13 @@ function openWeather() {
   // Kartlar sırayla içeri girer
   host.querySelectorAll(".wxhero > *, .wxstat, .wxhours, .wxday").forEach((node, index) => node.style.setProperty("--n", index));
   $("ov-weather").hidden = false;
-  if (window.weatherScene) window.weatherScene.mount(host, kind);
+  if (window.weatherScene) {
+    // Açık havada güneş battıysa (ya da doğmadıysa) sahne ve sesler gece olur
+    let scene = kind;
+    const rise = clockMinutes(card.sunrise), set = clockMinutes(card.sunset), now = clockMinutes(card.observed);
+    if (kind === "clear" && rise != null && set != null && now != null && (now < rise || now > set)) scene = "night";
+    window.weatherScene.mount(host, scene, {wind: card.wind, precip: card.precip});
+  }
 }
 function sunCard(card) {
   const box = el("div", "wxsun");

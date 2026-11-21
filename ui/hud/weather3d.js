@@ -1,4 +1,4 @@
-// Hava durumu kartındaki 3D sahne: canvas 2D ile derinlik sıralı sahte 3D (kütüphane yok) + WebAudio sesleri.
+// Hava durumu kartındaki 3D sahne: Three.js (vendor/three.min.js) low-poly tepe, ağaç, bulut, güneş/ay, yağmur, kar, şimşek + WebAudio sesleri.
 // Dış API: window.weatherScene.mount(host, kind) / destroy(). Sayfa kapanınca kendini temizler.
 (function () {
   const KINDS = [["clear", "GÜNEŞLİ"], ["cloud", "BULUTLU"], ["rain", "YAĞMUR"], ["storm", "FIRTINA"], ["snow", "KAR"], ["fog", "SİS"], ["night", "GECE"]];
@@ -49,7 +49,7 @@
   }
 
   // Hava türüne göre ses karışımı; yoğunluk 0..1
-  function mixFor(kind, k) {
+  function mixFor(kind, k, windy) {
     const m = {
       clear: { rain: 0, hiss: 0, wind: 0.05 },
       cloud: { rain: 0, hiss: 0, wind: 0.12 },
@@ -59,7 +59,9 @@
       fog: { rain: 0, hiss: 0, wind: 0.07 },
       night: { rain: 0, hiss: 0, wind: 0.04 },
     };
-    return m[kind] || m.clear;
+    const mix = Object.assign({}, m[kind] || m.clear);
+    mix.wind = Math.min(0.6, mix.wind + 0.4 * (windy || 0)); // gerçek rüzgâr hızı sesi güçlendirir
+    return mix;
   }
 
   function tuneAudio(scene) {
@@ -68,7 +70,7 @@
     const t = a.ctx.currentTime;
     a.master.gain.cancelScheduledValues(t);
     a.master.gain.linearRampToValueAtTime(scene.sound ? 0.45 : 0, t + 0.4);
-    const mix = mixFor(scene.kind, scene.k);
+    const mix = mixFor(scene.kind, scene.k, scene.windy);
     for (const name of Object.keys(a.bed)) a.bed[name].gain.linearRampToValueAtTime(mix[name], t + 0.8);
     clearInterval(a.timer);
     // Seyrek sesler: kuş cıvıltısı (gündüz), cırcır böceği (gece)
@@ -80,11 +82,35 @@
   }
 
   // ---------- Sahne ----------
-  function mount(host, kind) {
+  // Hava türüne göre hedef değerler; sahne bunlara yumuşakça geçer.
+  const CFG = {
+    clear: {top: 0x2e86d6, bot: 0xbfe6ff, cloud: 0xffffff, ground: 0x5a9b4e, clouds: 3, sun: 1, moon: 0, stars: 0, rain: 0, snow: 0, fog: 0.004, amb: 0.75, sunI: 1.3},
+    cloud: {top: 0x6f8aa6, bot: 0xc3d0dc, cloud: 0xeef2f6, ground: 0x5a8f52, clouds: 10, sun: 0.25, moon: 0, stars: 0, rain: 0, snow: 0, fog: 0.007, amb: 0.7, sunI: 0.5},
+    rain: {top: 0x3d4c5f, bot: 0x7d8ea0, cloud: 0x7c8898, ground: 0x3f7048, clouds: 11, sun: 0, moon: 0, stars: 0, rain: 1, snow: 0, fog: 0.012, amb: 0.55, sunI: 0.2},
+    storm: {top: 0x161c29, bot: 0x434f66, cloud: 0x434a5a, ground: 0x2f4f3c, clouds: 12, sun: 0, moon: 0, stars: 0, rain: 1.3, snow: 0, fog: 0.014, amb: 0.4, sunI: 0.1},
+    snow: {top: 0x8fa3b8, bot: 0xe4edf5, cloud: 0xdde4ec, ground: 0xf1f5fa, clouds: 8, sun: 0.1, moon: 0, stars: 0, rain: 0, snow: 1, fog: 0.012, amb: 0.85, sunI: 0.4},
+    fog: {top: 0xa6b0b9, bot: 0xd9dee2, cloud: 0xe4e8eb, ground: 0x7d9a80, clouds: 3, sun: 0.1, moon: 0, stars: 0, rain: 0, snow: 0, fog: 0.032, amb: 0.8, sunI: 0.3},
+    night: {top: 0x040a1c, bot: 0x1a2650, cloud: 0x2a3354, ground: 0x1f3a2e, clouds: 3, sun: 0, moon: 1, stars: 1, rain: 0, snow: 0, fog: 0.006, amb: 0.3, sunI: 0},
+  };
+  const MAX_RAIN = 900, MAX_SNOW = 700, MAX_CLOUDS = 12;
+
+  function glowTexture(T, inner, outer) {
+    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const x = c.getContext("2d"), g = x.createRadialGradient(64, 64, 2, 64, 64, 64);
+    g.addColorStop(0, inner); g.addColorStop(1, outer);
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    return new T.CanvasTexture(c);
+  }
+
+  function mount(host, kind, data) {
     destroy();
+    const T = window.THREE;
+    if (!T) return;
     const box = document.createElement("div");
     box.className = "wx3d";
     const canvas = document.createElement("canvas");
+    let renderer;
+    try { renderer = new T.WebGLRenderer({canvas, antialias: true}); } catch (e) { return; }
     const bar = document.createElement("div");
     bar.className = "wx3dbar";
     const chips = document.createElement("div");
@@ -98,17 +124,156 @@
     const head = host.querySelector(".wxhead");
     if (head) head.after(box); else host.prepend(box);
 
-    const scene = { kind, k: 0.7, sound: true, yaw: 0.35, pitch: 0.18, zoom: 1, audio: null, raf: 0, parts: [], flash: 0, bolt: null, next: 3, t0: performance.now() };
-    const g = canvas.getContext("2d");
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    let W = 0, H = 0;
-    const resize = () => {
-      W = Math.max(280, box.clientWidth); H = 230;
-      canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + "px";
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
+    // Gerçek veriden başlangıç: rüzgâr hızı sesi, yağış miktarı yoğunluğu belirler.
+    const info = data || {};
+    const windy = Math.max(0, Math.min(1, (Number(info.wind) || 0) / 40));
+    const wetness = Math.max(0, Math.min(1, 0.35 + (Number(info.precip) || 0) / 4));
+    const scene = {kind, k: (kind === "rain" || kind === "storm") ? wetness : 0.7, windy, sound: true, audio: null, raf: 0};
+    slider.value = String(Math.round(scene.k * 100));
+    const H = 260;
+    let W = Math.max(280, box.clientWidth);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setSize(W, H, false);
+    canvas.style.height = H + "px";
 
+    // ----- Sahne nesneleri -----
+    const world = new T.Scene();
+    world.fog = new T.FogExp2(0xbfe6ff, 0.004);
+    const camera = new T.PerspectiveCamera(50, W / H, 0.1, 500);
+    const cam = {yaw: 0.25, pitch: 0.2, dist: 46, touched: false};
+    const hemi = new T.HemisphereLight(0xffffff, 0x446655, 0.7); world.add(hemi);
+    const sunLight = new T.DirectionalLight(0xfff2d0, 1.2); sunLight.position.set(-30, 40, 20); world.add(sunLight);
+    const flash = new T.PointLight(0xaaccff, 0, 260); flash.position.set(0, 30, -15); world.add(flash);
+
+    const skyMat = new T.ShaderMaterial({
+      side: T.BackSide, depthWrite: false, fog: false,
+      uniforms: {top: {value: new T.Color(CFG.clear.top)}, bot: {value: new T.Color(CFG.clear.bot)}},
+      vertexShader: "varying float h; void main(){ vec4 w = modelMatrix * vec4(position,1.0); h = normalize(w.xyz).y; gl_Position = projectionMatrix * viewMatrix * w; }",
+      fragmentShader: "uniform vec3 top; uniform vec3 bot; varying float h; void main(){ gl_FragColor = vec4(mix(bot, top, smoothstep(0.0, 0.55, h)), 1.0); }",
+    });
+    world.add(new T.Mesh(new T.SphereGeometry(300, 24, 16), skyMat));
+
+    const sun = new T.Group();
+    sun.add(new T.Mesh(new T.SphereGeometry(3.2, 20, 14), new T.MeshBasicMaterial({color: 0xfff1b0, fog: false})));
+    const sunGlow = new T.Sprite(new T.SpriteMaterial({map: glowTexture(T, "rgba(255,240,170,.95)", "rgba(255,240,170,0)"), blending: T.AdditiveBlending, depthWrite: false, fog: false}));
+    sunGlow.scale.set(40, 40, 1); sun.add(sunGlow); sun.position.set(-34, 30, -80); world.add(sun);
+    const moon = new T.Group();
+    moon.add(new T.Mesh(new T.SphereGeometry(2.6, 20, 14), new T.MeshBasicMaterial({color: 0xf4f1dc, fog: false})));
+    const moonGlow = new T.Sprite(new T.SpriteMaterial({map: glowTexture(T, "rgba(200,215,255,.5)", "rgba(200,215,255,0)"), blending: T.AdditiveBlending, depthWrite: false, fog: false}));
+    moonGlow.scale.set(22, 22, 1); moon.add(moonGlow); moon.position.set(34, 28, -80); world.add(moon);
+    const starGeo = new T.BufferGeometry(), starPos = new Float32Array(240 * 3);
+    for (let i = 0; i < 240; i++) { const a = rnd(0, 6.283), e = rnd(0.12, 1.2), r = 250; starPos.set([Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r], i * 3); }
+    starGeo.setAttribute("position", new T.BufferAttribute(starPos, 3));
+    const stars = new T.Points(starGeo, new T.PointsMaterial({color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false}));
+    world.add(stars);
+
+    // Low-poly tepeler
+    const gGeo = new T.PlaneGeometry(220, 220, 44, 44); gGeo.rotateX(-Math.PI / 2);
+    const gp = gGeo.attributes.position;
+    for (let i = 0; i < gp.count; i++) {
+      const x = gp.getX(i), z = gp.getZ(i), d = Math.hypot(x, z), edge = Math.min(1, Math.max(0, (d - 12) / 40));
+      gp.setY(i, ((Math.sin(x * 0.08) + Math.cos(z * 0.07)) * 2.4 + Math.sin(x * 0.21 + z * 0.15) * 0.8) * edge);
+    }
+    gGeo.computeVertexNormals();
+    const groundMat = new T.MeshStandardMaterial({color: CFG.clear.ground, flatShading: true, roughness: 1});
+    world.add(new T.Mesh(gGeo, groundMat));
+    const leaf = new T.MeshStandardMaterial({color: 0x2f6b3f, flatShading: true}), bark = new T.MeshStandardMaterial({color: 0x5b4030, flatShading: true});
+    const trees = [];
+    for (let i = 0; i < 18; i++) {
+      const a = rnd(0, 6.283), r = rnd(13, 52), t = new T.Group(), s = rnd(0.8, 1.6);
+      const trunk = new T.Mesh(new T.CylinderGeometry(0.25, 0.35, 1.6, 6), bark); trunk.position.y = 0.8; t.add(trunk);
+      for (let j = 0; j < 3; j++) { const cone = new T.Mesh(new T.ConeGeometry(1.7 - j * 0.35, 2.4, 7), leaf); cone.position.y = 2 + j * 1.2; t.add(cone); }
+      const x = Math.cos(a) * r, z = Math.sin(a) * r, edge = Math.min(1, Math.max(0, (r - 12) / 40));
+      t.position.set(x, ((Math.sin(x * 0.08) + Math.cos(z * 0.07)) * 2.4 + Math.sin(x * 0.21 + z * 0.15) * 0.8) * edge, z);
+      t.scale.setScalar(s); t.userData.ph = rnd(0, 6.28); world.add(t); trees.push(t);
+    }
+
+    // Bulutlar: düz gölgeli, birleşik küreler
+    const cloudMat = new T.MeshStandardMaterial({color: 0xffffff, flatShading: true, roughness: 1});
+    const cloudGeo = new T.IcosahedronGeometry(1, 1), clouds = [];
+    for (let i = 0; i < MAX_CLOUDS; i++) {
+      const g = new T.Group(), n = 5 + Math.floor(rnd(0, 3));
+      for (let j = 0; j < n; j++) { const m = new T.Mesh(cloudGeo, cloudMat); m.position.set((j - n / 2) * 2.6 + rnd(-0.6, 0.6), rnd(-0.5, 1), rnd(-1.4, 1.4)); m.scale.set(rnd(2.4, 4), rnd(1.8, 3), rnd(2.2, 3.4)); g.add(m); }
+      g.position.set(rnd(-70, 70), rnd(20, 30), rnd(-50, 6)); g.userData = {sp: rnd(1.2, 3), ph: rnd(0, 6.28), sc: 0}; g.scale.setScalar(0.001);
+      world.add(g); clouds.push(g);
+    }
+
+    // Yağmur çizgileri ve kar taneleri
+    const rainGeo = new T.BufferGeometry(), rainPos = new Float32Array(MAX_RAIN * 6), rain = [];
+    for (let i = 0; i < MAX_RAIN; i++) rain.push({x: rnd(-45, 45), y: rnd(0, 34), z: rnd(-50, 25), v: rnd(26, 40)});
+    rainGeo.setAttribute("position", new T.BufferAttribute(rainPos, 3));
+    const rainLines = new T.LineSegments(rainGeo, new T.LineBasicMaterial({color: 0xbcd4f2, transparent: true, opacity: 0.7, fog: false})); rainLines.frustumCulled = false; world.add(rainLines);
+    const snowGeo = new T.BufferGeometry(), snowPos = new Float32Array(MAX_SNOW * 3), snow = [];
+    for (let i = 0; i < MAX_SNOW; i++) snow.push({x: rnd(-45, 45), y: rnd(0, 34), z: rnd(-50, 25), v: rnd(2, 5), ph: rnd(0, 6.28)});
+    snowGeo.setAttribute("position", new T.BufferAttribute(snowPos, 3));
+    const flakes = new T.Points(snowGeo, new T.PointsMaterial({color: 0xffffff, size: 0.8, map: glowTexture(T, "rgba(255,255,255,1)", "rgba(255,255,255,0)"), transparent: true, depthWrite: false})); flakes.frustumCulled = false; world.add(flakes);
+    const bolt = new T.Line(new T.BufferGeometry(), new T.LineBasicMaterial({color: 0xeaf2ff, fog: false})); bolt.visible = false; world.add(bolt);
+
+    // Şu anki değerler hedeflere yaklaşır
+    const cur = {top: new T.Color(), bot: new T.Color(), cloud: new T.Color(), ground: new T.Color(), clouds: 0, sun: 0, moon: 0, stars: 0, rain: 0, snow: 0, fog: 0.004, amb: 0.7, sunI: 1};
+    let tgt = CFG[kind] || CFG.clear, flashV = 0, nextBolt = 3, boltT = 0, t = 0;
+    const snap = () => { cur.top.setHex(tgt.top); cur.bot.setHex(tgt.bot); cur.cloud.setHex(tgt.cloud); cur.ground.setHex(tgt.ground); for (const k of ["clouds", "sun", "moon", "stars", "rain", "snow", "fog", "amb", "sunI"]) cur[k] = tgt[k]; };
+    snap();
+    const ease = (a, b, f) => a + (b - a) * f;
+
+    function frame(dt) {
+      t += dt;
+      const f = 1 - Math.exp(-dt * 2.6), spd = 0.35 + scene.k + scene.windy * 2;
+      cur.top.lerp(new T.Color(tgt.top), f); cur.bot.lerp(new T.Color(tgt.bot), f); cur.cloud.lerp(new T.Color(tgt.cloud), f); cur.ground.lerp(new T.Color(tgt.ground), f);
+      for (const k of ["clouds", "sun", "moon", "stars", "rain", "snow", "fog", "amb", "sunI"]) cur[k] = ease(cur[k], tgt[k], f);
+      skyMat.uniforms.top.value.copy(cur.top); skyMat.uniforms.bot.value.copy(cur.bot);
+      world.fog.color.copy(cur.bot); world.fog.density = cur.fog;
+      groundMat.color.copy(cur.ground); cloudMat.color.copy(cur.cloud); cloudMat.emissive.copy(cur.cloud).multiplyScalar(0.5);
+      hemi.intensity = cur.amb; sunLight.intensity = cur.sunI;
+      sun.visible = cur.sun > 0.03; sunGlow.material.opacity = cur.sun; sun.children[0].material.opacity = 1;
+      moon.visible = cur.moon > 0.03; moonGlow.material.opacity = cur.moon; stars.material.opacity = cur.stars;
+      sun.rotation.z += dt;
+
+      const want = Math.round(cur.clouds);
+      clouds.forEach((c, i) => {
+        c.userData.sc = ease(c.userData.sc, i < want ? 1 : 0, f * 1.4);
+        c.scale.setScalar(Math.max(0.001, c.userData.sc));
+        c.position.x += c.userData.sp * dt * spd; if (c.position.x > 80) c.position.x = -80;
+        c.position.y += Math.sin(t * 0.6 + c.userData.ph) * dt * 0.4;
+      });
+      trees.forEach((tr) => { tr.rotation.z = Math.sin(t * (1 + (tgt === CFG.storm ? 2 : 0)) + tr.userData.ph) * (tgt === CFG.storm ? 0.06 : 0.015); });
+
+      const nRain = Math.round(MAX_RAIN * Math.min(1, cur.rain * 0.5) * (0.15 + 0.85 * scene.k));
+      for (let i = 0; i < nRain; i++) {
+        const d = rain[i]; d.y -= d.v * dt; d.x -= 4 * dt;
+        if (d.y < 0) { d.y = rnd(26, 34); d.x = rnd(-45, 45); d.z = rnd(-50, 25); }
+        rainPos.set([d.x, d.y, d.z, d.x + 0.35, d.y + 1.7, d.z], i * 6);
+      }
+      rainGeo.setDrawRange(0, nRain * 2); rainGeo.attributes.position.needsUpdate = true;
+      const nSnow = Math.round(MAX_SNOW * Math.min(1, cur.snow) * (0.15 + 0.85 * scene.k));
+      for (let i = 0; i < nSnow; i++) {
+        const d = snow[i]; d.y -= d.v * dt; d.x += Math.sin(t + d.ph) * dt * 2;
+        if (d.y < 0) { d.y = rnd(26, 34); d.x = rnd(-45, 45); d.z = rnd(-50, 25); }
+        snowPos.set([d.x, d.y, d.z], i * 3);
+      }
+      snowGeo.setDrawRange(0, nSnow); snowGeo.attributes.position.needsUpdate = true;
+
+      if (tgt === CFG.storm) {
+        nextBolt -= dt;
+        if (nextBolt <= 0) {
+          nextBolt = rnd(2.5, 7) / (0.4 + scene.k); flashV = 1; boltT = 0.18;
+          let x = rnd(-18, 18), y = 26; const z = rnd(-30, -6), pts = [];
+          while (y > 0) { pts.push(x, Math.max(0, y), z); y -= rnd(3, 6); x += rnd(-2.5, 2.5); }
+          pts.push(x, 0, z); bolt.geometry.setAttribute("position", new T.Float32BufferAttribute(pts, 3)); bolt.visible = true;
+          if (scene.audio && scene.sound) scene.audio.thunder();
+        }
+      }
+      boltT -= dt; if (boltT <= 0) bolt.visible = false;
+      flashV = Math.max(0, flashV - dt * 3.2); flash.intensity = flashV * 3.2;
+
+      if (!cam.touched) cam.yaw = 0.25 + Math.sin(t * 0.12) * 0.28;
+      const cp = Math.cos(cam.pitch);
+      camera.position.set(Math.sin(cam.yaw) * cp * cam.dist, 9 + Math.sin(cam.pitch) * cam.dist * 0.7, Math.cos(cam.yaw) * cp * cam.dist);
+      camera.lookAt(0, 14, 0);
+      renderer.render(world, camera);
+    }
+
+    // ----- Kontroller -----
     const chipEls = {};
     for (const [id, label] of KINDS) {
       const chip = document.createElement("button");
@@ -122,181 +287,50 @@
       if (scene.audio && scene.audio.ctx.state === "suspended") scene.audio.ctx.resume().catch(() => {});
       tuneAudio(scene);
     };
-    snd.addEventListener("click", () => { scene.sound = !scene.sound; paintSnd(); ensureAudio(); });
-    slider.addEventListener("input", () => { scene.k = Number(slider.value) / 100; seed(); tuneAudio(scene); });
-
-    // Fare/parmakla döndür, tekerlekle yakınlaştır
-    let drag = null;
-    canvas.addEventListener("pointerdown", (e) => { drag = {x: e.clientX, y: e.clientY}; canvas.setPointerCapture(e.pointerId); ensureAudio(); });
-    canvas.addEventListener("pointermove", (e) => {
-      if (!drag) return;
-      scene.yaw += (e.clientX - drag.x) * 0.008;
-      scene.pitch = Math.max(-0.1, Math.min(0.7, scene.pitch + (e.clientY - drag.y) * 0.006));
-      drag = {x: e.clientX, y: e.clientY};
-    });
-    canvas.addEventListener("pointerup", () => { drag = null; });
-    canvas.addEventListener("wheel", (e) => { e.preventDefault(); scene.zoom = Math.max(0.6, Math.min(1.8, scene.zoom * (e.deltaY < 0 ? 1.08 : 0.93))); }, {passive: false});
-
-    // Dünya → ekran: yaw (Y ekseni), pitch (X ekseni), perspektif
-    const proj = (x, y, z) => {
-      const cy = Math.cos(scene.yaw), sy = Math.sin(scene.yaw), cp = Math.cos(scene.pitch), sp = Math.sin(scene.pitch);
-      const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
-      const y1 = y * cp - z1 * sp, z2 = y * sp + z1 * cp + 520;
-      const s = (380 * scene.zoom) / Math.max(60, z2);
-      return {x: W / 2 + x1 * s, y: H * 0.74 - y1 * s, s, d: z2};
-    };
-
-    function seed() {
-      const k = scene.k, kd = scene.kind, parts = [];
-      const wet = kd === "rain" || kd === "storm", count = wet ? Math.round(60 + 220 * k) : kd === "snow" ? Math.round(40 + 160 * k) : 0;
-      for (let i = 0; i < count; i++) parts.push({x: rnd(-260, 260), y: rnd(-20, 240), z: rnd(-260, 260), v: wet ? rnd(380, 560) : rnd(22, 55), ph: rnd(0, 6.28)});
-      scene.parts = parts;
-      const n = kd === "clear" ? 2 : kd === "cloud" ? 9 : kd === "night" ? 2 : kd === "fog" ? 0 : wet ? 7 : 6;
-      scene.clouds = [];
-      for (let i = 0; i < n; i++) {
-        const puffs = [];
-        for (let j = 0; j < 5; j++) puffs.push({dx: rnd(-46, 46), dy: rnd(-8, 12), dz: rnd(-20, 20), r: rnd(26, 46)});
-        scene.clouds.push({x: rnd(-220, 220), y: rnd(95, 150), z: rnd(-200, 200), sp: rnd(4, 11), puffs});
-      }
-      scene.stars = kd === "night" ? Array.from({length: 70}, () => ({x: rnd(0, 1), y: rnd(0, 0.55), a: rnd(0.3, 1), p: rnd(0, 6)})) : [];
-      scene.mist = kd === "fog" ? Array.from({length: 7}, (_, i) => ({x: rnd(-200, 200), y: 10 + i * 18, z: rnd(-220, 220), r: rnd(120, 190), sp: rnd(6, 14)})) : [];
-    }
-
     function setKind(id) {
-      scene.kind = id;
+      scene.kind = id; tgt = CFG[id] || CFG.clear;
       for (const key of Object.keys(chipEls)) chipEls[key].classList.toggle("on", key === id);
       const wx = document.getElementById("ov-weather");
       if (wx) wx.dataset.wx = id;
-      seed();
-      ensureAudioIfRunning();
+      if (scene.audio) tuneAudio(scene);
+      if (reduce) { snap(); frame(0); }
     }
-    const ensureAudioIfRunning = () => { if (scene.audio) tuneAudio(scene); };
-
-    function sky() {
-      const kd = scene.kind;
-      const top = {clear: "#2e7fc9", cloud: "#5a6f86", rain: "#3a4a5e", storm: "#1d2433", snow: "#7c8ea3", fog: "#8c98a3", night: "#050b1c"}[kd];
-      const bot = {clear: "#a9dcff", cloud: "#a8b8c8", rain: "#6b7d90", storm: "#3a4560", snow: "#d4e0ec", fog: "#c7ced5", night: "#1a2548"}[kd];
-      const grad = g.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, top); grad.addColorStop(1, bot);
-      g.fillStyle = grad; g.fillRect(0, 0, W, H);
-    }
-
-    function ball(p, r, inner, outer, alpha) {
-      const rr = Math.max(1, r * p.s);
-      const rg = g.createRadialGradient(p.x - rr * 0.25, p.y - rr * 0.3, rr * 0.1, p.x, p.y, rr);
-      rg.addColorStop(0, inner); rg.addColorStop(1, outer);
-      g.globalAlpha = alpha; g.fillStyle = rg;
-      g.beginPath(); g.arc(p.x, p.y, rr, 0, 6.2832); g.fill(); g.globalAlpha = 1;
-    }
-
-    function draw(now) {
-      const t = (now - scene.t0) / 1000, kd = scene.kind, dt = Math.min(0.05, scene.dt || 0.016);
-      sky();
-      // Gök cisimleri
-      if (kd === "clear") {
-        const p = proj(-90, 150, 120);
-        const glow = g.createRadialGradient(p.x, p.y, 4, p.x, p.y, 120 * p.s);
-        glow.addColorStop(0, "rgba(255,240,170,.95)"); glow.addColorStop(1, "rgba(255,240,170,0)");
-        g.fillStyle = glow; g.fillRect(0, 0, W, H);
-        g.strokeStyle = "rgba(255,236,150,.55)"; g.lineWidth = 2;
-        for (let i = 0; i < 14; i++) { const a = i / 14 * 6.2832 + t * 0.2; g.beginPath(); g.moveTo(p.x + Math.cos(a) * 34 * p.s, p.y + Math.sin(a) * 34 * p.s); g.lineTo(p.x + Math.cos(a) * (52 + 8 * Math.sin(t * 2 + i)) * p.s, p.y + Math.sin(a) * (52 + 8 * Math.sin(t * 2 + i)) * p.s); g.stroke(); }
-        ball(p, 28, "#fff6c2", "#ffc83d", 1);
-      }
-      if (kd === "night") {
-        for (const s of scene.stars) { g.globalAlpha = s.a * (0.6 + 0.4 * Math.sin(t * 2 + s.p)); g.fillStyle = "#fff"; g.fillRect(s.x * W, s.y * H, 1.6, 1.6); }
-        g.globalAlpha = 1;
-        const p = proj(100, 150, 120);
-        ball(p, 24, "#fffde8", "#c9d2e6", 1);
-        g.globalAlpha = 0.25; g.fillStyle = "#050b1c"; g.beginPath(); g.arc(p.x + 8 * p.s, p.y - 3 * p.s, 20 * p.s, 0, 6.2832); g.fill(); g.globalAlpha = 1;
-      }
-      // Zemin ızgarası (derinlik hissi)
-      g.strokeStyle = kd === "night" ? "rgba(120,160,255,.18)" : "rgba(255,255,255,.22)"; g.lineWidth = 1;
-      for (let i = -4; i <= 4; i++) {
-        const a = proj(i * 70, 0, -280), b = proj(i * 70, 0, 280); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
-        const c = proj(-280, 0, i * 70), d = proj(280, 0, i * 70); g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(d.x, d.y); g.stroke();
-      }
-      // Sis katmanları (arkadan öne)
-      const mist = scene.mist.map((m) => ({m, p: proj(m.x, m.y, m.z)})).sort((a, b) => b.p.d - a.p.d);
-      for (const {m, p} of mist) {
-        m.x += m.sp * dt; if (m.x > 260) m.x = -260;
-        const rg = g.createRadialGradient(p.x, p.y, 4, p.x, p.y, m.r * p.s);
-        rg.addColorStop(0, `rgba(235,240,245,${0.35 + 0.35 * scene.k})`); rg.addColorStop(1, "rgba(235,240,245,0)");
-        g.fillStyle = rg; g.fillRect(0, 0, W, H);
-      }
-      // Bulutlar: puf'lar derinliğe göre sıralanır
-      const dark = kd === "storm" ? ["#6c768c", "#2d3345"] : kd === "rain" ? ["#aab4c2", "#59677a"] : kd === "night" ? ["#46506e", "#1c2240"] : kd === "snow" ? ["#f4f8fc", "#b9c7d6"] : ["#ffffff", "#c9d6e4"];
-      const list = [];
-      for (const c of scene.clouds) {
-        c.x += c.sp * dt * (0.5 + scene.k); if (c.x > 260) c.x = -260;
-        for (const pf of c.puffs) { const p = proj(c.x + pf.dx, c.y + pf.dy + Math.sin(t + c.x) * 2, c.z + pf.dz); list.push({p, r: pf.r}); }
-      }
-      list.sort((a, b) => b.p.d - a.p.d);
-      for (const it of list) ball(it.p, it.r, dark[0], dark[1], 0.92);
-      // Yağmur / kar
-      const wet = kd === "rain" || kd === "storm";
-      if (wet) {
-        g.strokeStyle = "rgba(190,215,245,.75)"; g.lineWidth = 1.2; g.beginPath();
-        for (const d of scene.parts) {
-          d.y -= d.v * dt; d.x -= 30 * dt;
-          if (d.y < 0) { d.y = rnd(180, 240); d.x = rnd(-260, 260); d.z = rnd(-260, 260); }
-          const a = proj(d.x, d.y, d.z), b = proj(d.x + 3, d.y + 16, d.z);
-          g.moveTo(a.x, a.y); g.lineTo(b.x, b.y);
-        }
-        g.stroke();
-        // Yerde halka sıçramaları
-        g.strokeStyle = "rgba(210,230,255,.35)";
-        for (let i = 0; i < 14; i++) { const ph = (t * 1.4 + i * 0.37) % 1, x = Math.sin(i * 12.9) * 220, z = Math.cos(i * 7.7) * 220, p = proj(x, 0, z); g.globalAlpha = (1 - ph) * 0.8; g.beginPath(); g.ellipse(p.x, p.y, 16 * ph * p.s * 2, 5 * ph * p.s * 2, 0, 0, 6.2832); g.stroke(); }
-        g.globalAlpha = 1;
-      } else if (kd === "snow") {
-        g.fillStyle = "#fff";
-        for (const f of scene.parts) {
-          f.y -= f.v * dt; f.x += Math.sin(t + f.ph) * 14 * dt;
-          if (f.y < 0) { f.y = rnd(180, 240); f.x = rnd(-260, 260); f.z = rnd(-260, 260); }
-          const p = proj(f.x, f.y, f.z); g.globalAlpha = 0.9; g.beginPath(); g.arc(p.x, p.y, Math.max(1, 3.2 * p.s), 0, 6.2832); g.fill();
-        }
-        g.globalAlpha = 1;
-      }
-      // Şimşek
-      if (kd === "storm") {
-        scene.next -= dt;
-        if (scene.next <= 0) {
-          scene.next = rnd(2.5, 7) / (0.4 + scene.k);
-          scene.flash = 1;
-          let x = rnd(-120, 120), y = 130; const z = rnd(-100, 100), pts = [[x, y, z]];
-          while (y > 0) { y -= rnd(18, 34); x += rnd(-22, 22); pts.push([x, Math.max(0, y), z]); }
-          scene.bolt = pts;
-          if (scene.audio && scene.sound) scene.audio.thunder();
-        }
-        if (scene.bolt && scene.flash > 0.05) {
-          g.strokeStyle = `rgba(240,245,255,${scene.flash})`; g.lineWidth = 2.5; g.shadowColor = "#bcd4ff"; g.shadowBlur = 14; g.beginPath();
-          scene.bolt.forEach(([x, y, z], i) => { const p = proj(x, y, z); i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); });
-          g.stroke(); g.shadowBlur = 0;
-        }
-        if (scene.flash > 0) { g.fillStyle = `rgba(255,255,255,${scene.flash * 0.35})`; g.fillRect(0, 0, W, H); scene.flash = Math.max(0, scene.flash - dt * 3.5); }
-      }
-    }
+    snd.addEventListener("click", () => { scene.sound = !scene.sound; paintSnd(); ensureAudio(); });
+    slider.addEventListener("input", () => { scene.k = Number(slider.value) / 100; tuneAudio(scene); });
+    let drag = null;
+    canvas.addEventListener("pointerdown", (e) => { drag = {x: e.clientX, y: e.clientY}; cam.touched = true; canvas.setPointerCapture(e.pointerId); ensureAudio(); });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      cam.yaw += (e.clientX - drag.x) * 0.008;
+      cam.pitch = Math.max(0.02, Math.min(0.75, cam.pitch + (e.clientY - drag.y) * 0.006));
+      drag = {x: e.clientX, y: e.clientY};
+    });
+    canvas.addEventListener("pointerup", () => { drag = null; });
+    canvas.addEventListener("wheel", (e) => { e.preventDefault(); cam.dist = Math.max(26, Math.min(80, cam.dist * (e.deltaY < 0 ? 0.93 : 1.08))); }, {passive: false});
+    const resize = () => { W = Math.max(280, box.clientWidth); renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix(); };
+    window.addEventListener("resize", resize);
 
     let prev = performance.now();
     const loop = (now) => {
       const wx = document.getElementById("ov-weather");
       if (!document.body.contains(box) || (wx && wx.hidden)) { destroy(); return; }
-      scene.dt = (now - prev) / 1000; prev = now;
-      draw(now);
+      const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+      frame(dt);
       scene.raf = requestAnimationFrame(loop);
     };
-
     scene.destroy = () => {
       cancelAnimationFrame(scene.raf);
       if (scene.audio) { clearInterval(scene.audio.timer); try { scene.audio.ctx.close(); } catch (e) { /* kapalı */ } scene.audio = null; }
       window.removeEventListener("resize", resize);
+      try { renderer.dispose(); renderer.forceContextLoss(); } catch (e) { /* kapalı */ }
       box.remove();
     };
-    window.addEventListener("resize", resize);
     live = scene;
+    camera.aspect = W / H; camera.updateProjectionMatrix();
     paintSnd();
     setKind(kind || "clear");
     ensureAudio();
-    if (reduce) draw(performance.now()); else scene.raf = requestAnimationFrame(loop);
+    if (reduce) { snap(); frame(0); } else scene.raf = requestAnimationFrame(loop);
   }
 
   function destroy() {

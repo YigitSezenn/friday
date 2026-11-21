@@ -256,3 +256,12 @@ circle.wxdot{transform-box:fill-box;transform-origin:center;animation:wxfade .5s
 .winctl button .off{display:none}
 .winctl button[aria-pressed="false"]{opacity:.6}
 .winctl button[aria-pressed="false"] .off{display:inline;stroke:#ff5c7a}
+
+/* Saat ve gün kartlarında yapışık yazılar: satırlara ayrıldı */
+.wxhourrow > div{display:flex;flex-direction:column;align-items:center;gap:3px}
+.wxhourrow small{opacity:.75}
+.wxday{display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:10px;row-gap:2px}
+.wxday > small:first-of-type{margin-left:0;text-align:right}
+.wxday > b{grid-column:1}
+.wxday > span{margin-left:0}
+.wxday > p,.wxday > small:last-of-type,.wxday > .wxbar{grid-column:1 / -1;margin-left:0}
