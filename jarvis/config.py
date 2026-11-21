@@ -29,6 +29,7 @@ LANGUAGES = ("auto", "tr", "en", "fr", "ar", "az")
 
 DEFAULT_CONFIG = {
     "gemini_api_key": "",
+    "tavily_api_key": "",  # isteğe bağlı: tavily.com ücretsiz arama anahtarı (Gemini araması kotası doluysa kullanılır)
     "voice": "Charon",
     "assistant_name": "FRIDAY",
     "address_as": "adınla",
@@ -95,6 +96,7 @@ def load_app_config() -> dict:
     if isinstance(raw, dict):
         config.update(raw)
     config["gemini_api_key"] = clean_api_key(config.get("gemini_api_key"))
+    config["tavily_api_key"] = clean_api_key(config.get("tavily_api_key"))
     config["voice"] = _clean_voice(config.get("voice"))
     config["assistant_name"] = _clean_name(config.get("assistant_name"))
     config["address_as"] = _clean_address(config.get("address_as"))

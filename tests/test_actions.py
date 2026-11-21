@@ -340,3 +340,26 @@ class SearchResultParsingTests(unittest.TestCase):
         self.assertEqual(lines[0], "PS5 825GB vs 1TB — 1 TB model daha fazla alan sunar & pahalıdır.")
         self.assertEqual(lines[1], "İkinci sonuç")
         self.assertEqual(_parse_results("<html></html>"), [])
+
+
+class TavilySearchTests(unittest.TestCase):
+    def test_tavily_is_used_first_when_key_is_saved_and_failure_falls_through(self):
+        from unittest import mock
+        from tools.actions import search
+
+        values = {"tavily_api_key": "tvly-abc", "gemini_api_key": ""}
+        with mock.patch("jarvis.config.get_app_config_value", side_effect=lambda k, d="": values.get(k, d)):
+            self.assertEqual(search.web_search("x", tavily=lambda key, q: "Tavily cevabı", fallback=lambda q: "ddg"), "Tavily cevabı")
+
+            def broken(key, q):
+                raise ConnectionError("x")
+
+            self.assertEqual(search.web_search("x", ask=lambda k, m, q: "", tavily=broken, fallback=lambda q: "ddg"), "ddg")
+
+    def test_no_key_skips_tavily(self):
+        from unittest import mock
+        from tools.actions import search
+
+        with mock.patch("jarvis.config.get_app_config_value", return_value=""):
+            out = search.web_search("x", tavily=lambda k, q: "olmamalı", fallback=lambda q: "ddg")
+        self.assertEqual(out, "ddg")

@@ -60,6 +60,27 @@ def _parse_results(page: str, limit: int = 5) -> list[str]:
     return lines
 
 
+def _tavily(key: str, query: str) -> str:
+    """Tavily arama API'si: hazır özet cevap + ilk sonuç başlıkları. Standart kütüphane ile çalışır."""
+    import json
+    import urllib.request
+
+    body = json.dumps({"query": query, "include_answer": True, "max_results": 4, "search_depth": "basic"}).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.tavily.com/search", data=body, method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        payload = json.loads(response.read().decode("utf-8", "replace"))
+    answer = " ".join(str(payload.get("answer") or "").split())
+    titles = [str(item.get("title") or "").strip() for item in (payload.get("results") or [])[:3] if isinstance(item, dict)]
+    extra = " Kaynaklar: " + "; ".join(t for t in titles if t) + "." if titles and answer else ""
+    if answer:
+        return answer + extra
+    snippets = [f"{item.get('title', '')} — {' '.join(str(item.get('content') or '').split())[:200]}" for item in (payload.get("results") or [])[:4] if isinstance(item, dict)]
+    return "\n".join(snippets)
+
+
 def _gemini_plain(key: str, model: str, query: str) -> str:
     """Aramasız Gemini yanıtı: arama kotası dolduğunda kendi bilgisiyle cevap verir."""
     from google import genai
@@ -120,12 +141,15 @@ def _duckduckgo_instant(query: str) -> str:
     return "\n".join(lines[:4])
 
 
-def web_search(query: str, ask=None, fallback=None) -> str:
+def web_search(query: str, ask=None, fallback=None, tavily=None) -> str:
     """Once Gemini (Google aramasi, uc model sirayla), olmazsa DuckDuckGo. Hicbiri olmazsa nedenleri soyler."""
     text = " ".join(str(query or "").split())
     if not text:
         return "Arama cümlesi boş."
     reasons: list[str] = []
+    found = _search_with_tavily(text, tavily, reasons)
+    if found:
+        return found[:ANSWER_LIMIT]
     answer = _search_with_gemini(text, ask or _gemini_search, reasons)
     if answer:
         return answer[:ANSWER_LIMIT]
@@ -191,3 +215,18 @@ def _plain_answer(text: str) -> str:
             if answer:
                 return answer
     return ""
+
+
+def _search_with_tavily(text: str, tavily, reasons: list[str]) -> str:
+    """Tavily anahtarı kayıtlıysa önce o denenir (kotası Google'dan bağımsızdır)."""
+    from jarvis.config import get_app_config_value
+    from jarvis.gemini_errors import clean_api_key
+
+    key = clean_api_key(get_app_config_value("tavily_api_key", ""))
+    if not key:
+        return ""
+    try:
+        return (tavily or _tavily)(key, text)
+    except Exception as exc:
+        reasons.append(f"Tavily: {_detail(exc, key)}")
+        return ""
