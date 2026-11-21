@@ -1,6 +1,18 @@
 {
   "surumler": [
     {
+      "surum": "4.13.20",
+      "tarih": "2026-11-21",
+      "baslik": "İnternet araması yeniden çalışıyor",
+      "maddeler": [
+        "Google aramalı Gemini yanıtı kota yüzünden reddedilirse FRIDAY artık Bing sonuçlarından (başlık ve özet) güncel bilgi alıp kendi cümleleriyle anlatıyor; anahtar ya da kart gerekmiyor.",
+        "Kapatılan gemini-2.5-flash modeli arama ve ekran analizi listesinden çıkarıldı.",
+        "Canlı arama hiç çalışmazsa yanıt, “güncel olmayabilir” uyarısıyla modelin kendi bilgisinden veriliyor.",
+        "Ayarlar'a isteğe bağlı Tavily arama anahtarı alanı eklendi (kayıtlıysa önce o kullanılır).",
+        "Arama hatalarında HTTP kodu ve Google'ın kısa mesajı gösteriliyor."
+      ]
+    },
+    {
       "surum": "4.13.19",
       "tarih": "2026-11-21",
       "baslik": "İnternet araması daha dayanıklı",

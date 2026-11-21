@@ -11,7 +11,6 @@ VISION_MODELS = (
     "models/gemini-flash-lite-latest",
     "models/gemini-3.8-flash",
     "models/gemini-flash-latest",
-    "models/gemini-2.5-flash",
 )
 VISION_MAX_DIMENSION = 1280
 
