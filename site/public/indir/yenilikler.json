@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.19",
+      "tarih": "2026-11-21",
+      "baslik": "İnternet araması daha dayanıklı",
+      "maddeler": [
+        "İnternette ara dediğinde Gemini araması koparsa aynı model bir kez daha deneniyor, zaman aşımı 30 saniyeye çıktı.",
+        "Gemini başarısız olursa DuckDuckGo'nun gerçek arama sonuçları (başlık ve özet) getiriliyor; FRIDAY bunları kendi cümleleriyle anlatıyor.",
+        "Arama hatasında gerçek hata türü gösteriliyor."
+      ]
+    },
+    {
       "surum": "4.13.18",
       "tarih": "2026-11-21",
       "baslik": "Yeni 3D hava durumu sahnesi",
