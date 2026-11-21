@@ -328,18 +328,22 @@ class WebSearchRetryTests(unittest.TestCase):
 
 
 class SearchResultParsingTests(unittest.TestCase):
-    def test_parses_titles_and_snippets(self):
-        from tools.actions.search import _parse_results
+    def test_parses_bing_titles_and_snippets(self):
+        from tools.actions.search import _parse_bing
 
         page = (
-            '<a rel="nofollow" class="result__a" href="//x">PS5 <b>825GB</b> vs 1TB</a>'
-            '<a class="result__snippet" href="//x">1 TB model daha fazla alan sunar &amp; pahalıdır.</a>'
-            '<a class="result__a" href="//y">İkinci sonuç</a>'
+            '<ol><li class="b_algo" data-id><link rel="stylesheet" href="x.css"/></li>'
+            '<li class="b_algo" data-id><div class="b_tpcn"><a class="tilk">playstation.com</a></div>'
+            '<h2><a href="u"><strong>PlayStation</strong>&#174; Resmi Site &amp; Oyunlar</a></h2>'
+            '<div class="b_caption"><p class="b_lineclamp2"><span class="news_dt">10 Kas 2026</span>&nbsp;&#0183;&#32;PS5 konsollarını keşfet…<a class="b_algoReadMore">Devamı</a></p></div></li>'
+            '<li class="b_algo"><h2><a href="v">İkinci sonuç</a></h2></li></ol>'
         )
-        lines = _parse_results(page)
-        self.assertEqual(lines[0], "PS5 825GB vs 1TB — 1 TB model daha fazla alan sunar & pahalıdır.")
+        lines = _parse_bing(page)
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(lines[0].startswith("PlayStation® Resmi Site & Oyunlar — 10 Kas 2026"))
+        self.assertIn("PS5 konsollarını keşfet", lines[0])
         self.assertEqual(lines[1], "İkinci sonuç")
-        self.assertEqual(_parse_results("<html></html>"), [])
+        self.assertEqual(_parse_bing("<html></html>"), [])
 
 
 class TavilySearchTests(unittest.TestCase):
