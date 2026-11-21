@@ -663,3 +663,17 @@ class WeatherSceneTests(unittest.TestCase):
         script = (root / "weather3d.js").read_text(encoding="utf-8")
         for kind in ("clear", "cloud", "rain", "storm", "snow", "fog", "night"):
             self.assertIn(f'["{kind}"', script)
+
+
+class UpdateCooldownTests(unittest.TestCase):
+    def test_second_click_within_ten_seconds_is_ignored(self):
+        from unittest import mock
+        from ui import dispatch
+
+        ui = mock.Mock()
+        dispatch._last_update[0] = 0.0
+        with mock.patch("time.monotonic", side_effect=[100.0, 105.0, 111.0]):
+            dispatch._on_update(ui, {})
+            dispatch._on_update(ui, {})
+            dispatch._on_update(ui, {})
+        self.assertEqual(ui.install_update.call_count, 2)
