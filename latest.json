@@ -1,20 +1,20 @@
 {
-  "version": "4.13.18",
+  "version": "4.13.19",
   "ref": "yayin",
-  "sha": "57337d736ddd80e30d727977eda89f1a02b865cb",
-  "run": "https://github.com/YigitSezenn/friday/actions/runs/44842214733",
+  "sha": "9e4484c20eb42a5215e77298f5db8e79952ffbdf",
+  "run": "https://github.com/YigitSezenn/friday/actions/runs/44896845960",
   "tests": "success",
   "windows": "success",
-  "exe_sha256": "6247966C80B94D45828C06FFE4A1E466E5376396DBE1B941C2BD7AFABCB472F8",
-  "exe_size": "78492991",
+  "exe_sha256": "C09103C9715FB8249D8354503D1DAD9300CA8037D80FFD839DE73A17616B32EC",
+  "exe_size": "78495148",
   "android": "success",
   "apk_signed": "true",
-  "apk_sha256": "86b4addb6d0f368a7d6ad9920693a5ac57191dd55ef5c530c25f6fb4f747af01",
+  "apk_sha256": "f8dae2f02e01a44621b53b9abab87acad124d4707b1d4f9ffb6135a33e282362",
   "apk_kept_live": "false",
-  "deploy": "success",
-  "deploy_url": "https://site-bitkstf4p-yigitsezenns-projects.vercel.app",
-  "live_surum": "4.13.18",
+  "deploy": "failure",
+  "deploy_url": "",
+  "live_surum": "",
   "vercel_token_present": "true",
-  "deploy_error": ""
+  "deploy_error": " added 17 packages, and audited 18 packages in 1s  9 packages are looking for funding   run `npm fund` for details  found 0 vulnerabilities Vercel CLI 66.6.0 Retrieving project… Error: Could not retrieve Project Settings. To link your Project, remove the `.vercel` directory and deploy again. Learn More: https://vercel.link/cannot-load-project-settings "
 }
 
