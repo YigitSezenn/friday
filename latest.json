@@ -11,10 +11,10 @@
   "apk_signed": "true",
   "apk_sha256": "f8dae2f02e01a44621b53b9abab87acad124d4707b1d4f9ffb6135a33e282362",
   "apk_kept_live": "false",
-  "deploy": "failure",
-  "deploy_url": "",
-  "live_surum": "",
+  "deploy": "success",
+  "deploy_url": "https://site-bm2fob8rk-yigitsezenns-projects.vercel.app",
+  "live_surum": "4.13.19",
   "vercel_token_present": "true",
-  "deploy_error": " added 17 packages, and audited 18 packages in 1s  9 packages are looking for funding   run `npm fund` for details  found 0 vulnerabilities Vercel CLI 66.6.0 Retrieving project… Error: Could not retrieve Project Settings. To link your Project, remove the `.vercel` directory and deploy again. Learn More: https://vercel.link/cannot-load-project-settings "
+  "deploy_error": ""
 }
 
