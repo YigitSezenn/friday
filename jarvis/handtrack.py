@@ -43,6 +43,15 @@ def ensure_model(timeout: float = 60.0) -> str:
 
 class HandTracker:
     def __init__(self) -> None:
+        import sys
+        import types
+
+        try:
+            import matplotlib.pyplot  # noqa: F401
+        except ImportError:
+            # mediapipe yalnızca çizim yardımcıları için içe aktarır; boyutu şişirmesin diye pakete konmaz.
+            for name in ("matplotlib", "matplotlib.pyplot"):
+                sys.modules.setdefault(name, types.ModuleType(name))
         import mediapipe as mp
         from mediapipe.tasks import python as tasks
         from mediapipe.tasks.python import vision

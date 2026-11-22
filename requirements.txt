@@ -1,6 +1,5 @@
 google-genai
 opencv-python
-mediapipe
 pyaudio
 psutil
 Pillow
@@ -14,3 +13,5 @@ pycaw
 comtypes
 cryptography>=42
 broadlink
+# El hareketi (isteğe bağlı): matplotlib ve ikinci bir OpenCV çekmesin diye ayrı kurulur:
+#   pip install --no-deps mediapipe==0.10.32 && pip install absl-py flatbuffers attrs protobuf sounddevice
