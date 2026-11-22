@@ -331,6 +331,43 @@ class SearchResultParsingTests(unittest.TestCase):
         self.assertEqual(_parse_bing("<html></html>"), [])
 
 
+class SearchReadabilityTests(unittest.TestCase):
+    def test_drops_cjk_and_tidies_lines(self):
+        from tools.actions.search import _readable, _tidy
+
+        self.assertTrue(_readable("Wraith Esports — Türkiye'deki oyunculara ürün geliştiriyor"))
+        self.assertTrue(_readable("Online Keyboard Driver & Config Tool | Key Remapping"))
+        self.assertFalse(_readable("【情報】如何使用Steam交換卡片? Steam卡片大全 @Steam 綜合討論"))
+        self.assertFalse(_readable("12345 ... ---"))
+        long = "Steam " + "indirme hızı " * 30 + "...Devamını oku"
+        tidy = _tidy(long)
+        self.assertLessEqual(len(tidy), 170)
+        self.assertNotIn("Devamını", tidy)
+        self.assertNotIn("...", tidy)
+
+    def test_bing_answer_is_summarized_never_the_raw_list(self):
+        from unittest import mock
+        from tools.actions import search
+
+        lines = ["Wraith Esports — Türk oyuncu ekipmanı markası", "Wraith - Wikipedia — Disambiguation page"]
+        with mock.patch.object(search, "_bing_lines", return_value=lines), mock.patch.object(search, "_summarize", return_value="Wraith, oyuncu ekipmanı üreten bir marka."):
+            self.assertEqual(search._bing("wraith"), "Wraith, oyuncu ekipmanı üreten bir marka.")
+        with mock.patch.object(search, "_bing_lines", return_value=lines), mock.patch.object(search, "_summarize", return_value=""):
+            out = search._bing("wraith")
+        self.assertNotIn("Web arama sonuçları", out)
+        self.assertIn("kendi cümlenle", out)
+
+    def test_summary_failure_tries_models_without_crashing(self):
+        from unittest import mock
+        from tools.actions import search
+
+        values = {"gemini_api_key": "AIza-test"}
+        with mock.patch("jarvis.config.get_app_config_value", side_effect=lambda k, d="": values.get(k, d)), \
+             mock.patch.object(search, "_gemini_plain", side_effect=[RuntimeError("503"), "Kısa özet."]) as plain:
+            self.assertEqual(search._summarize("steam", ["Steam — oyun mağazası"]), "Kısa özet.")
+        self.assertIn("Steam — oyun mağazası", plain.call_args.args[3])
+
+
 class TavilySearchTests(unittest.TestCase):
     def test_tavily_is_used_first_when_key_is_saved_and_failure_falls_through(self):
         from unittest import mock

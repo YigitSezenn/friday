@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.22",
+      "tarih": "2026-11-23",
+      "baslik": "Arama yanıtları temiz, hava sesi kapanınca susuyor",
+      "maddeler": [
+        "İnternet araması artık ham sonuç listesini ekrana yazmıyor ve sesli okumuyor; bulunanlardan kısa bir Türkçe yanıt çıkarıyor.",
+        "Çince, Rusça gibi okunamayan sonuçlar elenir; arama Türkiye ayarlarıyla yapılır.",
+        "Hava durumu penceresi kapanınca 3D sahne sesleri hemen susuyor.",
+        "Aramasız yanıt yedeği (canlı arama olmadığında) yeniden çalışıyor."
+      ]
+    },
+    {
       "surum": "4.13.21",
       "tarih": "2026-11-23",
       "baslik": "Discord DM, alkışla uyanma, el hareketiyle pencere taşıma",
