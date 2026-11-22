@@ -42,6 +42,7 @@ DEFAULT_CONFIG = {
     "file_roots": [],
     "patient_listening": True,
     "mic_gate": True,
+    "clap_wake": False,
     "mail_web_autosend": True,
     "panels_off": [],
     "youtube_api_key": "",
@@ -110,6 +111,7 @@ def load_app_config() -> dict:
     config["file_roots"] = [str(x) for x in (config.get("file_roots") or []) if str(x).strip()][:8] if isinstance(config.get("file_roots"), list) else []
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
+    config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     backend = str(config.get("calendar_backend", "auto") or "auto").strip().lower()
@@ -262,6 +264,7 @@ def _save_app_config(updates: dict) -> dict:
     config["file_roots"] = [str(x) for x in (config.get("file_roots") or []) if str(x).strip()][:8] if isinstance(config.get("file_roots"), list) else []
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
+    config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     config["live_model"] = _clean_model(config.get("live_model"))

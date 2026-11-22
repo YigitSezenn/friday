@@ -264,6 +264,7 @@ document.querySelectorAll(".stab").forEach(button => {
   });
 });
 $("set-patient").addEventListener("click", () => $("set-patient").setAttribute("aria-checked", $("set-patient").getAttribute("aria-checked") === "true" ? "false" : "true"));
+$("set-clap").addEventListener("click", () => $("set-clap").setAttribute("aria-checked", $("set-clap").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-music").addEventListener("click", () => $("set-music").setAttribute("aria-checked", $("set-music").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-sfx").addEventListener("click", () => $("set-sfx").setAttribute("aria-checked", $("set-sfx").getAttribute("aria-checked") === "true" ? "false" : "true"));
 $("set-mic").addEventListener("click", () => { toggleMic(); $("set-mic").setAttribute("aria-checked", $("t-mic").dataset.on === "1" ? "true" : "false"); });

@@ -375,6 +375,31 @@ class JarvisLive:
         finally:
             mic.close()
 
+    async def _wait_for_clap(self) -> None:
+        """Uykudayken (kullanıcı izin verdiyse) yalnızca ses seviyesine bakar; çift alkışta uyandırır."""
+        import pyaudio
+        from jarvis.audio.clap import ClapDetector
+
+        audio = pyaudio.PyAudio()
+        try:
+            stream = audio.open(format=pyaudio.paInt16, channels=1, rate=SEND_RATE, input=True, frames_per_buffer=CHUNK)
+        except Exception:
+            audio.terminate()
+            await asyncio.sleep(2)
+            return
+        mic = SafeStream(audio, stream)
+        detector = ClapDetector()
+        try:
+            while self._paused and bool(get_app_config_value("clap_wake", False)):
+                data = await asyncio.to_thread(mic.read, CHUNK)
+                if mic.closed:
+                    break
+                if detector.feed(peak(data), time.monotonic()) and hasattr(self.ui, "_js"):
+                    self.ui._js("window.hud && window.hud.sleep(false, 0)")
+                    await asyncio.sleep(0.5)
+        finally:
+            mic.close()
+
     async def _receive_audio(self) -> None:
         out_buf, in_buf = [], []
         output_noise = False
@@ -541,7 +566,10 @@ class JarvisLive:
         without_proxy_for_google()
         while True:
             if self._paused:
-                await asyncio.sleep(0.4)
+                if bool(get_app_config_value("clap_wake", False)):
+                    await self._wait_for_clap()
+                else:
+                    await asyncio.sleep(0.4)
                 continue
             key = clean_api_key(get_app_config_value("gemini_api_key", ""))
             if not key:
