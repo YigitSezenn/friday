@@ -14,6 +14,8 @@ class WebcamStreamer:
         self._active = False
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
+        self.frame_hook = None  # el hareketi gibi yerel işlemler için: hook(bgr_kare)
+        self.local_only = False  # True: görüntü Gemini'ye gönderilmez
 
     @property
     def is_active(self) -> bool:
@@ -40,6 +42,10 @@ class WebcamStreamer:
         return "ok" if self._active else "missing"
 
     def stop(self) -> None:
+        hook, self.frame_hook, self.local_only = self.frame_hook, None, False
+        close = getattr(getattr(hook, "__self__", None), "close", None)
+        if close:
+            close()
         self._stop.set()
         thread = self._thread
         if thread and thread.is_alive():
@@ -70,6 +76,9 @@ class WebcamStreamer:
                     scale = self.MAX_DIM / max(height, width)
                     frame = cv2.resize(frame, (int(width * scale), int(height * scale)))
                 frame = cv2.flip(frame, 1)
+                hook = self.frame_hook
+                if hook:
+                    hook(frame)
                 encoded, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
                 if encoded:
                     with self._lock:

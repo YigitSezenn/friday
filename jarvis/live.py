@@ -536,7 +536,7 @@ class JarvisLive:
     async def _stream_webcam(self) -> None:
         last = None
         while True:
-            if not self.webcam.is_active:
+            if not self.webcam.is_active or self.webcam.local_only:
                 await asyncio.sleep(0.2)
                 continue
             frame = self.webcam.get_latest_frame()

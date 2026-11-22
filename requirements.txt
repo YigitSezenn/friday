@@ -1,5 +1,6 @@
 google-genai
 opencv-python
+mediapipe
 pyaudio
 psutil
 Pillow

@@ -42,6 +42,16 @@ def _lib():
         user32.SetForegroundWindow.restype = wintypes.BOOL
         user32.BringWindowToTop.argtypes = [wintypes.HWND]
         user32.BringWindowToTop.restype = wintypes.BOOL
+        user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        user32.GetWindowRect.restype = wintypes.BOOL
+        user32.IsZoomed.argtypes = [wintypes.HWND]
+        user32.IsZoomed.restype = wintypes.BOOL
+        user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user32.GetClassNameW.restype = ctypes.c_int
+        user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+        user32.SetWindowPos.restype = wintypes.BOOL
+        user32.GetSystemMetrics.argtypes = [ctypes.c_int]
+        user32.GetSystemMetrics.restype = ctypes.c_int
         user32.keybd_event.argtypes = [wintypes.BYTE, wintypes.BYTE, wintypes.DWORD, ctypes.c_size_t]
         user32.keybd_event.restype = None
         kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
@@ -153,3 +163,49 @@ def bring_to_front(hwnd: int) -> bool:
         user32.SetForegroundWindow(hwnd)
     user32.BringWindowToTop(hwnd)
     return int(user32.GetForegroundWindow() or 0) == int(hwnd)
+
+
+def foreground_window() -> int:
+    if not available():
+        return 0
+    _ctypes, user32, _kernel32 = _lib()
+    return int(user32.GetForegroundWindow() or 0)
+
+
+def window_rect(hwnd: int) -> tuple[int, int, int, int] | None:
+    """(sol, üst, sağ, alt) ekran koordinatları."""
+    if not available() or not hwnd:
+        return None
+    _ctypes, user32, _kernel32 = _lib()
+    from ctypes import wintypes
+
+    rect = wintypes.RECT()
+    if not user32.GetWindowRect(hwnd, _ctypes.byref(rect)):
+        return None
+    return rect.left, rect.top, rect.right, rect.bottom
+
+
+def movable(hwnd: int) -> bool:
+    """Masaüstü, görev çubuğu ve tam ekran pencereler taşınmaz."""
+    if not available() or not hwnd:
+        return False
+    ctypes, user32, _kernel32 = _lib()
+    if user32.IsZoomed(hwnd):
+        return False
+    buffer = ctypes.create_unicode_buffer(64)
+    user32.GetClassNameW(hwnd, buffer, 64)
+    return buffer.value not in {"Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd"}
+
+
+def move_window(hwnd: int, x: int, y: int) -> bool:
+    if not available() or not hwnd:
+        return False
+    _ctypes, user32, _kernel32 = _lib()
+    return bool(user32.SetWindowPos(hwnd, None, int(x), int(y), 0, 0, 0x0001 | 0x0004 | 0x0010))  # NOSIZE|NOZORDER|NOACTIVATE
+
+
+def screen_size() -> tuple[int, int]:
+    if not available():
+        return 1920, 1080
+    _ctypes, user32, _kernel32 = _lib()
+    return int(user32.GetSystemMetrics(0)), int(user32.GetSystemMetrics(1))
