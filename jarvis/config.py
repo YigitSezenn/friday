@@ -42,6 +42,7 @@ DEFAULT_CONFIG = {
     "file_roots": [],
     "patient_listening": True,
     "mic_gate": True,
+    "clap_wake": False,
     "mail_web_autosend": True,
     "panels_off": [],
     "youtube_api_key": "",
@@ -66,6 +67,7 @@ DEFAULT_CONFIG = {
     "gmail_app_password": "",
     # Discord botunun komut kabul ettiği hesap (yalnızca rakamlardan oluşan kullanıcı kimliği; sır değildir).
     "discord_owner_id": "",
+    "discord_username": "",  # kullanıcının kendi Discord kullanıcı adı (yalnızca test mesajı için)
     "outlook_web_host": "outlook.live.com",
     "water_enabled": False,
     "break_enabled": False,
@@ -109,6 +111,7 @@ def load_app_config() -> dict:
     config["file_roots"] = [str(x) for x in (config.get("file_roots") or []) if str(x).strip()][:8] if isinstance(config.get("file_roots"), list) else []
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
+    config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     backend = str(config.get("calendar_backend", "auto") or "auto").strip().lower()
@@ -132,6 +135,7 @@ def load_app_config() -> dict:
     config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
     config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
     config["discord_owner_id"] = "".join(ch for ch in str(config.get("discord_owner_id") or "") if ch.isdigit())[:24]
+    config["discord_username"] = "".join(ch for ch in str(config.get("discord_username") or "").strip().lstrip("@").lower() if ch.isalnum() and ch.isascii() or ch in "._")[:32]
     config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
     config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     return config
@@ -260,6 +264,7 @@ def _save_app_config(updates: dict) -> dict:
     config["file_roots"] = [str(x) for x in (config.get("file_roots") or []) if str(x).strip()][:8] if isinstance(config.get("file_roots"), list) else []
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
+    config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     config["live_model"] = _clean_model(config.get("live_model"))
@@ -275,6 +280,7 @@ def _save_app_config(updates: dict) -> dict:
     config["mail_web"] = "outlook" if str(config.get("mail_web") or "") == "outlook" else "gmail"
     config["gmail_address"] = str(config.get("gmail_address") or "").strip()[:254]
     config["discord_owner_id"] = "".join(ch for ch in str(config.get("discord_owner_id") or "") if ch.isdigit())[:24]
+    config["discord_username"] = "".join(ch for ch in str(config.get("discord_username") or "").strip().lstrip("@").lower() if ch.isalnum() and ch.isascii() or ch in "._")[:32]
     config["gmail_app_password"] = "".join(str(config.get("gmail_app_password") or "").split())[:64]
     config["outlook_web_host"] = "outlook.office.com" if str(config.get("outlook_web_host") or "") == "outlook.office.com" else "outlook.live.com"
     path = config_path()

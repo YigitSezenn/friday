@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all, collect_submodules
+from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_dynamic_libs, collect_submodules
 
 ROOT = Path(SPECPATH).resolve().parent
 
@@ -35,12 +35,18 @@ for package in ("webview", "google.genai", "cv2", "PIL", "mss", "qrcode", "pytts
     binaries += extra_binaries
     hidden += extra_hidden
 
+# El takibi: mediapipe yalnızca görev API'si ve yerel kitaplıklarıyla (test dosyaları, matplotlib ve opencv-contrib yok).
+datas += collect_data_files("mediapipe", excludes=["**/test/**", "**/tests/**"])
+binaries += collect_dynamic_libs("mediapipe")
+hidden += collect_submodules("mediapipe.tasks", filter=lambda name: ".test" not in name)
+
 a = Analysis(
     [str(ROOT / "jarvis" / "__main__.py")],
     pathex=[str(ROOT)],
     binaries=binaries,
     datas=datas,
     hiddenimports=hidden,
+    excludes=["matplotlib", "jax", "jaxlib", "tensorflow"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

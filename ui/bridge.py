@@ -168,7 +168,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         config = load_app_config()
         self.effects = bool(config.get("effects", True))
         self.music = bool(config.get("music", False))
-        keys = ("gemini_api_key", "tavily_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "live_model", "language", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "file_access", "start_with_windows", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password", "discord_owner_id")
+        keys = ("gemini_api_key", "tavily_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "clap_wake", "live_model", "language", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "file_access", "start_with_windows", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password", "discord_owner_id", "discord_username")
         safe = {key: config.get(key, "") for key in keys}
         memories = list_entries()
         self._call(

@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.21",
+      "tarih": "2026-11-23",
+      "baslik": "Discord DM, alkışla uyanma, el hareketiyle pencere taşıma",
+      "maddeler": [
+        "Discord mesajı artık profil kartında kalmıyor: Ctrl+K hızlı geçişle sohbeti açıp mesajı yazıyor ve gönderiyor (kişinin Discord kullanıcı adı gerekir, gönderimden önce onay ister).",
+        "Ayarlar'a kendi kullanıcı adın eklendi; Test mesajı butonu bununla kendine mesaj atar.",
+        "Alkışla uyanma (isteğe bağlı, varsayılan kapalı): uykudayken çift alkış FRIDAY'i uyandırır. Mikrofon yalnızca ses seviyesi için dinlenir, kayıt alınmaz.",
+        "El hareketiyle pencere taşıma: onay verirsen kamera açılır; başparmak ve işaret parmağını birleştirip sürükleyince öndeki pencere taşınır. Görüntü bilgisayardan çıkmaz."
+      ]
+    },
+    {
       "surum": "4.13.20",
       "tarih": "2026-11-21",
       "baslik": "İnternet araması yeniden çalışıyor",

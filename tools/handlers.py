@@ -467,7 +467,14 @@ def open_mail(args, ctx):
 def send_discord_message(args, ctx):
     from tools.actions.discord import send_discord_message as run
 
-    return run(text(args, "message"), text(args, "recipient_name"), text(args, "user_id"), bool(args.get("confirm", False)))
+    return run(text(args, "message"), text(args, "recipient_name"), text(args, "username"), bool(args.get("confirm", False)))
+
+
+@tool("hand_control")
+def hand_control(args, ctx):
+    from tools.actions.handmove import hand_control as run
+
+    return run(text(args, "action", "start").strip().lower(), bool(args.get("confirm", False)), ctx.webcam, ctx.ui)
 
 
 @tool("save_whatsapp_contact")

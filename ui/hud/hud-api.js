@@ -220,7 +220,7 @@ window.hud = {
       applyLanguage(next);
       send("settings", {values: {language: value}});
     }, uiPack.langNames || {});
-    for (const key of ["gemini_api_key", "tavily_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password", "discord_owner_id"]) {
+    for (const key of ["gemini_api_key", "tavily_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "live_model", "language", "quiet_minutes", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password", "discord_owner_id", "discord_username"]) {
       if (form[key]) form[key].value = data.config[key] || "";
     }
     if (form.voice_volume) {
@@ -238,6 +238,7 @@ window.hud = {
     setSwitch("set-events", data.config.event_alerts);
     setSwitch("set-phone-auto", data.config.phone_autostart);
     setSwitch("set-windows", data.config.start_with_windows);
+    setSwitch("set-clap", data.config.clap_wake);
     setSwitch("set-files", data.config.file_access);
     document.querySelectorAll("#quiet-seg button").forEach(node => node.setAttribute("aria-checked", node.dataset.min === String(data.config.quiet_minutes || 20) ? "true" : "false"));
     window.__liveModel = data.config.live_model;
