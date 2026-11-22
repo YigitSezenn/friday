@@ -25,6 +25,18 @@ def _on_camera(ui, payload: dict) -> None:
         ui.on_webcam_toggle(ui._cam)
 
 
+def _on_hand(ui, payload: dict) -> None:
+    if ui.on_hand_toggle:
+        ui.on_hand_toggle(bool(payload.get("on")))
+
+
+def _on_hand_options(ui, payload: dict) -> None:
+    """El hareketi anahtarları anında uygulanır; sesi yeniden bağlamaz."""
+    values = {k: v for k, v in dict(payload.get("values") or {}).items() if k.startswith("hand_")}
+    if values:
+        save_app_config(values)
+
+
 def _on_settings(ui, payload: dict) -> None:
     before = str(load_app_config().get("weather_location", "") or "").strip()
     saved = save_app_config(dict(payload.get("values") or {}))
@@ -34,6 +46,13 @@ def _on_settings(ui, payload: dict) -> None:
         from jarvis.startup import apply_windows_startup
 
         apply_windows_startup(bool(saved.get("start_with_windows")))
+    if "clap_wake" in (payload.get("values") or {}):
+        from jarvis.startup import apply_clap_startup
+
+        try:
+            apply_clap_startup(bool(saved.get("clap_wake")))
+        except Exception:
+            pass
     ui.effects = bool(load_app_config().get("effects", True))
     ui.music = bool(load_app_config().get("music", False))
     ui.sync_music()
@@ -268,6 +287,8 @@ HANDLERS = {
     "command": _on_command,
     "mute": _on_mute,
     "camera": _on_camera,
+    "hand": _on_hand,
+    "hand_options": _on_hand_options,
     "settings": _on_settings,
     "sleep": _on_sleep,
     "forget": _on_forget,

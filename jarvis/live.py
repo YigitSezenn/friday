@@ -137,6 +137,7 @@ class JarvisLive:
         ui.on_pause_toggle = self._on_pause_toggle
         ui.speak_note = self.nudge
         ui.on_webcam_toggle = self._on_webcam_toggle
+        ui.on_hand_toggle = self._on_hand_toggle
         ui.on_settings_saved = self.request_reconnect
 
     @property
@@ -174,6 +175,16 @@ class JarvisLive:
         else:
             self.webcam.stop()
             self.ui.set_webcam_active(False)
+
+    def _on_hand_toggle(self, activate: bool) -> None:
+        """Ayarlar'daki düğme: kullanıcı kendi tıkladığı için ayrıca sesli onay istenmez."""
+        from tools.actions.handmove import start_hand, stop_hand
+
+        def work() -> None:
+            message = start_hand(self.webcam, self.ui) if activate else stop_hand(self.webcam, self.ui)
+            self.ui.write_log(f"SYS: {message}")
+
+        threading.Thread(target=work, name="jarvis-hand", daemon=True).start()
 
     def _on_text_command(self, text: str) -> None:
         self.rejections.reset()

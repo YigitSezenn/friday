@@ -204,6 +204,38 @@ def move_window(hwnd: int, x: int, y: int) -> bool:
     return bool(user32.SetWindowPos(hwnd, None, int(x), int(y), 0, 0, 0x0001 | 0x0004 | 0x0010))  # NOSIZE|NOZORDER|NOACTIVATE
 
 
+def controllable(hwnd: int) -> bool:
+    """Masaüstü ve görev çubuğu dışındaki pencereler (tam ekran olanlar dahil) denetlenebilir."""
+    if not available() or not hwnd:
+        return False
+    ctypes, user32, _kernel32 = _lib()
+    buffer = ctypes.create_unicode_buffer(64)
+    user32.GetClassNameW(hwnd, buffer, 64)
+    return buffer.value not in {"Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd"}
+
+
+def is_maximized(hwnd: int) -> bool:
+    if not available() or not hwnd:
+        return False
+    _ctypes, user32, _kernel32 = _lib()
+    return bool(user32.IsZoomed(hwnd))
+
+
+def resize_window(hwnd: int, width: int, height: int) -> bool:
+    if not available() or not hwnd:
+        return False
+    _ctypes, user32, _kernel32 = _lib()
+    return bool(user32.SetWindowPos(hwnd, None, 0, 0, int(width), int(height), 0x0002 | 0x0004 | 0x0010))  # NOMOVE|NOZORDER|NOACTIVATE
+
+
+def show_window(hwnd: int, command: int) -> bool:
+    """3: büyüt, 6: küçült (görev çubuğuna), 9: eski boyuta getir."""
+    if not available() or not hwnd:
+        return False
+    _ctypes, user32, _kernel32 = _lib()
+    return bool(user32.ShowWindow(hwnd, command))
+
+
 def screen_size() -> tuple[int, int]:
     if not available():
         return 1920, 1080

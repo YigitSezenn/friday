@@ -78,29 +78,66 @@ class HandTracker:
             pass
 
 
-class HandMover:
-    """Kamera karelerini alır, tutma hareketiyle öndeki pencereyi taşır."""
+def gesture_options() -> dict:
+    """Ayarlardaki hareket anahtarları ve hız (yüzde); yoksa hepsi açık."""
+    from jarvis.config import load_app_config
 
-    def __init__(self) -> None:
+    config = load_app_config()
+    options = {name: bool(config.get(f"hand_{name}", True)) for name in ("move", "resize", "maximize", "minimize")}
+    options["speed"] = max(0.5, min(2.0, float(config.get("hand_speed", 100) or 100) / 100))
+    return options
+
+
+class HandMover:
+    """Kamera karelerini alır, el hareketleriyle öndeki pencereyi taşır/boyutlandırır/büyütür/küçültür."""
+
+    def __init__(self, on_status=None) -> None:
         from jarvis import win32
-        from jarvis.gesture import PinchDrag
+        from jarvis.gesture import HandGestures
 
         win = type("Win", (), {
             "foreground": staticmethod(win32.foreground_window),
-            "movable": staticmethod(win32.movable),
+            "controllable": staticmethod(win32.controllable),
+            "maximized": staticmethod(win32.is_maximized),
             "rect": staticmethod(win32.window_rect),
             "move": staticmethod(win32.move_window),
+            "resize": staticmethod(win32.resize_window),
+            "show": staticmethod(win32.show_window),
             "screen": staticmethod(win32.screen_size),
         })
+        self._options, self._options_at = None, 0.0
         self.tracker = HandTracker()
-        self.drag = PinchDrag(win)
+        self.drag = HandGestures(win, self._cached_options, on_status)
+
+    def _cached_options(self) -> dict:
+        now = time.monotonic()
+        if self._options is None or now - self._options_at > 1.0:
+            try:
+                self._options = gesture_options()
+            except Exception:
+                self._options = {}
+            self._options_at = now
+        return self._options
 
     def on_frame(self, bgr_frame) -> None:
         try:
-            self.drag.update(self.tracker.points(bgr_frame), time.monotonic())
+            points = self.tracker.points(bgr_frame)
+            self.drag.update(points, time.monotonic())
+            if points:
+                _draw(bgr_frame, points, self.drag.grabbing)
         except Exception:
             self.drag.release()
 
     def close(self) -> None:
         self.drag.release()
         self.tracker.close()
+
+
+def _draw(frame, points, grabbing: bool) -> None:
+    """Görüntü penceresinde elin noktalarını gösterir (kamera karesi üzerine çizilir)."""
+    import cv2
+
+    height, width = frame.shape[:2]
+    color = (80, 220, 120) if grabbing else (230, 200, 60)
+    for point in points:
+        cv2.circle(frame, (int(point.x * width), int(point.y * height)), 3, color, -1)

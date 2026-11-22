@@ -341,3 +341,21 @@ $("keyhelp").addEventListener("click", event => { if (event.target.id === "keyhe
 document.querySelectorAll(".kh-q").forEach(button => {
   button.addEventListener("click", () => button.parentElement.classList.toggle("open"));
 });
+
+// El hareketi: başlat/durdur ve hareket anahtarları anında uygulanır (Kaydet gerekmez, ses yeniden bağlanmaz).
+$("hand-toggle").addEventListener("click", () => {
+  const on = $("hand-toggle").dataset.on !== "1";
+  $("hand-out").textContent = on ? "El kontrolü: başlatılıyor…" : "El kontrolü: kapatılıyor…";
+  send("hand", {on});
+});
+const sendHandOptions = () => {
+  const values = {hand_speed: Number($("set-hand-speed").value)};
+  for (const name of ["move", "resize", "maximize", "minimize"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
+  $("hand-speed-label").textContent = `%${values.hand_speed}`;
+  send("hand_options", {values});
+};
+for (const name of ["move", "resize", "maximize", "minimize"]) {
+  const sw = $("set-hand-" + name);
+  sw.addEventListener("click", () => { sw.setAttribute("aria-checked", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); sendHandOptions(); });
+}
+$("set-hand-speed").addEventListener("change", sendHandOptions);

@@ -7,7 +7,7 @@
 [Setup]
 AppId={{8F3A1C2E-6B47-4D19-9A55-F21DA7000001}
 AppName=FRIDAY
-AppVersion=4.13.22
+AppVersion=4.13.23
 AppPublisher=FRIDAY
 DefaultDirName={localappdata}\FRIDAY
 DisableDirPage=yes
@@ -86,6 +86,7 @@ begin
   if CurUninstallStep = usPostUninstall then
   begin
     RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'FRIDAY');
+    RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'FRIDAY-Alkis');
     DeleteFridayDir(ExpandConstant('{localappdata}\FRIDAY'));
     DeleteFridayDir(ExpandConstant('{userappdata}\FRIDAY'));
     if CompareText(FridayDirName(ExpandConstant('{app}')), 'FRIDAY') = 0 then

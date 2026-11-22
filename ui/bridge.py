@@ -85,6 +85,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         self.on_text_command = None
         self.on_pause_toggle = None
         self.on_webcam_toggle = None
+        self.on_hand_toggle = None
         self.phone_opener = None
         self.on_settings_saved = None
         self.muted = False
@@ -168,7 +169,7 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
         config = load_app_config()
         self.effects = bool(config.get("effects", True))
         self.music = bool(config.get("music", False))
-        keys = ("gemini_api_key", "tavily_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "clap_wake", "live_model", "language", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "file_access", "start_with_windows", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password", "discord_owner_id", "discord_username")
+        keys = ("gemini_api_key", "tavily_api_key", "youtube_api_key", "youtube_channel_handle", "weather_location", "voice", "assistant_name", "address_as", "ui_color", "voice_volume", "effects", "music", "patient_listening", "clap_wake", "hand_move", "hand_resize", "hand_maximize", "hand_minimize", "hand_speed", "live_model", "language", "proactive_enabled", "quiet_minutes", "water_enabled", "break_enabled", "event_alerts", "phone_autostart", "file_access", "start_with_windows", "mail_web", "outlook_web_host", "gmail_address", "gmail_app_password", "discord_owner_id", "discord_username")
         safe = {key: config.get(key, "") for key in keys}
         memories = list_entries()
         self._call(
@@ -236,6 +237,9 @@ class JarvisUI(SoundMixin, TimerMixin, PanelsMixin, WindowMixin):
     def set_webcam_active(self, active: bool) -> None:
         self._cam = active
         self._call("camera", active)
+
+    def hand_status(self, text: str) -> None:
+        self._call("handStatus", str(text))
 
     def update_webcam_preview(self, jpeg: bytes) -> None:
         import base64
