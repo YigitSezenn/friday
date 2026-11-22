@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.23",
+      "tarih": "2026-11-23",
+      "baslik": "Kamera düzeltmesi, görüntü penceresi, el hareketleri, kapalıyken alkışla açılma",
+      "maddeler": [
+        "“Kamerayı aç” artık kamerayı kapatmıyor; yalnızca açık kapatma sözcükleri kapatır.",
+        "Kamera açılınca sağ altta kendi görüntün küçük pencerede görünür; el kontrolünde elinin noktaları ve durum yazısı da orada.",
+        "Ayarlar > Ses sekmesinde El hareketiyle pencere bölümü: başlat/durdur, taşı (işaret), boyutlandır (orta), büyüt (yüzük, tut), küçült (serçe, tut) anahtarları ve hız ayarı.",
+        "Alkışla uyanma açıksa FRIDAY kapalıyken de çift alkışla açılır (arka planda yalnızca ses seviyesini dinleyen küçük dinleyici; ayarı bir kez Kaydet'le)."
+      ]
+    },
+    {
       "surum": "4.13.22",
       "tarih": "2026-11-23",
       "baslik": "Arama yanıtları temiz, hava sesi kapanınca susuyor",
