@@ -665,6 +665,9 @@ class WeatherSceneTests(unittest.TestCase):
         script = (root / "weather3d.js").read_text(encoding="utf-8")
         for kind in ("clear", "cloud", "rain", "storm", "snow", "fog", "night"):
             self.assertIn(f'["{kind}"', script)
+        # Pencere kapanınca ses, çizim döngüsünden bağımsız olarak hemen kesilir.
+        self.assertIn("MutationObserver", script)
+        self.assertIn('attributeFilter: ["hidden"]', script)
 
 
 class UpdateCooldownTests(unittest.TestCase):

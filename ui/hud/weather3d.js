@@ -318,7 +318,12 @@
       frame(dt);
       scene.raf = requestAnimationFrame(loop);
     };
+    // Kapanışı çizim döngüsüne bırakma (azaltılmış hareket ya da duran kare döngüsünde ses sürüyordu): sayfa gizlenince hemen sustur.
+    const wxPage = document.getElementById("ov-weather");
+    const watcher = wxPage ? new MutationObserver(() => { if (wxPage.hidden) destroy(); }) : null;
+    if (watcher) watcher.observe(wxPage, {attributes: true, attributeFilter: ["hidden"]});
     scene.destroy = () => {
+      if (watcher) watcher.disconnect();
       cancelAnimationFrame(scene.raf);
       if (scene.audio) { clearInterval(scene.audio.timer); try { scene.audio.ctx.close(); } catch (e) { /* kapalı */ } scene.audio = null; }
       window.removeEventListener("resize", resize);

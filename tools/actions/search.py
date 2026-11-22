@@ -66,22 +66,84 @@ def _parse_bing(page: str, limit: int = 5) -> list[str]:
     return lines
 
 
-def _bing(query: str) -> str:
-    """Anahtarsız, ücretsiz web araması: Bing sonuç sayfasının ilk sonuçları. Model bunları kendi cümleleriyle anlatır."""
+def _gemini_plain(key: str, model: str, query: str, prompt: str = "") -> str:
+    """Aramasız Gemini yanıtı: arama kotası dolduğunda kendi bilgisiyle (ya da verilen notlara dayanarak) cevap verir."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=30000))
+    response = client.models.generate_content(model=model, contents=prompt or PROMPT.format(query=query))
+    return " ".join(str(response.text or "").split())
+
+
+def _readable(line: str) -> bool:
+    """Türkçe/İngilizce okunabilir mi? Çince, Rusça, Arapça vb. sonuçlar elenir."""
+    letters = [ch for ch in line if ch.isalpha()]
+    if not letters:
+        return False
+    latin = sum(1 for ch in letters if ch.isascii() or "\u00c0" <= ch <= "\u024f")
+    return latin / len(letters) >= 0.85
+
+
+def _tidy(line: str, limit: int = 170) -> str:
+    line = line.replace("Devamını oku", "").replace("...", " ").replace("…", " ")
+    line = " ".join(line.split())
+    if len(line) > limit:
+        line = line[:limit].rsplit(" ", 1)[0]
+    return line
+
+
+def _bing_lines(query: str) -> list[str]:
+    """Anahtarsız, ücretsiz web araması: Bing sonuç sayfasının okunabilir ilk sonuçları."""
     import urllib.parse
     import urllib.request
 
-    url = "https://www.bing.com/search?" + urllib.parse.urlencode({"q": query, "setlang": "tr", "cc": "TR"})
+    url = "https://www.bing.com/search?" + urllib.parse.urlencode({"q": query, "setlang": "tr", "mkt": "tr-TR", "cc": "TR"})
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
-        "Accept-Language": "tr-TR,tr;q=0.9",
+        "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.5",
     }
     with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=15) as response:
         page = response.read().decode("utf-8", "replace")
-    lines = _parse_bing(page)
+    lines = [_tidy(line) for line in _parse_bing(page, limit=8)]
+    return [line for line in lines if line and _readable(line)][:4]
+
+
+SUMMARY_PROMPT = (
+    "Aşağıdaki arama sonucu notlarına dayanarak soruyu Türkçe, en fazla üç kısa cümleyle yanıtla. Sesli okunacak: liste, başlık, "
+    "kaynak adı ve adres yazma; notlarda olmayan bilgi ekleme.\n\nSoru: {query}\n\nNotlar:\n{notes}"
+)
+
+
+def _summarize(query: str, lines: list[str]) -> str:
+    """Ham sonuç satırlarını Gemini ile kısa Türkçe yanıta çevirir; olmazsa boş döner."""
+    from jarvis.config import get_app_config_value
+    from jarvis.gemini_errors import clean_api_key, without_proxy_for_google
+
+    key = clean_api_key(get_app_config_value("gemini_api_key", ""))
+    if not key:
+        return ""
+    without_proxy_for_google()
+    prompt = SUMMARY_PROMPT.format(query=query, notes="\n".join(f"- {line}" for line in lines))
+    for model in SEARCH_MODELS:
+        try:
+            answer = _gemini_plain(key, model, query, prompt)
+        except Exception:
+            continue
+        if answer:
+            return answer
+    return ""
+
+
+def _bing(query: str) -> str:
+    lines = _bing_lines(query)
     if not lines:
         return ""
-    return "Web arama sonuçları (bunları kendi cümlelerinle özetleyip anlat):\n" + "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
+    answer = _summarize(query, lines)
+    if answer:
+        return answer
+    # Özetlenemediyse: kısa notlar. Ham liste sesli okunmasın diye açık talimat.
+    return "Arama notları (okuma; kendi cümlenle en fazla iki kısa cümleyle anlat): " + " | ".join(lines[:3])
 
 
 def _duckduckgo(query: str) -> str:
