@@ -1,20 +1,20 @@
 {
-  "version": "4.13.20",
+  "version": "4.13.21",
   "ref": "yayin",
-  "sha": "895559bf8ff8efda97c4c90836ae41c35458f912",
-  "run": "https://github.com/YigitSezenn/friday/actions/runs/44901604747",
+  "sha": "49036b25e808f9e366109bc385f40073715c02d3",
+  "run": "https://github.com/YigitSezenn/friday/actions/runs/45079586044",
   "tests": "success",
   "windows": "success",
-  "exe_sha256": "E63328979E604FDEA2D0BB3F006D79EB0B9E5D216C7FDD5A516FE31B8874D5E8",
-  "exe_size": "78496813",
+  "exe_sha256": "995E81C8BAD9D49D6C9BC0DB1097A94827A380D08C76B1B8EA2F7CF335E65B88",
+  "exe_size": "115394209",
   "android": "success",
   "apk_signed": "true",
-  "apk_sha256": "9d53932155785c9fa36c8b8369703d0df90fc225c5556bf687326f3096b7156f",
+  "apk_sha256": "ae994c96b897190cd028505a1348cb47700036e7dd36729bf3ea97c1a08dc6f0",
   "apk_kept_live": "false",
-  "deploy": "success",
-  "deploy_url": "https://site-m97tiyzw5-yigitsezenns-projects.vercel.app",
-  "live_surum": "4.13.20",
+  "deploy": "failure",
+  "deploy_url": "",
+  "live_surum": "",
   "vercel_token_present": "true",
-  "deploy_error": ""
+  "deploy_error": "transforming... ✓ 21 modules transformed. rendering chunks... computing gzip size... dist/index.html                  13.95 kB │ gzip:   4.54 kB dist/assets/index-BqRaSpKt.css   21.19 kB │ gzip:   5.67 kB dist/assets/index-K2H7_4Om.js    29.94 kB │ gzip:   9.38 kB dist/assets/scene-Ct4RwEmM.js   575.43 kB │ gzip: 142.61 kB  [33m[plugin builtin:vite-reporter]  (!) Some chunks are larger than 500 kB after minification. Consider: - Using dynamic import() to code-split the application - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m [32m✓ built in 786ms[39m Build Completed in .vercel/output [2s] Vercel CLI 66.6.0 Retrieving project… Deploying yigitsezenns-projects/site Uploading [--------------------] (0.0B/125MB) Uploading [=====---------------] (31.3MB/125MB) Uploading [==========----------] (62.5MB/125MB) Uploading [===============-----] (93.8MB/125MB) Uploading [====================] (125.0MB/125MB) Error: File size limit exceeded (100 MB) "
 }
 
