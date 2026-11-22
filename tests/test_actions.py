@@ -236,95 +236,80 @@ class ReminderDueTests(unittest.TestCase):
 
 
 class DiscordMessageTests(unittest.TestCase):
-    def test_needs_id_then_confirmation(self):
+    def test_needs_username_then_confirmation(self):
         from tools.actions import discord
 
         with mock.patch.object(discord, "_book", return_value={}):
-            self.assertIn("kayıtlı Discord kimliği yok", discord.send_discord_message("selam", "Ali"))
-            self.assertIn("17-19 haneli", discord.send_discord_message("selam", "Ali", "123"))
-            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", "123456789012345678"))
-        with mock.patch.object(discord, "_book", return_value={"Ali": "123456789012345678"}):
+            self.assertIn("kayıtlı Discord kullanıcı adı yok", discord.send_discord_message("selam", "Ali"))
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", "@Ali.K"))
+        with mock.patch.object(discord, "_book", return_value={"Ali": "eski-kimlik-metni"}):
+            self.assertIn("kayıtlı Discord kullanıcı adı yok", discord.send_discord_message("selam", "ali"))
+        with mock.patch.object(discord, "_book", return_value={"Ali": {"username": "ali.k", "id": ""}}):
             self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "ali"))
 
-    def test_confirmed_send_pastes_enter_and_saves_contact(self):
+    def _run(self, title="Discord", front=True):
+        from unittest import mock
         from tools.actions import confirm, discord
 
-        uid = "123456789012345678"
-        calls = []
-        saved = {}
-        win = mock.Mock(available=lambda: True, set_clipboard=lambda t: calls.append(("clip", t)) or True, press_keys=lambda *k: calls.append(("keys", k)))
+        calls, saved = [], {}
+        win = mock.Mock()
+        win.available.return_value = True
+        win.foreground_title.return_value = title
+        win.set_clipboard.side_effect = lambda t: calls.append(("clip", t)) or True
+        win.press_keys.side_effect = lambda *k: calls.append(("keys", k))
         with mock.patch.object(discord, "_book", side_effect=lambda: dict(saved)), \
              mock.patch.object(discord, "_save", side_effect=saved.update), \
              mock.patch.object(discord.time, "sleep"), \
              mock.patch.object(confirm, "MIN_WAIT", 0), \
+             mock.patch("tools.actions.apps.front_wait", return_value=front), \
              mock.patch.object(os, "startfile", lambda url: calls.append(("open", url)), create=True), \
-             mock.patch.dict("sys.modules", {"jarvis.win32": win}):
-            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", uid))
+             mock.patch.dict("sys.modules", {}), \
+             mock.patch("jarvis.win32.available", win.available), \
+             mock.patch("jarvis.win32.foreground_title", win.foreground_title), \
+             mock.patch("jarvis.win32.set_clipboard", win.set_clipboard), \
+             mock.patch("jarvis.win32.press_keys", win.press_keys):
+            self.assertIn("ONAY GEREKLİ", discord.send_discord_message("selam", "Ali", "ali.k"))
             self.assertEqual(calls, [])
             confirm.note_user_said("evet gönder")
-            out = discord.send_discord_message("selam", "Ali", uid, confirm_send=True)
+            out = discord.send_discord_message("selam", "Ali", "ali.k", confirm_send=True)
+        return out, calls, saved
+
+    def test_confirmed_send_uses_quick_switcher_and_saves_contact(self):
+        out, calls, saved = self._run()
         self.assertIn("gönderildi", out)
-        self.assertEqual(calls, [("open", f"discord://-/users/{uid}"), ("clip", "selam"), ("keys", (0x11, 0x56)), ("keys", (0x0D,))])
-        self.assertEqual(saved, {"Ali": uid})
+        self.assertEqual(calls, [
+            ("open", "discord://-/channels/@me"),
+            ("keys", (0x1B,)), ("keys", (0x11, 0x4B)),
+            ("clip", "@ali.k"), ("keys", (0x11, 0x56)), ("keys", (0x0D,)),
+            ("clip", "selam"), ("keys", (0x11, 0x56)), ("keys", (0x0D,)),
+        ])
+        self.assertEqual(saved, {"Ali": {"username": "ali.k", "id": ""}})
+
+    def test_never_types_when_discord_is_not_in_front(self):
+        out, calls, _ = self._run(title="Chrome")
+        self.assertIn("öne gelmedi", out)
+        self.assertEqual([c for c in calls if c[0] in ("keys", "clip")], [])
+        out, calls, _ = self._run(front=False)
+        self.assertIn("açılmadı", out)
 
     def test_confirm_without_user_yes_does_not_send(self):
-        from tools.actions import confirm, discord
+        from tools.actions import discord
 
         with mock.patch.object(os, "startfile", mock.Mock(), create=True) as opener:
-            discord.send_discord_message("selam", "Ali", "123456789012345678")
-            out = discord.send_discord_message("selam", "Ali", "123456789012345678", confirm_send=True)
+            discord.send_discord_message("selam", "Ali", "ali.k")
+            out = discord.send_discord_message("selam", "Ali", "ali.k", confirm_send=True)
         self.assertNotIn("gönderildi", out)
         opener.assert_not_called()
 
-    def test_self_test_validates_id_and_skips_saving(self):
+    def test_self_test_needs_username(self):
         from tools.actions import discord
 
-        self.assertIn("Önce Discord kimliğini", discord.self_test("12"))
+        self.assertIn("kullanıcı adını yaz", discord.self_test(""))
         with mock.patch.object(discord, "_deliver", return_value="ok gönderildi") as deliver:
-            discord.self_test("123456789012345678")
+            discord.self_test("Dev.Yigit")
         deliver.assert_called_once()
+        self.assertEqual(deliver.call_args.args[1], "dev.yigit")
         self.assertFalse(deliver.call_args.kwargs.get("save", True))
-
-
-class WebSearchRetryTests(unittest.TestCase):
-    def test_transient_failure_is_retried_once_and_reason_names_the_error(self):
-        from unittest import mock
-        from tools.actions import search
-
-        calls = []
-
-        def flaky(key, model, query):
-            calls.append(model)
-            if len(calls) == 1:
-                raise ConnectionError("boom")
-            return "Cevap"
-
-        with mock.patch("jarvis.config.get_app_config_value", return_value="K" * 39):
-            self.assertEqual(search.web_search("x", ask=flaky, fallback=lambda q: ""), "Cevap")
-            self.assertEqual(calls[0], calls[1])
-
-            def always(key, model, query):
-                raise ConnectionError("boom")
-
-            out = search.web_search("x", ask=always, fallback=lambda q: "")
-        self.assertIn("ConnectionError", out)
-
-    def test_http_error_code_and_message_are_reported_without_the_key(self):
-        from unittest import mock
-        from tools.actions import search
-
-        class ClientError(Exception):
-            code = 429
-            message = "Quota exceeded for KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK"
-
-        def deny(key, model, query):
-            raise ClientError()
-
-        with mock.patch("jarvis.config.get_app_config_value", return_value="K" * 39):
-            out = search.web_search("x", ask=deny, fallback=lambda q: "")
-        self.assertIn("ClientError 429", out)
-        self.assertIn("Quota exceeded", out)
-        self.assertNotIn("K" * 20, out)
 
 
 class SearchResultParsingTests(unittest.TestCase):

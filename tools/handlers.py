@@ -467,7 +467,7 @@ def open_mail(args, ctx):
 def send_discord_message(args, ctx):
     from tools.actions.discord import send_discord_message as run
 
-    return run(text(args, "message"), text(args, "recipient_name"), text(args, "user_id"), bool(args.get("confirm", False)))
+    return run(text(args, "message"), text(args, "recipient_name"), text(args, "username"), bool(args.get("confirm", False)))
 
 
 @tool("save_whatsapp_contact")

@@ -226,7 +226,7 @@ def _on_discord_test(ui, payload: dict) -> None:
     def run() -> None:
         from tools.actions.discord import self_test
 
-        result = self_test(str(payload.get("id") or ""))
+        result = self_test(str(payload.get("username") or ""))
         ui.write_log(("SYS: " if "gönderildi" in result else "ERR: ") + result)
         ui._call("discordTest", result)
 

@@ -23,66 +23,99 @@ def _save(book: dict) -> None:
     path.write_text(json.dumps(book, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def _lookup(name: str) -> tuple[str, str]:
+def _entry(value) -> dict:
+    """Kayıt biçimi: {'username': ..., 'id': ...}; eski kayıtlar yalnızca kimlik metniydi."""
+    if isinstance(value, dict):
+        return {"username": str(value.get("username") or ""), "id": str(value.get("id") or "")}
+    return {"username": "", "id": str(value or "")}
+
+
+def _lookup(name: str) -> tuple[str, dict]:
     needle = _normalize_lookup(name)
-    for key, user_id in _book().items():
+    for key, value in _book().items():
         if needle and (_normalize_lookup(key) == needle or needle in _normalize_lookup(key)):
-            return key, str(user_id)
-    return "", ""
+            return key, _entry(value)
+    return "", _entry("")
 
 
-def send_discord_message(message: str, recipient_name: str = "", user_id: str = "", confirm_send: bool = False) -> str:
-    """Discord masaüstü uygulamasında kişinin DM'ini açar, mesajı yapıştırır ve Enter ile gönderir."""
+def _clean_username(value: str) -> str:
+    """Discord kullanıcı adı: baştaki @ atılır, boşluksuz, küçük harf/rakam/nokta/alt çizgi."""
+    return re.sub(r"[^a-z0-9._]", "", str(value or "").strip().lstrip("@").lower())[:32]
+
+
+def send_discord_message(message: str, recipient_name: str = "", username: str = "", confirm_send: bool = False, user_id: str = "") -> str:
+    """Discord masaüstü uygulamasında hızlı geçişle (Ctrl+K) kişinin DM'ini açar, mesajı yapıştırır ve Enter ile gönderir."""
     text = (message or "").strip()
     if not text:
         return "Mesaj boş olamaz."
     name = (recipient_name or "").strip()
-    uid = re.sub(r"\D", "", user_id or "")
-    if uid and not 15 <= len(uid) <= 22:
-        return "Discord kullanıcı kimliği 17-19 haneli bir sayıdır (Geliştirici Modu › Kullanıcı Kimliğini Kopyala)."
-    if not uid:
-        name, uid = _lookup(name)
-        if not uid:
-            return f"'{recipient_name}' için kayıtlı Discord kimliği yok. Kişinin kimliğini (Geliştirici Modu › Kullanıcı Kimliğini Kopyala) söylersen kaydederim."
+    handle = _clean_username(username)
+    if not handle:
+        name, entry = _lookup(name)
+        handle = _clean_username(entry["username"])
+        if not handle:
+            return (
+                f"'{recipient_name}' için kayıtlı Discord kullanıcı adı yok. Kişinin kullanıcı adını (profilinde isminin altında yazan, "
+                "örneğin yakupp) söylersen kaydederim."
+            )
     from tools.actions import confirm
 
-    parts = (uid, text)
+    parts = (handle, text)
     if not confirm_send:
-        return confirm.ask("discord", parts, f"Discord mesajı — Kime: {name or uid}, Mesaj: {text[:300]}.")
+        return confirm.ask("discord", parts, f"Discord mesajı — Kime: {name or handle} (@{handle}), Mesaj: {text[:300]}.")
     problem = confirm.check("discord", parts)
     if problem:
         return problem
-    return _deliver(name, uid, text)
+    return _deliver(name, handle, text)
 
 
-def _deliver(name: str, uid: str, text: str, save: bool = True) -> str:
+def _deliver(name: str, handle: str, text: str, save: bool = True) -> str:
     import os
 
-    from jarvis.win32 import available, press_keys, set_clipboard
+    from jarvis import win32
+    from tools.actions.apps import front_wait
 
     start = getattr(os, "startfile", None)
-    if not start or not available():
+    if not start or not win32.available():
         return "Discord mesajı yalnızca Windows'ta gönderilebilir."
-    if save and name and _normalize_lookup(name) not in {_normalize_lookup(k) for k in _book()}:
-        book = _book()
-        book[name] = uid
-        _save(book)
     try:
-        start(f"discord://-/users/{uid}")
+        start("discord://-/channels/@me")  # Discord'u açar ya da öne getirir; kimseye bir şey göndermez
     except OSError as exc:
         return f"Discord açılamadı: {exc}"
-    time.sleep(3.0)
-    if not set_clipboard(text):
-        return "Discord açıldı ama mesaj panoya konamadı; sohbet hazır, kendin yapıştırabilirsin."
-    press_keys(0x11, 0x56)  # Ctrl+V
+    if not front_wait("Discord", timeout=10.0):
+        return "Discord penceresi açılmadı; mesaj göndermedim."
+    time.sleep(1.5)
+    if "discord" not in win32.foreground_title().lower():
+        return "Discord öne gelmedi; başka bir uygulamaya yazmamak için mesaj göndermedim."
+    win32.press_keys(0x1B)  # açık bir pencere (profil kartı gibi) varsa kapat
     time.sleep(0.4)
-    press_keys(0x0D)
-    return f"Discord'da {name or uid} kişisine mesaj gönderildi (sohbet açıkken gönderildi; doğrulamak için ekrana bakılabilir)."
+    win32.press_keys(0x11, 0x4B)  # Ctrl+K: hızlı geçiş
+    time.sleep(0.8)
+    if not (win32.set_clipboard("@" + handle) and _paste_and_wait(win32, 1.4)):
+        return "Discord'da kişi aranamadı (pano kullanılamadı); mesaj göndermedim."
+    win32.press_keys(0x0D)  # aranan kişinin sohbetini aç
+    time.sleep(1.6)
+    if "discord" not in win32.foreground_title().lower() or not win32.set_clipboard(text):
+        return "Sohbet açıldı ama mesaj gönderilemedi."
+    _paste_and_wait(win32, 0.4)
+    win32.press_keys(0x0D)
+    if save and name:
+        book = _book()
+        if _normalize_lookup(name) not in {_normalize_lookup(k) for k in book}:
+            book[name] = {"username": handle, "id": ""}
+            _save(book)
+    return f"Discord'da {name or handle} kişisine mesaj gönderildi (@{handle} aranıp ilk sonuç açıldı; doğru kişi olduğunu sohbette kontrol et)."
 
 
-def self_test(user_id: str) -> str:
-    """Ayarlardaki düğme: kullanıcı kendi kimliğine deneme mesajı gönderir (düğmeye basmak onaydır)."""
-    uid = re.sub(r"\D", "", user_id or "")
-    if not 15 <= len(uid) <= 22:
-        return "Önce Discord kimliğini yaz (17-19 haneli sayı)."
-    return _deliver("", uid, "FRIDAY test mesajı: Discord bağlantısı çalışıyor.", save=False)
+def _paste_and_wait(win32, delay: float) -> bool:
+    win32.press_keys(0x11, 0x56)  # Ctrl+V
+    time.sleep(delay)
+    return True
+
+
+def self_test(username: str) -> str:
+    """Ayarlardaki düğme: kullanıcı kendi kullanıcı adına deneme mesajı gönderir (düğmeye basmak onaydır)."""
+    handle = _clean_username(username)
+    if not handle:
+        return "Önce Discord kullanıcı adını yaz (örn. dev.yigit)."
+    return _deliver("", handle, "FRIDAY test mesajı: Discord bağlantısı çalışıyor.", save=False)
