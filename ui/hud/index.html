@@ -207,8 +207,16 @@
         <input name="voice_volume" type="range" min="0" max="150" step="5" value="100"></div>
       <div class="row2"><div>SABIRLI DİNLEME<small>Hızlı ya da duraksayarak konuşunca cümlen yarıda kesilmez; FRIDAY bitirmeni kısa bir sessizlikle anlar. Kapatınca daha çabuk yanıtlar.</small></div>
         <button type="button" class="switch" id="set-patient" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>ALKIŞLA UYAN<small>İZİN: Açarsan FRIDAY uykudayken mikrofonu yalnızca ses seviyesi için dinler; çift alkışta uyanır. Ses kaydedilmez ve hiçbir yere gönderilmez.</small></div>
+      <div class="row2"><div>ALKIŞLA UYAN<small>İZİN: Açarsan FRIDAY uykudayken ve kapalıyken (küçük bir arka plan dinleyicisiyle) mikrofonu yalnızca ses seviyesi için dinler; çift alkışta uyanır ya da açılır. Ses kaydedilmez ve hiçbir yere gönderilmez.</small></div>
         <button type="button" class="switch" id="set-clap" role="switch" aria-checked="false"></button></div>
+      <div class="row2"><div>EL HAREKETİYLE PENCERE<small>İZİN: Başlatınca kamera yalnızca bunun için açılır; görüntü bilgisayardan çıkmaz, Gemini'ye gönderilmez. Başparmağı bir parmağa kıstır: işaret = taşı · orta = boyutlandır · yüzük = büyüt/eski boyut (0,6 sn tut) · serçe = küçült (0,6 sn tut). İlk seferde ~8 MB el modeli indirilir.</small></div>
+        <button type="button" class="tbtn" id="hand-toggle" data-on="0">BAŞLAT</button></div>
+      <p class="whisper" id="hand-out">El kontrolü kapalı.</p>
+      <div class="row2"><div>TAŞI<small>İşaret parmağı</small></div><button type="button" class="switch" id="set-hand-move" role="switch" aria-checked="true"></button></div>
+      <div class="row2"><div>BOYUTLANDIR<small>Orta parmak</small></div><button type="button" class="switch" id="set-hand-resize" role="switch" aria-checked="true"></button></div>
+      <div class="row2"><div>BÜYÜT / ESKİ BOYUT<small>Yüzük parmağı, 0,6 sn tut</small></div><button type="button" class="switch" id="set-hand-maximize" role="switch" aria-checked="true"></button></div>
+      <div class="row2"><div>KÜÇÜLT<small>Serçe parmağı, 0,6 sn tut</small></div><button type="button" class="switch" id="set-hand-minimize" role="switch" aria-checked="true"></button></div>
+      <div class="row2 vol"><div>HAREKET HIZI<small id="hand-speed-label">%100</small></div><input id="set-hand-speed" type="range" min="50" max="200" step="10" value="100"></div>
       <div class="row2"><div>SES EFEKTLERİ<small>Açılış, kapanış ve onay sesleri.</small></div>
         <button type="button" class="switch" id="set-sfx" aria-checked="true"></button></div>
       <div class="row2"><div>ARKA PLAN MÜZİĞİ<small>Sakin ortam müziği. Mikrofon yankısı yaşarsan kapat.</small></div>
@@ -278,6 +286,7 @@
     <div class="setfoot"><button type="submit" class="btn" data-i18n="save">KAYDET</button></div>
   </form>
 </div>
+<div class="campip" id="cam-pip" hidden><img id="cam-pip-img" alt=""><span id="cam-pip-note">kamera</span></div>
 <div class="overlay" id="ov-weather" hidden>
   <div class="sheet wxsheet">
     <div id="wx-body"></div>

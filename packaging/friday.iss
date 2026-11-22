@@ -86,6 +86,7 @@ begin
   if CurUninstallStep = usPostUninstall then
   begin
     RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'FRIDAY');
+    RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'FRIDAY-Alkis');
     DeleteFridayDir(ExpandConstant('{localappdata}\FRIDAY'));
     DeleteFridayDir(ExpandConstant('{userappdata}\FRIDAY'));
     if CompareText(FridayDirName(ExpandConstant('{app}')), 'FRIDAY') = 0 then

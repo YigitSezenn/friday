@@ -27,7 +27,11 @@ window.hud = {
   camera(on) {
     $("t-cam").dataset.on = on ? "1" : "0";
     $("t-cam-state").textContent = on ? uiPack.camOn : uiPack.camOff;
+    $("cam-pip").hidden = !on;  // kendi görüntünü küçük pencerede göster
+    if (!on) $("cam-pip-img").removeAttribute("src");
+    if (!on) paintHand("kapalı");
   },
+  handStatus(text) { paintHand(text); },
   log(text) {
     text = String(text == null ? "" : text);
     if (text.startsWith("JARVIS:")) addLine(text.slice(7).trim(), "");
@@ -76,7 +80,7 @@ window.hud = {
     if (src) $("map-img").src = src;
   },
   preview(src) {
-    if (src) $("map-img").src = src;
+    if (src) { $("map-img").src = src; $("cam-pip-img").src = src; }
   },
   mailTest(result) {
     $("mail-test").disabled = false;
@@ -239,6 +243,9 @@ window.hud = {
     setSwitch("set-phone-auto", data.config.phone_autostart);
     setSwitch("set-windows", data.config.start_with_windows);
     setSwitch("set-clap", data.config.clap_wake);
+    for (const name of ["move", "resize", "maximize", "minimize"]) setSwitch("set-hand-" + name, data.config["hand_" + name] !== false);
+    $("set-hand-speed").value = data.config.hand_speed || 100;
+    $("hand-speed-label").textContent = `%${data.config.hand_speed || 100}`;
     setSwitch("set-files", data.config.file_access);
     document.querySelectorAll("#quiet-seg button").forEach(node => node.setAttribute("aria-checked", node.dataset.min === String(data.config.quiet_minutes || 20) ? "true" : "false"));
     window.__liveModel = data.config.live_model;
@@ -265,3 +272,11 @@ window.hud = {
   },
 };
 
+// El kontrolü durumu: görüntü penceresinde ve ayarlar sayfasında.
+function paintHand(text) {
+  const on = text && !["kapalı", "model indirilemedi", "başlatılamadı", "kamera açılamadı"].includes(text);
+  $("cam-pip-note").textContent = text || "kamera";
+  $("hand-out").textContent = "El kontrolü: " + (text || "kapalı");
+  $("hand-toggle").dataset.on = on ? "1" : "0";
+  $("hand-toggle").textContent = on ? "DURDUR" : "BAŞLAT";
+}

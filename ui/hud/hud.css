@@ -322,3 +322,7 @@ body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown=
 .home-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:rgba(var(--rgb),.14);color:var(--c);font-size:12px}
 .home-chip-x{cursor:pointer;background:none;border:0;color:var(--dim);font-size:14px;line-height:1;padding:0 4px;border-radius:50%}
 .home-chip-x:hover{color:#ff8a8a}
+.campip{position:fixed;right:18px;bottom:78px;width:240px;border:1px solid var(--c);border-radius:10px;overflow:hidden;background:#000;z-index:30;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.campip[hidden]{display:none}
+.campip img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.campip span{position:absolute;left:8px;bottom:6px;font-size:11px;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.6);color:var(--c)}

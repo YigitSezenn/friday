@@ -33,14 +33,21 @@ class MemoryRegistry:
         self.values.pop(name, None)
 
 
-def apply_windows_startup(enabled: bool, exe: str | None = None, registry: MemoryRegistry | None = None) -> str:
+def apply_windows_startup(enabled: bool, exe: str | None = None, registry: MemoryRegistry | None = None, name: str = RUN_VALUE, args: str = "") -> str:
     target = exe or installed_exe()
     store = registry if registry is not None else _windows_registry()
     if enabled:
-        store.write(RUN_VALUE, f'"{target}"')
-        return store.read(RUN_VALUE) or ""
-    store.delete(RUN_VALUE)
+        store.write(name, f'"{target}"' + (f" {args}" if args else ""))
+        return store.read(name) or ""
+    store.delete(name)
     return ""
+
+
+def apply_clap_startup(enabled: bool, exe: str | None = None, registry: MemoryRegistry | None = None) -> str:
+    """Windows açılışında yalnızca alkış dinleyicisini başlatır (FRIDAY'i değil); FRIDAY çift alkışta açılır."""
+    from jarvis.clap_launcher import RUN_VALUE as CLAP_VALUE
+
+    return apply_windows_startup(enabled, exe, registry, name=CLAP_VALUE, args="--clap-listen")
 
 
 def _windows_registry() -> MemoryRegistry:

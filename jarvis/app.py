@@ -174,6 +174,10 @@ def main(argv: list[str] | None = None) -> int:
         return run_selftest()
     if "--smoke-ui" in argv:
         return smoke_ui()
+    if "--clap-listen" in argv:
+        from jarvis.clap_launcher import run_listener
+
+        return run_listener()
     _note_launch()
     _show_event()
     if not _acquire_single_instance():
@@ -233,6 +237,9 @@ def main(argv: list[str] | None = None) -> int:
     threading.Thread(target=lambda: _proactive_loop(ui, live_box), name="jarvis-proactive", daemon=True).start()
     _watch_show(ui)
     ui.root.mainloop()
+    from jarvis.clap_launcher import spawn_listener
+
+    spawn_listener()  # alkışla uyanma açıksa, kapalıyken de alkışı dinleyen küçük dinleyici başlasın
     return 0
 
 

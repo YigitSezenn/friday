@@ -8,6 +8,9 @@ from tools.actions.webcam import WebcamStreamer
 class FakeMover:
     closed = False
 
+    def __init__(self, on_status=None):
+        pass
+
     def on_frame(self, frame):
         pass
 

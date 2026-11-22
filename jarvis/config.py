@@ -43,6 +43,11 @@ DEFAULT_CONFIG = {
     "patient_listening": True,
     "mic_gate": True,
     "clap_wake": False,
+    "hand_move": True,
+    "hand_resize": True,
+    "hand_maximize": True,
+    "hand_minimize": True,
+    "hand_speed": 100,
     "mail_web_autosend": True,
     "panels_off": [],
     "youtube_api_key": "",
@@ -112,6 +117,9 @@ def load_app_config() -> dict:
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
+    for name in ("move", "resize", "maximize", "minimize"):
+        config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
+    config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     backend = str(config.get("calendar_backend", "auto") or "auto").strip().lower()
@@ -156,6 +164,13 @@ def _clean_address(value) -> str:
     text = "".join(ch for ch in str(value or "").strip() if ch.isprintable() and ch not in "\r\n\t")
     text = " ".join(text.split())
     return text[:32] or "adınla"
+
+
+def _clean_hand_speed(value) -> int:
+    try:
+        return max(50, min(200, int(value)))
+    except (TypeError, ValueError):
+        return 100
 
 
 def _clean_bool(value, default: bool = True) -> bool:
@@ -265,6 +280,9 @@ def _save_app_config(updates: dict) -> dict:
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
+    for name in ("move", "resize", "maximize", "minimize"):
+        config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
+    config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     config["live_model"] = _clean_model(config.get("live_model"))

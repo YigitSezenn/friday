@@ -176,12 +176,15 @@ def shell_run(args, ctx):
     return run(text(args, "command"), confirm_run=bool(args.get("confirm", False)), visible=bool(args.get("visible", False)))
 
 
+STOP_WORDS = {"stop", "off", "close", "kapat", "kapa", "kapali", "kapalı", "durdur", "disable"}
+
+
 @tool("toggle_webcam")
 def toggle_webcam(args, ctx):
     action = text(args, "action", "start").strip().lower()
     if ctx.webcam is None:
         return "Kamera bu oturumda kullanılamıyor."
-    if action == "start":
+    if action not in STOP_WORDS:  # "start", "aç", "open", "on"… hepsi açma sayılır; yalnızca açık kapatma sözcükleri kapatır
         status = ctx.webcam.start()
         if ctx.ui:
             ctx.ui.set_webcam_active(status in {"ok", "already_active"})
