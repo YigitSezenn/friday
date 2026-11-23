@@ -338,3 +338,10 @@ body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown=
 .campip[data-size="1"]~.handguide{bottom:calc(78px + 330px)}
 .campip[data-size="0"]~.handguide{bottom:calc(78px + 200px)}
 .campip[data-size="2"]~.handguide{bottom:88px;right:34px}
+.campip[data-hand="var"]{border:2px solid #3ddc84}
+.campip[data-hand="kenar"]{border:2px solid #ffb020}
+.campip[data-hand="yok"]{border:2px solid #ff4d4d}
+.campip[data-hand] span{font-size:13px;font-weight:600}
+.campip[data-hand="yok"] span{color:#ff4d4d}
+.campip[data-hand="kenar"] span{color:#ffb020}
+.campip[data-hand="var"] span{color:#3ddc84}

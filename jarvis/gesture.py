@@ -2,8 +2,8 @@
 
   işaret parmağı  → pencereyi taşı (kıstırıp sürükle, aç: bırak)
   orta parmak     → pencereyi boyutlandır (kıstırıp sürükle, aç: bırak)
-  yüzük parmağı   → büyüt / eski boyuta getir (0,6 sn kıstırıp tut)
-  serçe parmağı   → küçült (0,6 sn kıstırıp tut)
+  yüzük parmağı   → büyüt / eski boyuta getir (0,3 sn kıstırıp tut)
+  serçe parmağı   → küçült (0,3 sn kıstırıp tut)
   işaret+orta birlikte → sekmeyi kapat (1 sn tut; Ctrl+W)
   yumruk (dört parmak da kıstırılmış) → pencereyi kapat (1,5 sn tut; kaydedilmemiş işi uygulama sorar)
 
@@ -15,20 +15,25 @@ from __future__ import annotations
 import math
 
 WRIST, THUMB_TIP, MIDDLE_MCP = 0, 4, 9
+FOLDED_BELOW = 1.3  # tam yumruk: dört parmak ucu da bileğe el boyunun 1,3 katından yakın (kıvrık)
+EDGE = 0.03  # el noktası kadraj kenarına bu kadar yakınsa uyar
 TIPS = {"move": 8, "resize": 12, "maximize": 16, "minimize": 20}
 GRAB_BELOW = 0.30  # parmak uçları el boyunun %30'undan yakınsa tut
+# yüzük ve serçe daha kısa/zor: eşikleri gevşek
+GRAB = {"move": 0.30, "resize": 0.30, "maximize": 0.38, "minimize": 0.55}
 OTHERS_ABOVE = 0.45  # diğer parmaklar açık olmalı (yumruk hareket sayılmaz)
 RELEASE_ABOVE = 0.50  # %50'den açılınca bırak (titremeyi önler)
 GAIN = 1.6  # küçük el hareketi ekranın büyük kısmını gezsin
 SMOOTH = 0.5
 LOST_GRACE = 0.5  # el kısa süre kaybolursa bırakma
-HOLD = 0.6
+HOLD = 0.3
+HOLD_GRACE = 0.2  # tutma sırasında tek-iki karelik algı kaybı sayacı sıfırlamasın
 CLOSE_HOLD = 1.5
 TAB_HOLD = 1.0
 START_FRAMES = 2  # algılama tek karelik yanlışla başlamasın
 RELEASE_FRAMES = 2  # tek karelik kayıp bırakmasın
 DEADZONE = 3  # piksel; titreme pencereyi oynatmasın
-COOLDOWN = 1.5
+COOLDOWN = 1.0
 MIN_SIZE = (320, 200)
 DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "tab": True, "speed": 1.0}
 LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor", "close": "kapatıyor", "tab": "sekmeyi kapatıyor"}
@@ -36,6 +41,10 @@ LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büy�
 
 def _dist(a, b) -> float:
     return math.hypot(a.x - b.x, a.y - b.y)
+
+
+def _at_edge(points) -> bool:
+    return any(p.x < EDGE or p.x > 1 - EDGE or p.y < EDGE or p.y > 1 - EDGE for p in points)
 
 
 def ratios(points) -> dict[str, float]:
@@ -67,6 +76,7 @@ class HandGestures:
         self.armed = True
         self.cool_until = 0.0
         self.last_seen = 0.0
+        self.hold_last = 0.0
         self._status = ""
 
     @property
@@ -85,10 +95,18 @@ class HandGestures:
     def _enabled(self, name: str) -> bool:
         return bool(self.options().get(name, True))
 
-    def _pick(self, found: dict[str, float]) -> str:
-        close = [name for name, value in found.items() if value < GRAB_BELOW]
+    @staticmethod
+    def _fist(points) -> bool:
+        """Parmaklar yalnızca başparmağa değmesin, avuca da kıvrılmış olsun (tam yumruk)."""
+        if points is None:
+            return False
+        size = _dist(points[WRIST], points[MIDDLE_MCP]) or 1e-6
+        return all(_dist(points[WRIST], points[tip]) / size < FOLDED_BELOW for tip in (8, 12, 16, 20))
+
+    def _pick(self, found: dict[str, float], points=None) -> str:
+        close = [name for name, value in found.items() if value < GRAB[name]]
         if len(close) == len(found):
-            return "close"
+            return "close" if self._fist(points) else ""
         if sorted(close) == ["move", "resize"] and found["maximize"] > OTHERS_ABOVE and found["minimize"] > OTHERS_ABOVE:
             return "tab"
         if len(close) != 1:
@@ -109,12 +127,16 @@ class HandGestures:
         if self.mode:
             self._drag(points, found, now)
             return
-        active = self._pick(found)
+        active = self._pick(found, points)
         self.seen = self.seen + 1 if active and active == self.candidate else 1
         self.candidate = active
+        if not active and self.hold and now - self.hold_last <= HOLD_GRACE:
+            return
+        if active and active == self.hold:
+            self.hold_last = now
         if not active:
             self.hold, self.armed = "", True
-            self._say("hazır")
+            self._say("el kadrajın kenarında" if _at_edge(points) else "hazır")
             return
         if not self._enabled(active):
             self._say("hazır")
@@ -127,7 +149,7 @@ class HandGestures:
         if not self.armed or now < self.cool_until:
             return
         if self.hold != active:
-            self.hold, self.hold_since = active, now
+            self.hold, self.hold_since, self.hold_last = active, now, now
             self._say(LABELS[active] + "… tut")
         elif now - self.hold_since >= {"close": CLOSE_HOLD, "tab": TAB_HOLD}.get(active, HOLD):
             self._fire(active)

@@ -45,7 +45,7 @@ def start_hand(webcam, ui=None, *, make_mover=None, ensure_model=None) -> str:
     if ui:
         ui.set_webcam_active(True)
     say("hazır")
-    return "El kontrolü açık. Başparmağı işaret parmağına kıstırıp sürükle (taşı), orta parmakla boyutlandır, yüzük parmağını 0,6 sn tut (büyüt), serçeyi tut (küçült)."
+    return "El kontrolü açık. Başparmağı işaret parmağına kıstırıp sürükle (taşı), orta parmakla boyutlandır, yüzük parmağını 0,3 sn tut (büyüt), serçeyi tut (küçült)."
 
 
 def stop_hand(webcam, ui=None) -> str:

@@ -82,3 +82,30 @@ class HandControlTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PaddedTrackerTests(unittest.TestCase):
+    def test_points_are_mapped_back_from_padded_frame(self):
+        import numpy as np
+        from types import SimpleNamespace as P
+
+        from jarvis import handtrack
+
+        seen = {}
+
+        class FakeMp:
+            class ImageFormat: SRGB = 1
+            class Image:
+                def __init__(self, image_format, data): seen["shape"] = data.shape
+
+        class FakeLandmarker:
+            def detect_for_video(self, image, ms):
+                # genişletilmiş karenin tam ortası = asıl karenin ortası
+                return P(hand_landmarks=[[P(x=0.5, y=0.5), P(x=0.0, y=0.0)]])
+
+        tracker = object.__new__(handtrack.HandTracker)
+        tracker._mp, tracker._landmarker, tracker._last_ms = FakeMp, FakeLandmarker(), 0
+        points = tracker.points(np.zeros((100, 200, 3), dtype=np.uint8))
+        self.assertEqual(seen["shape"], (140, 280, 3))
+        self.assertAlmostEqual(points[0].x, 0.5); self.assertAlmostEqual(points[0].y, 0.5)
+        self.assertLess(points[1].x, 0); self.assertLess(points[1].y, 0)  # kadraj dışı = negatif

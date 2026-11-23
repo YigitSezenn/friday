@@ -185,6 +185,31 @@ class TabGestureTests(unittest.TestCase):
         self.assertEqual(win.tabs, [])
 
 
+class FingerAndFistTests(unittest.TestCase):
+    def test_pinky_and_ring_trigger_with_looser_pinch(self):
+        for name, shown in (("minimize", 6), ("maximize", 3)):
+            win = FakeWin(); g = HandGestures(win)
+            pts = hand(name)
+            tip = {"minimize": 20, "maximize": 16}[name]
+            pts[tip] = P(x=0.5 + {"minimize": 0.17, "maximize": 0.14}[name], y=0.5)  # el boyunun %35-43'ü: eskiden tetiklenmezdi
+            drive(g, [pts] * 12)
+            self.assertEqual(win.shown, [shown])
+
+    def test_open_hand_edge_status(self):
+        said = []; g = HandGestures(FakeWin(), None, said.append)
+        pts = hand(None); pts[0] = P(x=0.01, y=0.9)
+        g.update(pts, 0.0); g.update(hand(None), 0.1)
+        self.assertEqual(said, ["el kadrajın kenarında", "hazır"])
+
+    def test_fingers_touching_thumb_but_not_folded_is_not_a_fist(self):
+        win = FakeWin(); g = HandGestures(win)
+        pts = hand("move")
+        for tip in (4, 8, 12, 16, 20):
+            pts[tip] = P(x=0.5, y=0.1)  # hepsi birbirine değiyor ama bilekten uzakta: uzatılmış, kıvrık değil
+        drive(g, [pts] * 80)
+        self.assertEqual(win.closed, [])
+
+
 class CloseGestureTests(unittest.TestCase):
     def fist(self):
         pts = hand("move")
@@ -210,3 +235,11 @@ class CloseGestureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HoldGraceTests(unittest.TestCase):
+    def test_brief_dropout_does_not_reset_hold(self):
+        win = FakeWin(); g = HandGestures(win)
+        frames = [hand("minimize")] * 3 + [hand(None)] + [hand("minimize")] * 4  # ortada tek kare kayıp
+        drive(g, frames)
+        self.assertEqual(win.shown, [6])
