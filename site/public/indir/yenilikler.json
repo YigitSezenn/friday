@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.27",
+      "tarih": "2026-11-23",
+      "baslik": "Kurulum kilidi, İzinler sekmesi, daha iyi parmak ayrımı, sallayarak kapatma",
+      "maddeler": [
+        "Kurulum artık arka plandaki FRIDAY.exe'yi (alkış dinleyicisi) kapatır; “DeleteFile failed / Erişim engellendi” hatası giderildi.",
+        "Alkışla uyan ve el hareketi ayarları İzinler sekmesine taşındı; düzenli bir hareket menüsü ve kalıcı “El hareketi izni” eklendi (güncellemelerde korunur).",
+        "Diğer parmaklar kıvrık olsa da kıstırılan parmak ayırt edilir.",
+        "Pencereyi kapatmak için açık elini soldan sağa salla; “pencereyi kapat” sesli komutundaki hata giderildi."
+      ]
+    },
+    {
       "surum": "4.13.26",
       "tarih": "2026-11-23",
       "baslik": "El takibi: kadraj kenarında da bulur, büyüt/küçült hızlandı, tam yumruk",
