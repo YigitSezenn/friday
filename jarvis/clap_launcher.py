@@ -104,7 +104,7 @@ def run_listener() -> int:
         return 0  # FRIDAY açık kalmış: dinlemeye gerek yok
     import pyaudio
 
-    from jarvis.audio.barge import peak
+    from jarvis.audio.clap import clap_level
 
     audio = pyaudio.PyAudio()
     try:
@@ -123,7 +123,7 @@ def run_listener() -> int:
         return True
 
     try:
-        listen(lambda: peak(stream.read(1024, exception_on_overflow=False)), launch_app, keep_going)
+        listen(lambda: clap_level(stream.read(1024, exception_on_overflow=False)), launch_app, keep_going)
     finally:
         try:
             stream.stop_stream(); stream.close(); audio.terminate()

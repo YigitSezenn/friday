@@ -376,7 +376,7 @@ class JarvisLive:
         gate = GatedMic()
         leveler = Leveler()
         quiet_since = None  # mikrofon sunucuya gitmeyeceği an (konuşurken/sessize alınca): akış duraklaması
-        from jarvis.audio.clap import ClapDetector
+        from jarvis.audio.clap import ClapDetector, clap_level
 
         claps = ClapDetector(self._clap_sensitivity())
         ticks = 0
@@ -391,7 +391,7 @@ class JarvisLive:
                 if ticks % 40 == 0:
                     claps.set_sensitivity(self._clap_sensitivity())
                 if not speaking and not self._paused and bool(get_app_config_value("clap_wake", False)):
-                    if claps.feed(peak(data), time.monotonic()) == 3:  # 3 alkış: kapat (FRIDAY konuşurken sayılmaz)
+                    if claps.feed(clap_level(data), time.monotonic()) == 3:  # 3 alkış: kapat (FRIDAY konuşurken sayılmaz)
                         self._clap_quit()
                 from jarvis.phone_server import take_phone_audio
 
@@ -421,7 +421,7 @@ class JarvisLive:
     async def _wait_for_clap(self) -> None:
         """Uykudayken (kullanıcı izin verdiyse) yalnızca ses seviyesine bakar; çift alkışta uyandırır."""
         import pyaudio
-        from jarvis.audio.clap import ClapDetector
+        from jarvis.audio.clap import ClapDetector, clap_level
 
         audio = pyaudio.PyAudio()
         try:
@@ -441,7 +441,7 @@ class JarvisLive:
                 ticks += 1
                 if ticks % 40 == 0:
                     detector.set_sensitivity(self._clap_sensitivity())
-                count = detector.feed(peak(data), time.monotonic())
+                count = detector.feed(clap_level(data), time.monotonic())
                 if count == 2 and hasattr(self.ui, "_js"):
                     self.ui._js("window.hud && window.hud.sleep(false, 0)")
                     await asyncio.sleep(0.5)
