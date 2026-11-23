@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.32",
+      "tarih": "2026-11-23",
+      "baslik": "Kamera açıkken ses kesilmesi giderildi",
+      "maddeler": [
+        "El kontrolü/kamera açıkken sesin alınmaması düzeltildi: kamera önizlemesi artık konuşma döngüsünü bloklamıyor, el takibi işlemciyi tam hızda tüketmiyor.",
+        "Kamera ilk açılışta artık bekliyor ve yeniden deniyor; \"Kamera açılamadı\" hatası azaldı.",
+        "Alkış algılama eşikleri gevşetildi, reddedilen sesler için tanı kaydı eklendi.",
+        "Tavily arama anahtarı kayıtlıyken aramanın başarısız olması düzeltildi."
+      ]
+    },
+    {
       "surum": "4.13.31",
       "tarih": "2026-11-23",
       "baslik": "Alkış algılama: yalnızca alkış sesine uyanır",

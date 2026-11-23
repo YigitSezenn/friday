@@ -235,7 +235,7 @@ def _recycle_bin(paths: list[Path]) -> bool:
 
 
 def _delete_targets(path: str, query: str, older_than_days: int) -> tuple[list[Path], str]:
-    """Silinecekleri belirler: `a|b` birden çok yol, `klasör\*.zip` joker, klasör + query/older_than_days filtresi."""
+    """Silinecekleri belirler: `a|b` birden çok yol, `klasör\\*.zip` joker, klasör + query/older_than_days filtresi."""
     found: list[Path] = []
     cutoff = time.time() - older_than_days * 86400 if older_than_days > 0 else None
     for raw in [piece.strip() for piece in str(path or "").split("|") if piece.strip()]:

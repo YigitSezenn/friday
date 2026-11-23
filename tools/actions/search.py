@@ -135,6 +135,27 @@ def _summarize(query: str, lines: list[str]) -> str:
     return ""
 
 
+def _tavily(key: str, query: str) -> str:
+    """Tavily arama API'si: hazır özet cevap + ilk sonuç başlıkları. Standart kütüphane ile çalışır."""
+    import json
+    import urllib.request
+
+    body = json.dumps({"query": query, "include_answer": True, "max_results": 4, "search_depth": "basic"}).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.tavily.com/search", data=body, method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        payload = json.loads(response.read().decode("utf-8", "replace"))
+    answer = " ".join(str(payload.get("answer") or "").split())
+    titles = [str(item.get("title") or "").strip() for item in (payload.get("results") or [])[:3] if isinstance(item, dict)]
+    extra = " Kaynaklar: " + "; ".join(t for t in titles if t) + "." if titles and answer else ""
+    if answer:
+        return answer + extra
+    snippets = [f"{item.get('title', '')} — {' '.join(str(item.get('content') or '').split())[:200]}" for item in (payload.get("results") or [])[:4] if isinstance(item, dict)]
+    return "\n".join(snippets)
+
+
 def _bing(query: str) -> str:
     lines = _bing_lines(query)
     if not lines:
