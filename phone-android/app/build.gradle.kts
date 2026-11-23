@@ -9,8 +9,8 @@ android {
         applicationId = "com.friday.phone"
         minSdk = 26
         targetSdk = 36
-        versionCode = 41333
-        versionName = "4.13.33"
+        versionCode = 41334
+        versionName = "4.13.34"
     }
     buildTypes {
         release {
