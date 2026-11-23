@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.30",
+      "tarih": "2026-11-23",
+      "baslik": "Kamera açılınca el modu sorulur, yumrukla sekme kapatma, işaret parmağıyla sekme değiştirme",
+      "maddeler": [
+        "Kamera açılınca FRIDAY “El hareketiyle pencere denetimini de açayım mı?” diye sorar; evet dersen açılır, hayır dersen açılmaz.",
+        "Tam yumruğu 1 sn tutunca öndeki sekme kapanır (Ctrl+W tuşuna senin yerine basılır).",
+        "Yalnızca işaret parmağın açıkken sağa/sola sallayınca sonraki/önceki sekmeye geçilir.",
+        "Pencereyi kapatmak için açık elini soldan sağa sallamaya devam edebilirsin."
+      ]
+    },
+    {
       "surum": "4.13.29",
       "tarih": "2026-11-23",
       "baslik": "Kısayol ilk açılışta açılır, tarayıcı öne gelir, ses tanıma iyileşti",
