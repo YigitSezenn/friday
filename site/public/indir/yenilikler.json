@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.24",
+      "tarih": "2026-11-23",
+      "baslik": "2 alkışla aç, 3 alkışla kapat, cmd açık kalır, güvenli toplu silme",
+      "maddeler": [
+        "2 alkış FRIDAY’i açar ya da uyandırır, 3 alkış uygulamayı tamamen kapatır; tek ve 4+ alkış yok sayılır.",
+        "Alkış eşiği daha hassas; Ayarlar’a %50–%200 Alkış hassasiyeti kaydırıcısı eklendi.",
+        "“cmd aç”, PowerShell ve Terminal artık kapanmayan kendi pencerelerinde açılır.",
+        "Dosya silme: birden çok dosya/klasör tek seferde, Geri Dönüşüm Kutusu’na; gerçek İndirilenler klasörü bulunur."
+      ]
+    },
+    {
       "surum": "4.13.23",
       "tarih": "2026-11-23",
       "baslik": "Kamera düzeltmesi, görüntü penceresi, el hareketleri, kapalıyken alkışla açılma",

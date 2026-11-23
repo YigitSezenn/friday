@@ -359,3 +359,5 @@ for (const name of ["move", "resize", "maximize", "minimize"]) {
   sw.addEventListener("click", () => { sw.setAttribute("aria-checked", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); sendHandOptions(); });
 }
 $("set-hand-speed").addEventListener("change", sendHandOptions);
+
+$("set-clap-sens").addEventListener("input", () => { $("clap-sens-label").textContent = `%${$("set-clap-sens").value}`; });

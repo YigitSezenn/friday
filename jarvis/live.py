@@ -362,6 +362,10 @@ class JarvisLive:
                     await self.out_queue.put(frame)
         mic = SafeStream(audio, stream)
         gate = MicGate()
+        from jarvis.audio.clap import ClapDetector
+
+        claps = ClapDetector(self._clap_sensitivity())
+        ticks = 0
         try:
             while True:
                 data = await asyncio.to_thread(mic.read, CHUNK)
@@ -369,6 +373,12 @@ class JarvisLive:
                     break
                 with self._speaking_lock:
                     speaking = self._is_speaking
+                ticks += 1
+                if ticks % 40 == 0:
+                    claps.set_sensitivity(self._clap_sensitivity())
+                if not speaking and not self._paused and bool(get_app_config_value("clap_wake", False)):
+                    if claps.feed(peak(data), time.monotonic()) == 3:  # 3 alkış: kapat (FRIDAY konuşurken sayılmaz)
+                        self._clap_quit()
                 from jarvis.phone_server import take_phone_audio
 
                 if bool(get_app_config_value("mic_gate", True)) and not gate.passes(peak(data)):
@@ -399,17 +409,35 @@ class JarvisLive:
             await asyncio.sleep(2)
             return
         mic = SafeStream(audio, stream)
-        detector = ClapDetector()
+        detector = ClapDetector(self._clap_sensitivity())
+        ticks = 0
         try:
             while self._paused and bool(get_app_config_value("clap_wake", False)):
                 data = await asyncio.to_thread(mic.read, CHUNK)
                 if mic.closed:
                     break
-                if detector.feed(peak(data), time.monotonic()) and hasattr(self.ui, "_js"):
+                ticks += 1
+                if ticks % 40 == 0:
+                    detector.set_sensitivity(self._clap_sensitivity())
+                count = detector.feed(peak(data), time.monotonic())
+                if count == 2 and hasattr(self.ui, "_js"):
                     self.ui._js("window.hud && window.hud.sleep(false, 0)")
+                    await asyncio.sleep(0.5)
+                elif count == 3:
+                    self._clap_quit()
                     await asyncio.sleep(0.5)
         finally:
             mic.close()
+
+    @staticmethod
+    def _clap_sensitivity() -> float:
+        return float(get_app_config_value("clap_sensitivity", 100) or 100) / 100
+
+    def _clap_quit(self) -> None:
+        """3 alkış: uygulamayı kapat (önce vedalaşma sesi, sonra çıkış)."""
+        if hasattr(self.ui, "quit_app"):
+            self.ui.write_log("SYS: 3 alkış duyuldu, kapanıyor.")
+            threading.Timer(0.2, self.ui.quit_app).start()
 
     async def _receive_audio(self) -> None:
         out_buf, in_buf = [], []

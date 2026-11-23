@@ -247,6 +247,12 @@ def _open_app(app_name: str) -> str:
     if not raw:
         return "Uygulama adı belirtilmedi."
     needle = normalize_name(raw)
+    terminal = {"cmd": "cmd", "komut istemi": "cmd", "command prompt": "cmd", "komut satiri": "cmd", "powershell": "powershell",
+                "terminal": "terminal", "windows terminal": "terminal"}.get(needle)
+    if terminal:
+        from tools.actions.shell import open_terminal
+
+        return open_terminal(terminal)
     sites = {"youtube": "https://www.youtube.com", "you tube": "https://www.youtube.com",
              "youtube music": "https://music.youtube.com"}
     if needle in sites:

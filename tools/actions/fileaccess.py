@@ -6,7 +6,9 @@ dosya FRIDAY çöp klasörüne taşınır, geri alınabilir.
 from __future__ import annotations
 
 import os
+import fnmatch
 import shutil
+import sys
 import time
 from pathlib import Path
 
@@ -39,6 +41,25 @@ def enabled() -> bool:
     return bool(load_app_config().get("file_access", False))
 
 
+def known_downloads() -> Path | None:
+    """Windows'un gerçek İndirilenler klasörü (OneDrive'a taşınmış olabilir)."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        import uuid
+
+        guid = (ctypes.c_byte * 16).from_buffer_copy(uuid.UUID("374DE290-123F-4565-9164-39C4925E467B").bytes_le)
+        buffer = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(guid), 0, None, ctypes.byref(buffer)) != 0:
+            return None
+        path = Path(buffer.value)
+        ctypes.windll.ole32.CoTaskMemFree(buffer)
+        return path
+    except Exception:
+        return None
+
+
 def roots() -> list[Path]:
     from jarvis.config import load_app_config
 
@@ -47,7 +68,14 @@ def roots() -> list[Path]:
     paths = [Path(str(p)).expanduser() for p in chosen if str(p).strip()]
     if not paths:
         paths = [home / "Documents", home / "Downloads", home / "Desktop", home / "Belgelerim", home / "İndirilenler"]
-    return [p.resolve() for p in paths if p.exists()]
+        real_downloads = known_downloads()
+        if real_downloads:
+            paths.append(real_downloads)
+    unique: list[Path] = []
+    for p in paths:
+        if p.exists() and p.resolve() not in unique:
+            unique.append(p.resolve())
+    return unique
 
 
 def trash_dir() -> Path:
@@ -184,7 +212,90 @@ def _move_many(paths: list[str], destination: str) -> str:
     return f"{moved}/{len(plan)} dosya taşındı: {dest}.{note}"
 
 
-def run(action: str, path: str = "", destination: str = "", content: str = "", query: str = "", confirmed: bool = False) -> str:
+MAX_DELETE = 500
+
+
+def _recycle_bin(paths: list[Path]) -> bool:
+    """Dosyaları Windows Geri Dönüşüm Kutusu'na gönderir (geri alınabilir). Windows dışında False."""
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class Operation(ctypes.Structure):
+            _fields_ = [("hwnd", wintypes.HWND), ("func", wintypes.UINT), ("src", wintypes.LPCWSTR), ("dst", wintypes.LPCWSTR),
+                        ("flags", ctypes.c_ushort), ("aborted", wintypes.BOOL), ("mappings", ctypes.c_void_p), ("title", wintypes.LPCWSTR)]
+
+        names = "\0".join(str(p) for p in paths) + "\0\0"
+        op = Operation(None, 3, names, None, 0x0040 | 0x0010 | 0x0400 | 0x0004, False, None, None)  # DELETE; ALLOWUNDO|NOCONFIRMATION|NOERRORUI|SILENT
+        return ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op)) == 0 and not op.aborted
+    except Exception:
+        return False
+
+
+def _delete_targets(path: str, query: str, older_than_days: int) -> tuple[list[Path], str]:
+    """Silinecekleri belirler: `a|b` birden çok yol, `klasör\*.zip` joker, klasör + query/older_than_days filtresi."""
+    found: list[Path] = []
+    cutoff = time.time() - older_than_days * 86400 if older_than_days > 0 else None
+    for raw in [piece.strip() for piece in str(path or "").split("|") if piece.strip()]:
+        name = Path(raw.strip('"')).name
+        if any(mark in name for mark in "*?"):
+            parent, why = resolve(str(Path(raw.strip('"')).parent))
+            if parent is None:
+                return [], why
+            found += [item for item in parent.iterdir() if fnmatch.fnmatch(item.name.lower(), name.lower())]
+            continue
+        target, why = resolve(raw)
+        if target is None:
+            return [], why
+        if target in roots() and not (query or older_than_days > 0):
+            return [], "İzinli klasörün kendisi silinemez."
+        if target.is_dir() and (query or older_than_days > 0):
+            pattern = (query or "*").lower()
+            found += [item for item in target.iterdir() if fnmatch.fnmatch(item.name.lower(), pattern if any(m in pattern for m in "*?") else f"*{pattern}*")]
+        else:
+            found.append(target)
+    chosen: list[Path] = []
+    for item in found:
+        if item in roots() or is_secret(item) or item in chosen or not item.exists():
+            continue
+        if cutoff is not None and item.stat().st_mtime > cutoff:
+            continue
+        chosen.append(item)
+    return sorted(chosen), ""
+
+
+def _tree_size(item: Path) -> int:
+    if item.is_file():
+        return item.stat().st_size
+    return sum(f.stat().st_size for f in item.rglob("*") if f.is_file())
+
+
+def _delete(path: str, query: str, older_than_days: int, confirmed: bool) -> str:
+    targets, why = _delete_targets(path, query, older_than_days)
+    if why:
+        return why
+    if not targets:
+        return "Silinecek dosya bulunamadı."
+    if len(targets) > MAX_DELETE:
+        return f"{len(targets)} öğe eşleşti; tek seferde en fazla {MAX_DELETE} siliyorum. Aramayı daralt."
+    total = sum(_tree_size(item) for item in targets)
+    names = ", ".join(item.name for item in targets[:5]) + (f" ve {len(targets) - 5} tane daha" if len(targets) > 5 else "")
+    gate = _confirm("file_delete", tuple(str(item) for item in targets),
+                    f"Dosya işlemi: {len(targets)} öğe ({_size(total)}) Geri Dönüşüm Kutusu'na gönderilecek — {names}", confirmed)
+    if gate:
+        return gate
+    if _recycle_bin(targets):
+        return f"{len(targets)} öğe Geri Dönüşüm Kutusu'na taşındı (geri alınabilir)."
+    folder = trash_dir()
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    for item in targets:
+        shutil.move(str(item), str(folder / f"{stamp}-{item.name}"))
+    return f"{len(targets)} öğe çöpe taşındı (kalıcı silinmedi, FRIDAY klasöründeki “cop” içinde duruyor)."
+
+
+def run(action: str, path: str = "", destination: str = "", content: str = "", query: str = "", confirmed: bool = False, older_than_days: int = 0) -> str:
     if not enabled():
         return "Dosya erişimi kapalı. Ayarlar › İzinler'den “Dosya erişimi” anahtarını açman gerekiyor."
     action = (action or "").strip().lower()
@@ -193,6 +304,13 @@ def run(action: str, path: str = "", destination: str = "", content: str = "", q
             return _move_many([p for p in path.split("|") if p.strip()], destination)
         except PermissionError:
             return "Windows bu dosyaya erişimi engelledi."
+    if action == "delete":
+        try:
+            return _delete(path, query, int(older_than_days or 0), confirmed)
+        except PermissionError:
+            return "Windows bu dosyaya erişimi engelledi."
+        except OSError as exc:
+            return f"Dosya işlemi yapılamadı: {exc}"
     if action == "find" and not path:
         return _find(roots()[0] if roots() else Path.home(), query)
     target, why = resolve(path)
@@ -230,20 +348,6 @@ def run(action: str, path: str = "", destination: str = "", content: str = "", q
             final.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(target), str(final))
             return f"{target.name} taşındı: {final}"
-        if action == "delete":
-            if not target.exists():
-                return "Silinecek dosya bulunamadı."
-            if target.is_dir() and len(list(target.iterdir())) > 200:
-                return "Bu klasör çok büyük; tek seferde silmiyorum."
-            if target in roots():
-                return "İzinli klasörün kendisi silinemez."
-            gate = _confirm("file_delete", (str(target),), f"Dosya işlemi: çöpe taşınacak — {target}", confirmed)
-            if gate:
-                return gate
-            stamp = time.strftime("%Y%m%d-%H%M%S")
-            bin_path = trash_dir() / f"{stamp}-{target.name}"
-            shutil.move(str(target), str(bin_path))
-            return f"{target.name} çöpe taşındı (kalıcı silinmedi, FRIDAY klasöründeki “cop” içinde duruyor)."
     except PermissionError:
         return "Windows bu dosyaya erişimi engelledi."
     except OSError as exc:

@@ -371,7 +371,7 @@ def app_window(args, ctx):
 def file_access(args, ctx):
     from tools.actions.fileaccess import run
 
-    return run(text(args, "action"), text(args, "path"), text(args, "destination"), text(args, "content"), text(args, "query"), bool(args.get("confirm", False)))
+    return run(text(args, "action"), text(args, "path"), text(args, "destination"), text(args, "content"), text(args, "query"), bool(args.get("confirm", False)), int(args.get("older_than_days") or 0))
 
 
 @tool("home_control")

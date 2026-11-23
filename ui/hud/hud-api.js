@@ -243,6 +243,8 @@ window.hud = {
     setSwitch("set-phone-auto", data.config.phone_autostart);
     setSwitch("set-windows", data.config.start_with_windows);
     setSwitch("set-clap", data.config.clap_wake);
+    $("set-clap-sens").value = data.config.clap_sensitivity || 100;
+    $("clap-sens-label").textContent = `%${data.config.clap_sensitivity || 100}`;
     for (const name of ["move", "resize", "maximize", "minimize"]) setSwitch("set-hand-" + name, data.config["hand_" + name] !== false);
     $("set-hand-speed").value = data.config.hand_speed || 100;
     $("hand-speed-label").textContent = `%${data.config.hand_speed || 100}`;

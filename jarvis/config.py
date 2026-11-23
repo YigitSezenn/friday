@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     "patient_listening": True,
     "mic_gate": True,
     "clap_wake": False,
+    "clap_sensitivity": 100,
     "hand_move": True,
     "hand_resize": True,
     "hand_maximize": True,
@@ -117,6 +118,7 @@ def load_app_config() -> dict:
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
+    config["clap_sensitivity"] = _clean_clap_sensitivity(config.get("clap_sensitivity"))
     for name in ("move", "resize", "maximize", "minimize"):
         config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
     config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
@@ -164,6 +166,13 @@ def _clean_address(value) -> str:
     text = "".join(ch for ch in str(value or "").strip() if ch.isprintable() and ch not in "\r\n\t")
     text = " ".join(text.split())
     return text[:32] or "adınla"
+
+
+def _clean_clap_sensitivity(value) -> int:
+    try:
+        return max(50, min(200, int(value)))
+    except (TypeError, ValueError):
+        return 100
 
 
 def _clean_hand_speed(value) -> int:
@@ -280,6 +289,7 @@ def _save_app_config(updates: dict) -> dict:
     config["patient_listening"] = _clean_bool(config.get("patient_listening"), True)
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
+    config["clap_sensitivity"] = _clean_clap_sensitivity(config.get("clap_sensitivity"))
     for name in ("move", "resize", "maximize", "minimize"):
         config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
     config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
