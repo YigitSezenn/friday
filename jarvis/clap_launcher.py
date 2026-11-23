@@ -20,9 +20,13 @@ def listen(read_level, launch, keep_going, clock=time.monotonic) -> bool:
     """Çift alkış duyulursa `launch()` çağırır ve True döner; `keep_going()` False olursa False döner."""
     from jarvis.audio.clap import ClapDetector
 
-    detector = ClapDetector()
+    detector = ClapDetector(_sensitivity())
+    ticks = 0
     while keep_going():
-        if detector.feed(read_level(), clock()):
+        ticks += 1
+        if ticks % 40 == 0:
+            detector.set_sensitivity(_sensitivity())
+        if detector.feed(read_level(), clock()) == 2:  # 2 alkış aç; 3 alkış kapalıyken anlamsız
             launch()
             return True
     return False
@@ -45,6 +49,15 @@ def _mutex_exists(name: str) -> bool:
         kernel.CloseHandle(ctypes.c_void_p(handle))
         return True
     return False
+
+
+def _sensitivity() -> float:
+    try:
+        from jarvis.config import load_app_config
+
+        return float(load_app_config().get("clap_sensitivity", 100) or 100) / 100
+    except Exception:
+        return 1.0
 
 
 def _clap_wake_enabled() -> bool:

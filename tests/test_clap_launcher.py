@@ -18,8 +18,12 @@ class ListenTests(unittest.TestCase):
         return result, launched
 
     def test_double_clap_launches_app_once_and_stops(self):
-        result, launched = self.run_levels([0.01] * 5 + [0.8, 0.1, 0.1, 0.8, 0.1] + [0.8] * 5)
+        result, launched = self.run_levels([0.01] * 5 + [0.8, 0.1, 0.1, 0.8] + [0.01] * 14)
         self.assertTrue(result); self.assertEqual(launched, [1])
+
+    def test_three_claps_never_launch(self):
+        result, launched = self.run_levels([0.01] * 5 + [0.8, 0.1, 0.1, 0.8, 0.1, 0.1, 0.8] + [0.01] * 20)
+        self.assertFalse(result); self.assertEqual(launched, [])
 
     def test_noise_and_single_clap_never_launch(self):
         result, launched = self.run_levels([0.01] * 5 + [0.8, 0.1] + [0.01] * 30)

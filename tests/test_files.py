@@ -95,10 +95,6 @@ class FileAccessTests(unittest.TestCase):
         self.assertNotIn("confirm=true", shown)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class HardeningTests(FileAccessTests):
     def test_secret_not_read(self):
         (self.root / "sifreler.txt").write_text("x", encoding="utf-8")
@@ -291,3 +287,81 @@ class LongRunningShellTests(unittest.TestCase):
             run.assert_not_called()
         confirm.require_user_yes = False
         self.assertIn("çalıştır", confirm.YES)
+
+
+class BatchDeleteTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name).resolve()
+        self.trash = self.root.parent / (self.root.name + "-cop")
+        self.trash.mkdir()
+        cfg = {"file_access": True, "file_roots": [str(self.root)]}
+        self.patches = [
+            mock.patch("jarvis.config.load_app_config", return_value=cfg),
+            mock.patch.object(files, "trash_dir", return_value=self.trash),
+            mock.patch.object(files, "_recycle_bin", return_value=False),
+            mock.patch.object(confirm, "MIN_WAIT", 0.0),
+        ]
+        for p in self.patches:
+            p.start()
+        for name in ("a.zip", "b.zip", "c.txt"):
+            (self.root / name).write_text("x" * 100, encoding="utf-8")
+
+    def tearDown(self):
+        for p in self.patches:
+            p.stop()
+        self.tmp.cleanup()
+
+    def names(self):
+        return sorted(p.name for p in self.root.iterdir())
+
+    def test_wildcard_deletes_matches_only_with_one_confirmation_listing_count(self):
+        out = files.run("delete", str(self.root / "*.zip"))
+        self.assertTrue(out.startswith(confirm.MARKER))
+        self.assertIn("2 öğe", out)
+        self.assertEqual(self.names(), ["a.zip", "b.zip", "c.txt"])
+        out = files.run("delete", str(self.root / "*.zip"), confirmed=True)
+        self.assertIn("2 öğe", out)
+        self.assertEqual(self.names(), ["c.txt"])
+        self.assertEqual(len(list(self.trash.iterdir())), 2)
+
+    def test_multiple_paths_and_folder_with_query(self):
+        raw = f"{self.root / 'a.zip'}|{self.root / 'c.txt'}"
+        files.run("delete", raw)
+        files.run("delete", raw, confirmed=True)
+        self.assertEqual(self.names(), ["b.zip"])
+        files.run("delete", str(self.root), query="zip")
+        self.assertIn("1 öğe", files.run("delete", str(self.root), query="zip", confirmed=True))
+        self.assertEqual(self.names(), [])
+
+    def test_older_than_days_keeps_recent_files(self):
+        old = time.time() - 40 * 86400
+        import os
+        os.utime(self.root / "a.zip", (old, old))
+        files.run("delete", str(self.root), older_than_days=30)
+        out = files.run("delete", str(self.root), older_than_days=30, confirmed=True)
+        self.assertIn("1 öğe", out)
+        self.assertEqual(self.names(), ["b.zip", "c.txt"])
+
+    def test_nothing_deleted_without_user_yes_or_when_list_changed(self):
+        self.assertTrue(files.run("delete", str(self.root / "*.zip"), confirmed=True).startswith(confirm.MARKER))
+        self.assertEqual(self.names(), ["a.zip", "b.zip", "c.txt"])
+        files.run("delete", str(self.root / "*.zip"))
+        self.assertTrue(files.run("delete", str(self.root / "*.txt"), confirmed=True).startswith(confirm.MARKER))
+        self.assertEqual(self.names(), ["a.zip", "b.zip", "c.txt"])
+
+    def test_recycle_bin_used_when_available(self):
+        with mock.patch.object(files, "_recycle_bin", return_value=True) as recycle:
+            files.run("delete", str(self.root / "*.zip"))
+            out = files.run("delete", str(self.root / "*.zip"), confirmed=True)
+        self.assertIn("Geri Dönüşüm Kutusu'na taşındı", out)
+        self.assertEqual(len(recycle.call_args.args[0]), 2)
+
+    def test_outside_allowed_folder_refused_and_cap_applies(self):
+        self.assertIn("erişim iznim yok", files.run("delete", str(self.root.parent / "baska" / "x.txt")))
+        with mock.patch.object(files, "MAX_DELETE", 1):
+            self.assertIn("en fazla 1", files.run("delete", str(self.root / "*.zip")))
+
+
+if __name__ == "__main__":
+    unittest.main()

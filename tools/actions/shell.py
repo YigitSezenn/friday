@@ -128,10 +128,42 @@ def is_read_only(command: str) -> bool:
     return True
 
 
+TERMINAL_COMMANDS = {
+    "cmd": "cmd", "cmd.exe": "cmd", "start cmd": "cmd", "start cmd.exe": "cmd", "start": "cmd",
+    "powershell": "powershell", "powershell.exe": "powershell", "pwsh": "powershell", "start powershell": "powershell",
+    "wt": "terminal", "wt.exe": "terminal", "terminal": "terminal", "start wt": "terminal",
+}
+
+
+def terminal_kind(command: str) -> str:
+    """Yalnızca bir terminal açma isteğiyse 'cmd' / 'powershell' / 'terminal', değilse ''."""
+    return TERMINAL_COMMANDS.get(" ".join(str(command or "").lower().split()), "")
+
+
+def open_terminal(kind: str) -> str:
+    """Görünür, açık kalan bir terminal penceresi açar (gizli çalışıp hemen kapanmaz)."""
+    new_console = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+    attempts = {
+        "cmd": [["cmd.exe", "/k"]],
+        "powershell": [["powershell.exe", "-NoLogo", "-NoExit"]],
+        "terminal": [["wt.exe"], ["powershell.exe", "-NoLogo", "-NoExit"]],
+    }[kind or "cmd"]
+    for argv in attempts:
+        try:
+            subprocess.Popen(argv, creationflags=0 if argv[0] == "wt.exe" else new_console)
+            return {"cmd": "Komut istemi", "powershell": "PowerShell", "terminal": "Terminal"}[kind or "cmd"] + " açıldı."
+        except OSError:
+            continue
+    return "Terminal açılamadı."
+
+
 def shell_run(command: str, timeout: int = 30, confirm_run: bool = False, visible: bool = False) -> str:
     refusal = shell_refusal(command)
     if refusal:
         return refusal
+    kind = terminal_kind(command)
+    if kind:  # "cmd aç" gibi: gizli çalışıp saniyede kapanan komut değil, görünür pencere
+        return open_terminal(kind)
     if not is_read_only(command):
         from tools.actions import confirm
 

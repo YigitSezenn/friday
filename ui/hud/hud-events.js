@@ -102,6 +102,7 @@ $("settings-form").addEventListener("submit", event => {
   values.music = $("set-music").getAttribute("aria-checked") === "true";
   values.patient_listening = $("set-patient").getAttribute("aria-checked") !== "false";
   values.clap_wake = $("set-clap").getAttribute("aria-checked") === "true";
+  values.clap_sensitivity = Number($("set-clap-sens").value);
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";
   values.water_enabled = $("set-water").getAttribute("aria-checked") === "true";
   values.break_enabled = $("set-break").getAttribute("aria-checked") === "true";
