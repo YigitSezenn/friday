@@ -49,21 +49,25 @@ class ClapCountTests(unittest.TestCase):
 
 
 class SensitivityTests(unittest.TestCase):
-    SOFT = QUIET + [0.14, 0.01, 0.01, 0.14] + SETTLE
+    SOFT = QUIET + [0.25, 0.01, 0.01, 0.25] + SETTLE
 
     def test_default_needs_a_real_clap_not_a_whisper(self):
         self.assertEqual(run(self.SOFT), [])
+
+    def test_speech_level_peaks_never_wake_it(self):
+        speech = QUIET + [0.2, 0.01, 0.2, 0.01, 0.2, 0.01, 0.18, 0.01] + SETTLE  # bu mikrofonda normal konuşma tepe ~0,2
+        self.assertEqual(run(speech), [])
 
     def test_higher_sensitivity_catches_softer_claps(self):
         self.assertEqual([c for _, c in run(self.SOFT, sensitivity=2.0)], [2])
 
     def test_lower_sensitivity_ignores_medium_claps(self):
-        medium = QUIET + [0.3, 0.01, 0.01, 0.3] + SETTLE
+        medium = QUIET + [0.5, 0.01, 0.01, 0.5] + SETTLE
         self.assertEqual([c for _, c in run(medium)], [2])
         self.assertEqual(run(medium, sensitivity=0.5), [])
 
     def test_set_sensitivity_is_clamped(self):
-        d = ClapDetector(); d.set_sensitivity(99); self.assertAlmostEqual(d.loud, 0.1)
+        d = ClapDetector(); d.set_sensitivity(99); self.assertAlmostEqual(d.loud, 0.175)
         d.set_sensitivity(0); self.assertGreater(d.loud, 0.0)
 
 

@@ -68,7 +68,7 @@ def debug_rejected(pcm: bytes, now: float, write=None) -> None:
 
 
 class ClapDetector:
-    BASE_LOUD = 0.20  # %100 hassasiyette bir alkışın ulaşması gereken seviye (0-1)
+    BASE_LOUD = 0.35  # %100 hassasiyette bir alkışın ulaşması gereken seviye (0-1); normal konuşma tepe ~0,2 yapabilir
     RATIO = 5.0  # ortam gürültüsünün en az bu kadar katı olmalı
     MIN_GAP = 0.12  # aynı alkışın kuyruğu ikinci alkış sayılmaz
     SETTLE = 0.7  # son alkıştan sonra bu kadar sessizlik: sayı kesinleşir
