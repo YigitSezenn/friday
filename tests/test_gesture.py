@@ -217,35 +217,50 @@ class FingerAndFistTests(unittest.TestCase):
         g.update(pts, 0.0); g.update(hand(None), 0.1)
         self.assertEqual(said, ["el kadrajın kenarında", "hazır"])
 
-    def test_fingers_touching_thumb_but_not_folded_is_not_a_fist(self):
+
+
+class SwipeCloseTests(unittest.TestCase):
+    def sweep(self, start=0.2, end=0.8, frames=8, y=0.5, step=0.05):
+        out = []
+        for i in range(frames):
+            pts = hand(None, (0.5, y)); pts[9] = P(x=start + (end - start) * i / (frames - 1), y=y)
+            out.append(pts)
+        return out
+
+    def test_open_hand_sweep_left_to_right_closes_window_once(self):
         win = FakeWin(); g = HandGestures(win)
-        pts = hand("move")
-        for tip in (4, 8, 12, 16, 20):
-            pts[tip] = P(x=0.5, y=0.1)  # hepsi birbirine değiyor ama bilekten uzakta: uzatılmış, kıvrık değil
-        drive(g, [pts] * 80)
-        self.assertEqual(win.closed, [])
-
-
-class CloseGestureTests(unittest.TestCase):
-    def fist(self):
-        pts = hand("move")
-        for tip in (12, 16, 20):
-            pts[tip] = P(x=0.5, y=0.5)
-        return pts
-
-    def test_fist_held_closes_window_once(self):
-        win = FakeWin(); g = HandGestures(win)
-        drive(g, [self.fist()] * 80)  # 4 sn
+        drive(g, self.sweep() + self.sweep(), start=0.0)
         self.assertEqual(win.closed, [7])
 
-    def test_short_fist_does_not_close(self):
-        win = FakeWin(); g = HandGestures(win)
-        drive(g, [self.fist()] * 20)  # 1 sn
+    def test_right_to_left_or_short_or_slow_does_not_close(self):
+        for frames in (self.sweep(0.8, 0.2), self.sweep(0.4, 0.6)):
+            win = FakeWin(); g = HandGestures(win); drive(g, frames)
+            self.assertEqual(win.closed, [])
+        win = FakeWin(); g = HandGestures(win); drive(g, self.sweep(frames=8), step=0.3)  # 2,1 sn: yavaş
         self.assertEqual(win.closed, [])
 
-    def test_close_can_be_disabled(self):
-        win = FakeWin(); g = HandGestures(win, lambda: {"close": False})
-        drive(g, [self.fist()] * 80)
+    def test_diagonal_motion_does_not_close(self):
+        win = FakeWin(); g = HandGestures(win)
+        frames = self.sweep()
+        for i, pts in enumerate(frames):
+            pts[9] = P(x=pts[9].x, y=0.2 + i * 0.08)
+        drive(g, frames)
+        self.assertEqual(win.closed, [])
+
+    def test_pinched_hand_moving_right_drags_instead_of_closing(self):
+        win = FakeWin(); g = HandGestures(win)
+        grab(g, "move")
+        drive(g, [hand("move", (0.2 + i * 0.07, 0.5)) for i in range(8)], start=0.1)
+        self.assertEqual(win.closed, [])
+
+    def test_fist_does_nothing_and_close_can_be_disabled(self):
+        win = FakeWin(); g = HandGestures(win)
+        fist = hand("move")
+        for tip in (12, 16, 20):
+            fist[tip] = P(x=0.5, y=0.5)
+        drive(g, [fist] * 80)
+        self.assertEqual(win.closed, [])
+        g = HandGestures(win, lambda: {"close": False}); drive(g, self.sweep())
         self.assertEqual(win.closed, [])
 
 
