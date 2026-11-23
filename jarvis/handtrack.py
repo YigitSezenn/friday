@@ -9,6 +9,8 @@ from pathlib import Path
 
 MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
 MIN_BYTES = 1_000_000
+PAD = 0.2  # kareyi her kenardan %20 siyahla genişlet: kadraj kenarındaki/yarı dışarıdaki el de bulunsun
+CONFIDENCE = 0.3  # düşük eşik: elin ortada ve tam hizalı olması gerekmesin
 
 
 def model_path() -> Path:
@@ -61,20 +63,30 @@ class HandTracker:
             base_options=tasks.BaseOptions(model_asset_path=str(model_path())),
             running_mode=vision.RunningMode.VIDEO,  # kareler arası izleme: IMAGE modundan daha kararlı
             num_hands=1,
-            min_hand_detection_confidence=0.5,
-            min_hand_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
+            min_hand_detection_confidence=CONFIDENCE,
+            min_hand_presence_confidence=CONFIDENCE,
+            min_tracking_confidence=CONFIDENCE,
         )
         self._landmarker = vision.HandLandmarker.create_from_options(options)
         self._last_ms = 0
 
     def points(self, bgr_frame):
         """İlk elin 21 noktası (x, y: 0-1) ya da None. Kare, ayna çevrilmiş BGR olmalı."""
-        rgb = bgr_frame[:, :, ::-1].copy()
+        import cv2
+        from types import SimpleNamespace
+
+        height, width = bgr_frame.shape[:2]
+        pad_x, pad_y = int(width * PAD), int(height * PAD)
+        padded = cv2.copyMakeBorder(bgr_frame, pad_y, pad_y, pad_x, pad_x, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        rgb = padded[:, :, ::-1].copy()
         image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb)
         self._last_ms = max(self._last_ms + 1, int(time.monotonic() * 1000))  # VIDEO modu artan zaman damgası ister
         found = self._landmarker.detect_for_video(image, self._last_ms).hand_landmarks
-        return found[0] if found else None
+        if not found:
+            return None
+        full_w, full_h = width + 2 * pad_x, height + 2 * pad_y
+        # Noktalar genişletilmiş karede; asıl kareye göre geri çevir (kadraj dışı: 0'dan küçük / 1'den büyük).
+        return [SimpleNamespace(x=(p.x * full_w - pad_x) / width, y=(p.y * full_h - pad_y) / height) for p in found[0]]
 
     def close(self) -> None:
         try:

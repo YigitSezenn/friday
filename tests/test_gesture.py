@@ -235,3 +235,11 @@ class CloseGestureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HoldGraceTests(unittest.TestCase):
+    def test_brief_dropout_does_not_reset_hold(self):
+        win = FakeWin(); g = HandGestures(win)
+        frames = [hand("minimize")] * 3 + [hand(None)] + [hand("minimize")] * 4  # ortada tek kare kayıp
+        drive(g, frames)
+        self.assertEqual(win.shown, [6])
