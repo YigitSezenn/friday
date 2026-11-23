@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.26",
+      "tarih": "2026-11-23",
+      "baslik": "El takibi: kadraj kenarında da bulur, büyüt/küçült hızlandı, tam yumruk",
+      "maddeler": [
+        "El, kadrajın kenarında ya da yarı dışında olsa da bulunur; elini tam ortaya hizalaman gerekmez.",
+        "Yüzük (büyüt / eski boyut) ve serçe (küçült) daha kolay ve hızlı tetiklenir (0,3 sn); tek karelik algı kaybı tutmayı sıfırlamaz.",
+        "Kamera önizlemesinin çerçevesi elin durumunu gösterir: yeşil görünüyor, turuncu kadraj kenarında, kırmızı görünmüyor.",
+        "Pencere kapatma yalnızca parmakları avuca kıvrılmış tam yumrukta çalışır."
+      ]
+    },
+    {
       "surum": "4.13.25",
       "tarih": "2026-11-23",
       "baslik": "El kontrolü: pencere/sekme kapatma, kararlı algılama, sesli pencere denetimi, rehber",
