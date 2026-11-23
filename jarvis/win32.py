@@ -52,6 +52,12 @@ def _lib():
         user32.SetWindowPos.restype = wintypes.BOOL
         user32.GetSystemMetrics.argtypes = [ctypes.c_int]
         user32.GetSystemMetrics.restype = ctypes.c_int
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+        user32.PostMessageW.restype = wintypes.BOOL
+        user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
+        user32.GetWindowLongW.restype = ctypes.c_long
         user32.keybd_event.argtypes = [wintypes.BYTE, wintypes.BYTE, wintypes.DWORD, ctypes.c_size_t]
         user32.keybd_event.restype = None
         kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
@@ -279,8 +285,7 @@ def target_window() -> int:
     found = []
     from ctypes import wintypes
 
-    proc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
-
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
     def visit(hwnd, _lparam):
         if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd) and user32.GetWindowTextLengthW(hwnd) and not _own(hwnd) and controllable(hwnd):
             ex_style = user32.GetWindowLongW(hwnd, -20)
@@ -289,7 +294,7 @@ def target_window() -> int:
                 return False
         return True
 
-    user32.EnumWindows(proc(visit), 0)
+    user32.EnumWindows(visit, 0)
     return found[0] if found else 0
 
 

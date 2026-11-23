@@ -39,3 +39,10 @@ class BumpTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InstallerKillsListenerTests(unittest.TestCase):
+    def test_installer_ends_running_friday_before_copying(self):
+        iss = (ROOT / "packaging/friday.iss").read_bytes().decode("utf-8-sig")
+        body = iss.split("function PrepareToInstall", 1)[1].split("end;\r\n" if "\r\n" in iss else "end;\n", 1)[0]
+        self.assertIn("taskkill.exe", body); self.assertIn("/F /IM FRIDAY.exe", body)

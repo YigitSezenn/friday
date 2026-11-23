@@ -207,19 +207,6 @@
         <input name="voice_volume" type="range" min="0" max="150" step="5" value="100"></div>
       <div class="row2"><div>SABIRLI DİNLEME<small>Hızlı ya da duraksayarak konuşunca cümlen yarıda kesilmez; FRIDAY bitirmeni kısa bir sessizlikle anlar. Kapatınca daha çabuk yanıtlar.</small></div>
         <button type="button" class="switch" id="set-patient" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>ALKIŞLA UYAN<small>İZİN: Açarsan FRIDAY uykudayken ve kapalıyken (küçük bir arka plan dinleyicisiyle) mikrofonu yalnızca ses seviyesi için dinler; 2 alkışta uyanır ya da açılır, 3 alkışta kapanır. Ses kaydedilmez ve hiçbir yere gönderilmez.</small></div>
-        <button type="button" class="switch" id="set-clap" role="switch" aria-checked="false"></button></div>
-      <div class="row2 vol"><div>ALKIŞ HASSASİYETİ<small id="clap-sens-label">%100</small> Yüksek: hafif alkış yeter. Düşük: yalnızca güçlü alkış.</div><input id="set-clap-sens" type="range" min="50" max="200" step="10" value="100"></div>
-      <div class="row2"><div>EL HAREKETİYLE PENCERE<small>İZİN: Başlatınca kamera yalnızca bunun için açılır; görüntü bilgisayardan çıkmaz, Gemini'ye gönderilmez. Başparmağı bir parmağa kıstır: işaret = taşı · orta = boyutlandır · yüzük = büyüt/eski boyut (0,3 sn tut) · serçe = küçült (0,3 sn tut) · yumruk = pencereyi kapat (1,5 sn tut). İlk seferde ~8 MB el modeli indirilir.</small></div>
-        <button type="button" class="tbtn" id="hand-toggle" data-on="0">BAŞLAT</button></div>
-      <p class="whisper" id="hand-out">El kontrolü kapalı.</p>
-      <div class="row2"><div>TAŞI<small>İşaret parmağı</small></div><button type="button" class="switch" id="set-hand-move" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>BOYUTLANDIR<small>Orta parmak</small></div><button type="button" class="switch" id="set-hand-resize" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>BÜYÜT / ESKİ BOYUT<small>Yüzük parmağı, 0,3 sn tut</small></div><button type="button" class="switch" id="set-hand-maximize" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>KÜÇÜLT<small>Serçe parmağı, 0,3 sn tut</small></div><button type="button" class="switch" id="set-hand-minimize" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>SEKMEYİ KAPAT<small>İşaret + orta parmak birlikte, 1 sn tut (Ctrl+W)</small></div><button type="button" class="switch" id="set-hand-tab" role="switch" aria-checked="true"></button></div>
-      <div class="row2"><div>KAPAT<small>Yumruk, 1,5 sn tut. Uygulama kaydedilmemiş işi sorar.</small></div><button type="button" class="switch" id="set-hand-close" role="switch" aria-checked="true"></button></div>
-      <div class="row2 vol"><div>HAREKET HIZI<small id="hand-speed-label">%100</small></div><input id="set-hand-speed" type="range" min="50" max="200" step="10" value="100"></div>
       <div class="row2"><div>SES EFEKTLERİ<small>Açılış, kapanış ve onay sesleri.</small></div>
         <button type="button" class="switch" id="set-sfx" aria-checked="true"></button></div>
       <div class="row2"><div>ARKA PLAN MÜZİĞİ<small>Sakin ortam müziği. Mikrofon yankısı yaşarsan kapat.</small></div>
@@ -277,6 +264,25 @@
         <span class="perm-state" data-state="unknown">—</span><button type="button" class="tbtn perm-open" hidden>AYARLARI AÇ</button></div>
       <div class="row2"><div>DOSYA ERİŞİMİ<small>FRIDAY Belgeler, İndirilenler ve Masaüstü'nde dosya arayıp okuyabilir. Yazma, taşıma ve silme her seferinde onay ister; silinenler çöpe taşınır.</small></div>
         <button type="button" class="switch" id="set-files" aria-checked="false"></button></div>
+      <h3 class="permhead">ALKIŞLA UYAN</h3>
+      <div class="row2"><div>ALKIŞLA UYAN<small>İZİN: Açarsan FRIDAY uykudayken ve kapalıyken (küçük bir arka plan dinleyicisiyle) mikrofonu yalnızca ses seviyesi için dinler; 2 alkışta uyanır ya da açılır, 3 alkışta kapanır. Ses kaydedilmez ve hiçbir yere gönderilmez.</small></div>
+        <button type="button" class="switch" id="set-clap" role="switch" aria-checked="false"></button></div>
+      <div class="row2 vol"><div>ALKIŞ HASSASİYETİ<small id="clap-sens-label">%100</small> Yüksek: hafif alkış yeter. Düşük: yalnızca güçlü alkış.</div><input id="set-clap-sens" type="range" min="50" max="200" step="10" value="100"></div>
+      <h3 class="permhead">EL HAREKETİYLE PENCERE</h3>
+      <div class="row2"><div>EL HAREKETİ İZNİ<small>İZİN: Başlatınca kamera yalnızca bunun için açılır; görüntü bilgisayardan çıkmaz, Gemini'ye gönderilmez. İlk seferde ~8 MB el modeli indirilir. İzni bir kez verirsin; güncellemelerden sonra da geçerli kalır ve "el kontrolünü aç" deyince ayrıca sormaz.</small></div>
+        <button type="button" class="switch" id="set-hand-allowed" role="switch" aria-checked="false"></button></div>
+      <div class="row2"><div>EL KONTROLÜ<small id="hand-out">El kontrolü kapalı.</small></div>
+        <button type="button" class="tbtn" id="hand-toggle" data-on="0">BAŞLAT</button></div>
+      <details class="gestmenu" open>
+        <summary>HAREKETLER</summary>
+        <div class="gest"><span class="chip">İŞARET</span><div>Taşı<small>Başparmakla kıstır, sürükle</small></div><button type="button" class="switch" id="set-hand-move" role="switch" aria-checked="true"></button></div>
+        <div class="gest"><span class="chip">ORTA</span><div>Boyutlandır<small>Başparmakla kıstır, sürükle</small></div><button type="button" class="switch" id="set-hand-resize" role="switch" aria-checked="true"></button></div>
+        <div class="gest"><span class="chip">YÜZÜK</span><div>Büyüt / eski boyut<small>0,3 sn tut</small></div><button type="button" class="switch" id="set-hand-maximize" role="switch" aria-checked="true"></button></div>
+        <div class="gest"><span class="chip">SERÇE</span><div>Küçült<small>0,3 sn tut</small></div><button type="button" class="switch" id="set-hand-minimize" role="switch" aria-checked="true"></button></div>
+        <div class="gest"><span class="chip">İŞARET+ORTA</span><div>Sekmeyi kapat<small>1 sn tut (Ctrl+W)</small></div><button type="button" class="switch" id="set-hand-tab" role="switch" aria-checked="true"></button></div>
+        <div class="gest"><span class="chip">AÇIK EL</span><div>Pencereyi kapat<small>Eli soldan sağa hızlıca salla; kaydedilmemiş işi uygulama sorar</small></div><button type="button" class="switch" id="set-hand-close" role="switch" aria-checked="true"></button></div>
+      </details>
+      <div class="row2 vol"><div>HAREKET HIZI<small id="hand-speed-label">%100</small></div><input id="set-hand-speed" type="range" min="50" max="200" step="10" value="100"></div>
     </section>
     <section class="pane" data-pane="hakkinda">
       <p class="whisper" id="about-blurb">Ses: Gemini Live, models/gemini-3.8-live.</p>
@@ -293,7 +299,7 @@
 <div class="handguide" id="hand-guide" hidden>
   <b>EL HAREKETLERİ</b>
   <p>Başparmağı şu parmağa kıstır:</p>
-  <ul><li><em>İşaret</em> sürükle → pencereyi taşı</li><li><em>Orta</em> sürükle → boyutlandır</li><li><em>Yüzük</em> 0,3 sn → büyüt / eski boyut</li><li><em>Serçe</em> 0,3 sn → küçült</li><li><em>İşaret + orta</em> 1 sn → sekmeyi kapat</li><li><em>Tam yumruk</em> (parmaklar avuca kıvrık) 1,5 sn → pencereyi kapat</li></ul>
+  <ul><li><em>İşaret</em> sürükle → pencereyi taşı</li><li><em>Orta</em> sürükle → boyutlandır</li><li><em>Yüzük</em> 0,3 sn → büyüt / eski boyut</li><li><em>Serçe</em> 0,3 sn → küçült</li><li><em>İşaret + orta</em> 1 sn → sekmeyi kapat</li><li><em>Açık el</em> soldan sağa hızlı salla → pencereyi kapat</li></ul>
   <b>SESLE</b>
   <ul><li>“Pencereyi küçült / büyüt / kapat”</li><li>“Sekmeyi kapat”</li><li>“Kamerayı tam ekran yap”, “kamerayı küçült”</li><li>“El kontrolünü kapat”</li></ul>
   <p>Elini kameranın ortasında tut; kadrajdan çıkarsa hareket durur.</p>

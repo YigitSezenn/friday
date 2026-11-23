@@ -109,3 +109,25 @@ class PaddedTrackerTests(unittest.TestCase):
         self.assertEqual(seen["shape"], (140, 280, 3))
         self.assertAlmostEqual(points[0].x, 0.5); self.assertAlmostEqual(points[0].y, 0.5)
         self.assertLess(points[1].x, 0); self.assertLess(points[1].y, 0)  # kadraj dışı = negatif
+
+
+class StandingPermissionTests(unittest.TestCase):
+    def setUp(self):
+        FakeMover.closed = False
+
+    def test_saved_permission_skips_the_voice_confirmation(self):
+        from unittest import mock
+
+        with mock.patch.object(handmove, "_allowed", return_value=True):
+            self.assertIn("açık", run(FakeCam(), "start", yes=False))
+
+    def test_without_saved_permission_it_still_asks(self):
+        from unittest import mock
+
+        with mock.patch.object(handmove, "_allowed", return_value=False):
+            self.assertIn("ONAY", run(FakeCam(), "start", yes=False).upper())
+
+    def test_permission_defaults_off_and_is_a_saved_setting(self):
+        from jarvis import config
+
+        self.assertIs(config.DEFAULT_CONFIG["hand_allowed"], False)

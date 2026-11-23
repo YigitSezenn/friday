@@ -16,6 +16,13 @@ def _summary(model_ready: bool) -> str:
     )
 
 
+def _allowed() -> bool:
+    """Ayarlar > İzinler'de kalıcı izin verildiyse sesli onay sorulmaz (izin güncellemelerde korunur)."""
+    from jarvis.config import get_app_config_value
+
+    return bool(get_app_config_value("hand_allowed", False))
+
+
 def start_hand(webcam, ui=None, *, make_mover=None, ensure_model=None) -> str:
     """Kullanıcı onayı verildikten sonra çağrılır: modeli hazırlar, kamerayı açar, el takibini başlatır."""
     from jarvis import handtrack
@@ -68,9 +75,10 @@ def hand_control(action: str, confirm_start: bool, webcam, ui=None, *, make_move
     model_ready = model_ready or handtrack.model_ready
     if webcam.frame_hook is not None:
         return "El kontrolü zaten açık."
-    if not confirm_start:
+    if not confirm_start and not _allowed():
         return confirm.ask(KIND, (), _summary(model_ready()))
-    problem = confirm.check(KIND, ())
-    if problem:
-        return problem
+    if not _allowed():
+        problem = confirm.check(KIND, ())
+        if problem:
+            return problem
     return start_hand(webcam, ui, make_mover=make_mover, ensure_model=ensure_model)

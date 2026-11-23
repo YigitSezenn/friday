@@ -7,7 +7,7 @@
 [Setup]
 AppId={{8F3A1C2E-6B47-4D19-9A55-F21DA7000001}
 AppName=FRIDAY
-AppVersion=4.13.26
+AppVersion=4.13.27
 AppPublisher=FRIDAY
 DefaultDirName={localappdata}\FRIDAY
 DisableDirPage=yes
@@ -57,6 +57,20 @@ begin
   Exec('powershell.exe', '-NoProfile -WindowStyle Hidden -Command "Invoke-WebRequest -Uri ''https://go.microsoft.com/fwlink/p/?LinkId=2124703'' -OutFile ''' + Boot + '''"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   if FileExists(Boot) then
     Exec(Boot, '/silent /install', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode, Round: Integer;
+begin
+  { Arka planda alkışı dinleyen FRIDAY.exe (pencere açmaz) dosyayı kilitler ve uygulama kapanırken yenisini başlatır;
+    bu yüzden kapanana kadar zorla sonlandırıp bekleriz. }
+  for Round := 1 to 4 do
+  begin
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM FRIDAY.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(600);
+  end;
+  Result := '';
 end;
 
 function FridayDirName(const Dir: String): String;

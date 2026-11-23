@@ -5,7 +5,7 @@
   yüzük parmağı   → büyüt / eski boyuta getir (0,3 sn kıstırıp tut)
   serçe parmağı   → küçült (0,3 sn kıstırıp tut)
   işaret+orta birlikte → sekmeyi kapat (1 sn tut; Ctrl+W)
-  yumruk (dört parmak da kıstırılmış) → pencereyi kapat (1,5 sn tut; kaydedilmemiş işi uygulama sorar)
+  açık elle soldan sağa hızlı salla → pencereyi kapat (kaydedilmemiş işi uygulama sorar)
 
 Saf mantık: el noktaları (0-1 aralığında x, y) ve pencere işlemleri dışarıdan verilir, kamera/Windows gerekmez.
 """
@@ -15,20 +15,23 @@ from __future__ import annotations
 import math
 
 WRIST, THUMB_TIP, MIDDLE_MCP = 0, 4, 9
-FOLDED_BELOW = 1.3  # tam yumruk: dört parmak ucu da bileğe el boyunun 1,3 katından yakın (kıvrık)
 EDGE = 0.03  # el noktası kadraj kenarına bu kadar yakınsa uyar
 TIPS = {"move": 8, "resize": 12, "maximize": 16, "minimize": 20}
 GRAB_BELOW = 0.30  # parmak uçları el boyunun %30'undan yakınsa tut
 # yüzük ve serçe daha kısa/zor: eşikleri gevşek
 GRAB = {"move": 0.30, "resize": 0.30, "maximize": 0.38, "minimize": 0.55}
-OTHERS_ABOVE = 0.45  # diğer parmaklar açık olmalı (yumruk hareket sayılmaz)
+OTHERS_ABOVE = 0.45
+MARGIN = 0.12  # seçilen parmak diğerlerinden en az bu kadar (el boyu oranı) daha yakın olmalı; diğerleri kıvrık olabilir  # diğer parmaklar açık olmalı (yumruk hareket sayılmaz)
 RELEASE_ABOVE = 0.50  # %50'den açılınca bırak (titremeyi önler)
 GAIN = 1.6  # küçük el hareketi ekranın büyük kısmını gezsin
 SMOOTH = 0.5
 LOST_GRACE = 0.5  # el kısa süre kaybolursa bırakma
 HOLD = 0.3
 HOLD_GRACE = 0.2  # tutma sırasında tek-iki karelik algı kaybı sayacı sıfırlamasın
-CLOSE_HOLD = 1.5
+SWIPE_DX = 0.40  # avuç merkezi bu kadar (kare genişliği oranı) sağa gitmeli
+SWIPE_DY = 0.20  # ve en fazla bu kadar yukarı/aşağı kaymalı
+SWIPE_WINDOW = 0.8  # saniye içinde
+SWIPE_COOLDOWN = 2.0
 TAB_HOLD = 1.0
 START_FRAMES = 2  # algılama tek karelik yanlışla başlamasın
 RELEASE_FRAMES = 2  # tek karelik kayıp bırakmasın
@@ -77,6 +80,8 @@ class HandGestures:
         self.cool_until = 0.0
         self.last_seen = 0.0
         self.hold_last = 0.0
+        self.trail = []  # açık elin (zaman, x, y) izi: sallama algılamak için
+        self.swipe_cool = 0.0
         self._status = ""
 
     @property
@@ -95,24 +100,18 @@ class HandGestures:
     def _enabled(self, name: str) -> bool:
         return bool(self.options().get(name, True))
 
-    @staticmethod
-    def _fist(points) -> bool:
-        """Parmaklar yalnızca başparmağa değmesin, avuca da kıvrılmış olsun (tam yumruk)."""
-        if points is None:
-            return False
-        size = _dist(points[WRIST], points[MIDDLE_MCP]) or 1e-6
-        return all(_dist(points[WRIST], points[tip]) / size < FOLDED_BELOW for tip in (8, 12, 16, 20))
-
     def _pick(self, found: dict[str, float], points=None) -> str:
         close = [name for name, value in found.items() if value < GRAB[name]]
         if len(close) == len(found):
-            return "close" if self._fist(points) else ""
-        if sorted(close) == ["move", "resize"] and found["maximize"] > OTHERS_ABOVE and found["minimize"] > OTHERS_ABOVE:
-            return "tab"
-        if len(close) != 1:
             return ""
-        others = [value for name, value in found.items() if name != close[0]]
-        return close[0] if all(value > OTHERS_ABOVE for value in others) else ""
+        if not close:
+            return ""
+        if sorted(close) == ["move", "resize"] and all(found[n] > max(found["move"], found["resize"]) + MARGIN for n in ("maximize", "minimize")):
+            return "tab"
+        best = min(close, key=lambda name: found[name])
+        # Diğer parmaklar açık ya da kıvrık olabilir; yeter ki seçilen parmak belirgin biçimde daha yakın olsun.
+        clear = all(value > found[best] + MARGIN for name, value in found.items() if name != best)
+        return best if clear else ""
 
     def update(self, points, now: float) -> None:
         if not points:
@@ -125,8 +124,10 @@ class HandGestures:
         found = ratios(points)
         hand = ((points[THUMB_TIP].x + points[TIPS["move"]].x) / 2, (points[THUMB_TIP].y + points[TIPS["move"]].y) / 2)
         if self.mode:
+            self.trail = []
             self._drag(points, found, now)
             return
+        self._swipe(points, found, now)
         active = self._pick(found, points)
         self.seen = self.seen + 1 if active and active == self.candidate else 1
         self.candidate = active
@@ -151,9 +152,20 @@ class HandGestures:
         if self.hold != active:
             self.hold, self.hold_since, self.hold_last = active, now, now
             self._say(LABELS[active] + "… tut")
-        elif now - self.hold_since >= {"close": CLOSE_HOLD, "tab": TAB_HOLD}.get(active, HOLD):
+        elif now - self.hold_since >= {"tab": TAB_HOLD}.get(active, HOLD):
             self._fire(active)
             self.cool_until, self.hold, self.armed = now + COOLDOWN, "", False
+
+    def _swipe(self, points, found: dict[str, float], now: float) -> None:
+        """Açık el (hiçbir parmak kıstırılmamış) soldan sağa hızlıca gidince pencereyi kapatır."""
+        if not self._enabled("close") or now < self.swipe_cool or not all(value > OTHERS_ABOVE for value in found.values()):
+            self.trail = []
+            return
+        center = points[MIDDLE_MCP]
+        self.trail = [t for t in self.trail if now - t[0] <= SWIPE_WINDOW] + [(now, center.x, center.y)]
+        if center.x - min(t[1] for t in self.trail) >= SWIPE_DX and max(t[2] for t in self.trail) - min(t[2] for t in self.trail) <= SWIPE_DY:
+            self.trail, self.swipe_cool = [], now + SWIPE_COOLDOWN
+            self._fire("close")
 
     def _target(self):
         hwnd = self.win.foreground()

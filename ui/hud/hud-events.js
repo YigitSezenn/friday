@@ -101,6 +101,7 @@ $("settings-form").addEventListener("submit", event => {
   values.effects = $("set-sfx").getAttribute("aria-checked") !== "false";
   values.music = $("set-music").getAttribute("aria-checked") === "true";
   values.patient_listening = $("set-patient").getAttribute("aria-checked") !== "false";
+  values.hand_allowed = $("set-hand-allowed").getAttribute("aria-checked") === "true";
   values.clap_wake = $("set-clap").getAttribute("aria-checked") === "true";
   values.clap_sensitivity = Number($("set-clap-sens").value);
   values.proactive_enabled = $("set-proactive").getAttribute("aria-checked") === "true";

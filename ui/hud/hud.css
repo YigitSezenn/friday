@@ -345,3 +345,10 @@ body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown=
 .campip[data-hand="yok"] span{color:#ff4d4d}
 .campip[data-hand="kenar"] span{color:#ffb020}
 .campip[data-hand="var"] span{color:#3ddc84}
+.row2 > .tbtn,.row2 > .switch{flex:0 0 auto;white-space:nowrap}
+.permhead{margin:26px 0 0;font-size:12px;letter-spacing:.2em;color:var(--c);font-weight:600}
+.gestmenu{margin-top:14px;border:1px solid rgba(var(--rgb),.25);border-radius:10px;overflow:hidden}
+.gestmenu summary{cursor:pointer;padding:10px 14px;font-size:12px;letter-spacing:.16em;background:rgba(var(--rgb),.08)}
+.gest{display:grid;grid-template-columns:104px 1fr auto;align-items:center;gap:14px;padding:10px 14px;border-top:1px solid rgba(var(--rgb),.1);font-size:13px}
+.gest small{display:block;margin-top:2px;color:var(--dim);font-size:12px;font-family:var(--sans)}
+.gest .chip{justify-self:start;padding:3px 8px;border-radius:999px;border:1px solid var(--c);color:var(--c);font-size:10.5px;letter-spacing:.08em;white-space:nowrap}
