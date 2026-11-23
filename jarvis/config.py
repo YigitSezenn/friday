@@ -49,6 +49,7 @@ DEFAULT_CONFIG = {
     "hand_maximize": True,
     "hand_minimize": True,
     "hand_close": True,
+    "hand_allowed": False,
     "hand_tab": True,
     "hand_speed": 100,
     "mail_web_autosend": True,
@@ -124,6 +125,7 @@ def load_app_config() -> dict:
     for name in ("move", "resize", "maximize", "minimize", "close", "tab"):
         config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
     config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
+    config["hand_allowed"] = _clean_bool(config.get("hand_allowed"), False)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     backend = str(config.get("calendar_backend", "auto") or "auto").strip().lower()
@@ -295,6 +297,7 @@ def _save_app_config(updates: dict) -> dict:
     for name in ("move", "resize", "maximize", "minimize", "close", "tab"):
         config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
     config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
+    config["hand_allowed"] = _clean_bool(config.get("hand_allowed"), False)
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
     config["panels_off"] = _clean_panels(config.get("panels_off"))
     config["live_model"] = _clean_model(config.get("live_model"))

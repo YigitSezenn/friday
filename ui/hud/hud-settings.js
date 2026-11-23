@@ -247,7 +247,7 @@ function openPhone() {
   send("phone");
 }
 $("t-phone").addEventListener("click", openPhone);
-for (const id of ["set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-windows", "set-files"]) {
+for (const id of ["set-proactive", "set-water", "set-break", "set-events", "set-phone-auto", "set-windows", "set-files", "set-hand-allowed"]) {
   $(id).addEventListener("click", () => $(id).setAttribute("aria-checked", $(id).getAttribute("aria-checked") === "true" ? "false" : "true"));
 }
 document.querySelectorAll("#quiet-seg button").forEach(button => {
