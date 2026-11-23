@@ -350,7 +350,7 @@ $("hand-toggle").addEventListener("click", () => {
 });
 const sendHandOptions = () => {
   const values = {hand_speed: Number($("set-hand-speed").value)};
-  for (const name of ["move", "resize", "maximize", "minimize", "close"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
+  for (const name of ["move", "resize", "maximize", "minimize", "close", "tab"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
   $("hand-speed-label").textContent = `%${values.hand_speed}`;
   send("hand_options", {values});
 };
@@ -366,3 +366,5 @@ $("cam-pip").addEventListener("click", () => {  // küçük → büyük → tüm
   const pip = $("cam-pip");
   pip.dataset.size = String((Number(pip.dataset.size) + 1) % 3);
 });
+
+$("cam-help-btn").addEventListener("click", (event) => { event.stopPropagation(); $("hand-guide").hidden = !$("hand-guide").hidden; });

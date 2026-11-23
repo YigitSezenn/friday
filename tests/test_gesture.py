@@ -19,7 +19,7 @@ def hand(close=None, at=(0.5, 0.5)):
 
 class FakeWin:
     def __init__(self, controllable=True, maximized=False):
-        self.moves, self.sizes, self.shown, self.closed = [], [], [], []
+        self.moves, self.sizes, self.shown, self.closed, self.tabs = [], [], [], [], []
         self._controllable, self._maximized = controllable, maximized
 
     def foreground(self): return 7
@@ -31,6 +31,7 @@ class FakeWin:
     def resize(self, hwnd, w, h): self.sizes.append((hwnd, w, h))
     def show(self, hwnd, cmd): self.shown.append(cmd)
     def close(self, hwnd): self.closed.append(hwnd)
+    def close_tab(self, hwnd): self.tabs.append(hwnd)
 
 
 def grab(g, name, at=(0.5, 0.5)):
@@ -163,6 +164,25 @@ class StabilityTests(unittest.TestCase):
         grab(g, "move")
         drive(g, [hand("move", (0.5 + (i % 2) * 0.0005, 0.5)) for i in range(10)], start=0.05)
         self.assertEqual(win.moves, [])
+
+
+class TabGestureTests(unittest.TestCase):
+    def two(self):
+        pts = hand("move")
+        pts[12] = P(x=0.51, y=0.5)  # orta parmak da başparmakta
+        return pts
+
+    def test_index_plus_middle_held_closes_tab_once(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [self.two()] * 60)
+        self.assertEqual((win.tabs, win.closed, win.moves), ([7], [], []))
+
+    def test_short_touch_and_disabled_do_nothing(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [self.two()] * 10)
+        self.assertEqual(win.tabs, [])
+        g = HandGestures(win, lambda: {"tab": False}); drive(g, [self.two()] * 60)
+        self.assertEqual(win.tabs, [])
 
 
 class CloseGestureTests(unittest.TestCase):

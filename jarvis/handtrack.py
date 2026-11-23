@@ -88,7 +88,7 @@ def gesture_options() -> dict:
     from jarvis.config import load_app_config
 
     config = load_app_config()
-    options = {name: bool(config.get(f"hand_{name}", True)) for name in ("move", "resize", "maximize", "minimize", "close")}
+    options = {name: bool(config.get(f"hand_{name}", True)) for name in ("move", "resize", "maximize", "minimize", "close", "tab")}
     options["speed"] = max(0.5, min(2.0, float(config.get("hand_speed", 100) or 100) / 100))
     return options
 
@@ -109,6 +109,7 @@ class HandMover:
             "resize": staticmethod(win32.resize_window),
             "show": staticmethod(win32.show_window),
             "close": staticmethod(win32.close_window),
+            "close_tab": staticmethod(win32.close_tab),
             "screen": staticmethod(win32.screen_size),
         })
         self._options, self._options_at = None, 0.0

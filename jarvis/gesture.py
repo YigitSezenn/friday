@@ -4,6 +4,7 @@
   orta parmak     → pencereyi boyutlandır (kıstırıp sürükle, aç: bırak)
   yüzük parmağı   → büyüt / eski boyuta getir (0,6 sn kıstırıp tut)
   serçe parmağı   → küçült (0,6 sn kıstırıp tut)
+  işaret+orta birlikte → sekmeyi kapat (1 sn tut; Ctrl+W)
   yumruk (dört parmak da kıstırılmış) → pencereyi kapat (1,5 sn tut; kaydedilmemiş işi uygulama sorar)
 
 Saf mantık: el noktaları (0-1 aralığında x, y) ve pencere işlemleri dışarıdan verilir, kamera/Windows gerekmez.
@@ -23,13 +24,14 @@ SMOOTH = 0.5
 LOST_GRACE = 0.5  # el kısa süre kaybolursa bırakma
 HOLD = 0.6
 CLOSE_HOLD = 1.5
+TAB_HOLD = 1.0
 START_FRAMES = 2  # algılama tek karelik yanlışla başlamasın
 RELEASE_FRAMES = 2  # tek karelik kayıp bırakmasın
 DEADZONE = 3  # piksel; titreme pencereyi oynatmasın
 COOLDOWN = 1.5
 MIN_SIZE = (320, 200)
-DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "speed": 1.0}
-LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor", "close": "kapatıyor"}
+DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "tab": True, "speed": 1.0}
+LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor", "close": "kapatıyor", "tab": "sekmeyi kapatıyor"}
 
 
 def _dist(a, b) -> float:
@@ -87,6 +89,8 @@ class HandGestures:
         close = [name for name, value in found.items() if value < GRAB_BELOW]
         if len(close) == len(found):
             return "close"
+        if sorted(close) == ["move", "resize"] and found["maximize"] > OTHERS_ABOVE and found["minimize"] > OTHERS_ABOVE:
+            return "tab"
         if len(close) != 1:
             return ""
         others = [value for name, value in found.items() if name != close[0]]
@@ -125,7 +129,7 @@ class HandGestures:
         if self.hold != active:
             self.hold, self.hold_since = active, now
             self._say(LABELS[active] + "… tut")
-        elif now - self.hold_since >= (CLOSE_HOLD if active == "close" else HOLD):
+        elif now - self.hold_since >= {"close": CLOSE_HOLD, "tab": TAB_HOLD}.get(active, HOLD):
             self._fire(active)
             self.cool_until, self.hold, self.armed = now + COOLDOWN, "", False
 
@@ -137,7 +141,9 @@ class HandGestures:
         hwnd = self._target()
         if not hwnd:
             return
-        if name == "close":
+        if name == "tab":
+            self.win.close_tab(hwnd)
+        elif name == "close":
             self.win.close(hwnd)
         elif name == "minimize":
             self.win.show(hwnd, 6)
