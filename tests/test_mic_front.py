@@ -101,3 +101,18 @@ class BrowserFrontTests(unittest.TestCase):
                 mock.patch.object(browser, "recently_opened", return_value=False):
             browser.open_url("https://www.youtube.com")
         opened.assert_called_once(); front.assert_called_once_with("YouTube")
+
+
+class MicStatsTests(unittest.TestCase):
+    def test_summary_every_five_seconds_then_resets(self):
+        from jarvis.heard import MicStats
+
+        stats = MicStats(100.0)
+        stats.add(0.02, False, False)
+        stats.add(0.40, True, True)
+        self.assertIsNone(stats.line(103.0))
+        text = stats.line(105.0, cam=True)
+        self.assertIn("frames=2 peak=0.400 gate_open=1 sent=1 cam=True", text)
+        self.assertIsNone(stats.line(106.0))
+        stats.add(0.1, True, True)
+        self.assertIn("frames=1", stats.line(110.5))

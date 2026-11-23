@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.33",
+      "tarih": "2026-11-23",
+      "baslik": "Mikrofon tanı kaydı",
+      "maddeler": [
+        "Sesin neden alınmadığını bulmak için mikrofon seviyesi, kapı ve gönderim özeti data\\logs\\mic.log dosyasına yazılır (5 saniyede bir; sesin içeriği kaydedilmez)."
+      ]
+    },
+    {
       "surum": "4.13.32",
       "tarih": "2026-11-23",
       "baslik": "Kamera açıkken ses kesilmesi giderildi",

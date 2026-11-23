@@ -218,6 +218,31 @@ class GatedMic:
         return [bytes(len(data))]
 
 
+class MicStats:
+    """Mikrofon yolunun özeti (5 sn'de bir satır): ses geliyor mu, kapı açılıyor mu, sunucuya gidiyor mu."""
+
+    EVERY = 5.0
+
+    def __init__(self, now: float) -> None:
+        self.start = now
+        self.frames = self.sent = self.opened = 0
+        self.peak = 0.0
+
+    def add(self, level: float, opened: bool, sent: bool) -> None:
+        self.frames += 1
+        self.opened += bool(opened)
+        self.sent += bool(sent)
+        self.peak = max(self.peak, level)
+
+    def line(self, now: float, **flags) -> "str | None":
+        if now - self.start < self.EVERY:
+            return None
+        extra = " ".join(f"{k}={v}" for k, v in flags.items())
+        text = f"frames={self.frames} peak={self.peak:.3f} gate_open={self.opened} sent={self.sent} {extra}"
+        self.__init__(now)
+        return text
+
+
 class Leveler:
     """Kısık mikrofonu yumuşakça yükseltir (en çok 4 kat); sesli konuşmayı bozmaz. Tanıma kısık sesle daha çok yanılır."""
 

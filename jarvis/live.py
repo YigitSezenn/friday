@@ -11,7 +11,7 @@ from tools.actions.webcam import WebcamStreamer
 from jarvis.audio.barge import peak
 from jarvis.config import get_app_config_value
 from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
-from jarvis.heard import REPEAT_NOTE, GatedMic, Leveler, MicGate, RepeatPolicy, StallWatch, usable_transcript
+from jarvis.heard import REPEAT_NOTE, GatedMic, Leveler, MicGate, MicStats, RepeatPolicy, StallWatch, usable_transcript
 from jarvis.intents import is_close, is_minimize, is_sleep
 from jarvis.language import current as current_language, live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
@@ -375,6 +375,7 @@ class JarvisLive:
         mic = SafeStream(audio, stream)
         gate = GatedMic()
         leveler = Leveler()
+        stats = MicStats(time.monotonic())
         quiet_since = None  # mikrofon sunucuya gitmeyeceği an (konuşurken/sessize alınca): akış duraklaması
         from jarvis.audio.clap import ClapDetector, clap_level, debug_rejected
 
@@ -402,6 +403,7 @@ class JarvisLive:
                 if bool(get_app_config_value("mic_gate", True)):
                     chunks = gate.process(data, peak(data))  # kapalıyken sessizlik; açılırken ses başı payı
                 chunks = [leveler.apply(chunk) for chunk in chunks]
+                sent_any = False
                 for pcm in (*chunks, take_phone_audio() or b""):
                     frame = queue_mic_frame(
                         pcm,
@@ -410,9 +412,17 @@ class JarvisLive:
                         paused=bool(self._paused),
                     )
                     if frame:
+                        sent_any = True
                         quiet_since = None
                         self.stall.voice(time.monotonic(), peak(pcm))
                         await self.out_queue.put(frame)
+                stats.add(peak(data), gate.open, sent_any)
+                note = stats.line(
+                    time.monotonic(), speaking=speaking, muted=bool(self.ui.muted), paused=bool(self._paused),
+                    cam=self.webcam.is_active, gate_floor=round(gate.gate.floor, 3), queue=self.out_queue.qsize(),
+                )
+                if note:
+                    _log_mic(note)
                 if speaking or self.ui.muted or self._paused:
                     quiet_since = quiet_since or time.monotonic()
                     if quiet_since > 0 and time.monotonic() - quiet_since > 1.0:
@@ -762,6 +772,20 @@ def _log_error(exc: BaseException, key: str) -> None:
         stamp = datetime.datetime.now().isoformat(timespec="seconds")
         with path.open("a", encoding="utf-8") as handle:
             handle.write(f"--- {stamp} model={current_live_model()}\n{text}\n")
+    except Exception:
+        pass
+
+
+def _log_mic(text: str) -> None:
+    """Mikrofon özetini data/logs/mic.log'a yazar (en çok ~64 KB; sesin içeriği yazılmaz, yalnızca seviyeler)."""
+    try:
+        from jarvis.paths import data_path
+
+        path = data_path("logs", "mic.log")
+        if path.exists() and path.stat().st_size > 64 * 1024:
+            path.replace(path.with_suffix(".log.1"))
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(f"{datetime.datetime.now().isoformat(timespec='seconds')} {text}\n")
     except Exception:
         pass
 
