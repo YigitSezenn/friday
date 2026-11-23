@@ -59,6 +59,20 @@ begin
     Exec(Boot, '/silent /install', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode, Round: Integer;
+begin
+  { Arka planda alkışı dinleyen FRIDAY.exe (pencere açmaz) dosyayı kilitler ve uygulama kapanırken yenisini başlatır;
+    bu yüzden kapanana kadar zorla sonlandırıp bekleriz. }
+  for Round := 1 to 4 do
+  begin
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM FRIDAY.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(600);
+  end;
+  Result := '';
+end;
+
 function FridayDirName(const Dir: String): String;
 begin
   Result := ExtractFileName(RemoveBackslash(Dir));
