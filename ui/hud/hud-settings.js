@@ -350,14 +350,19 @@ $("hand-toggle").addEventListener("click", () => {
 });
 const sendHandOptions = () => {
   const values = {hand_speed: Number($("set-hand-speed").value)};
-  for (const name of ["move", "resize", "maximize", "minimize"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
+  for (const name of ["move", "resize", "maximize", "minimize", "close"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
   $("hand-speed-label").textContent = `%${values.hand_speed}`;
   send("hand_options", {values});
 };
-for (const name of ["move", "resize", "maximize", "minimize"]) {
+for (const name of ["move", "resize", "maximize", "minimize", "close"]) {
   const sw = $("set-hand-" + name);
   sw.addEventListener("click", () => { sw.setAttribute("aria-checked", sw.getAttribute("aria-checked") === "true" ? "false" : "true"); sendHandOptions(); });
 }
 $("set-hand-speed").addEventListener("change", sendHandOptions);
 
 $("set-clap-sens").addEventListener("input", () => { $("clap-sens-label").textContent = `%${$("set-clap-sens").value}`; });
+
+$("cam-pip").addEventListener("click", () => {  // küçük → büyük → tüm ekran: el kadraj dışına çıkmasın
+  const pip = $("cam-pip");
+  pip.dataset.size = String((Number(pip.dataset.size) + 1) % 3);
+});

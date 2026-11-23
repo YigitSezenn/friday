@@ -245,7 +245,7 @@ window.hud = {
     setSwitch("set-clap", data.config.clap_wake);
     $("set-clap-sens").value = data.config.clap_sensitivity || 100;
     $("clap-sens-label").textContent = `%${data.config.clap_sensitivity || 100}`;
-    for (const name of ["move", "resize", "maximize", "minimize"]) setSwitch("set-hand-" + name, data.config["hand_" + name] !== false);
+    for (const name of ["move", "resize", "maximize", "minimize", "close"]) setSwitch("set-hand-" + name, data.config["hand_" + name] !== false);
     $("set-hand-speed").value = data.config.hand_speed || 100;
     $("hand-speed-label").textContent = `%${data.config.hand_speed || 100}`;
     setSwitch("set-files", data.config.file_access);

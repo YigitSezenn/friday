@@ -241,3 +241,18 @@ def screen_size() -> tuple[int, int]:
         return 1920, 1080
     _ctypes, user32, _kernel32 = _lib()
     return int(user32.GetSystemMetrics(0)), int(user32.GetSystemMetrics(1))
+
+
+def close_window(hwnd: int) -> bool:
+    """Pencereye kapanma isteği gönderir (uygulama kaydedilmemiş işi sorabilir). FRIDAY'in kendi penceresi kapatılmaz."""
+    if not available() or not hwnd:
+        return False
+    ctypes, user32, _kernel32 = _lib()
+    import os
+    from ctypes import wintypes
+
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    if pid.value == os.getpid():
+        return False
+    return bool(user32.PostMessageW(hwnd, 0x0010, 0, 0))  # WM_CLOSE

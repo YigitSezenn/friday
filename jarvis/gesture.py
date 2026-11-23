@@ -4,6 +4,7 @@
   orta parmak     → pencereyi boyutlandır (kıstırıp sürükle, aç: bırak)
   yüzük parmağı   → büyüt / eski boyuta getir (0,6 sn kıstırıp tut)
   serçe parmağı   → küçült (0,6 sn kıstırıp tut)
+  yumruk (dört parmak da kıstırılmış) → pencereyi kapat (1,5 sn tut; kaydedilmemiş işi uygulama sorar)
 
 Saf mantık: el noktaları (0-1 aralığında x, y) ve pencere işlemleri dışarıdan verilir, kamera/Windows gerekmez.
 """
@@ -21,10 +22,14 @@ GAIN = 1.6  # küçük el hareketi ekranın büyük kısmını gezsin
 SMOOTH = 0.5
 LOST_GRACE = 0.5  # el kısa süre kaybolursa bırakma
 HOLD = 0.6
+CLOSE_HOLD = 1.5
+START_FRAMES = 2  # algılama tek karelik yanlışla başlamasın
+RELEASE_FRAMES = 2  # tek karelik kayıp bırakmasın
+DEADZONE = 3  # piksel; titreme pencereyi oynatmasın
 COOLDOWN = 1.5
 MIN_SIZE = (320, 200)
-DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "speed": 1.0}
-LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor"}
+DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "speed": 1.0}
+LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor", "close": "kapatıyor"}
 
 
 def _dist(a, b) -> float:
@@ -54,6 +59,9 @@ class HandGestures:
         self.pos = (0.0, 0.0)
         self.hold = ""
         self.hold_since = 0.0
+        self.seen = 0  # art arda kaç karede aynı hareket görüldü
+        self.candidate = ""
+        self.opened = 0  # art arda kaç karede el açık görüldü (bırakma)
         self.armed = True
         self.cool_until = 0.0
         self.last_seen = 0.0
@@ -69,7 +77,7 @@ class HandGestures:
             self.on_status(text)
 
     def release(self) -> None:
-        self.mode, self.hwnd, self.hold = "", 0, ""
+        self.mode, self.hwnd, self.hold, self.candidate, self.seen, self.opened = "", 0, "", "", 0, 0
         self._say("hazır")
 
     def _enabled(self, name: str) -> bool:
@@ -77,6 +85,8 @@ class HandGestures:
 
     def _pick(self, found: dict[str, float]) -> str:
         close = [name for name, value in found.items() if value < GRAB_BELOW]
+        if len(close) == len(found):
+            return "close"
         if len(close) != 1:
             return ""
         others = [value for name, value in found.items() if name != close[0]]
@@ -96,6 +106,8 @@ class HandGestures:
             self._drag(points, found, now)
             return
         active = self._pick(found)
+        self.seen = self.seen + 1 if active and active == self.candidate else 1
+        self.candidate = active
         if not active:
             self.hold, self.armed = "", True
             self._say("hazır")
@@ -104,7 +116,8 @@ class HandGestures:
             self._say("hazır")
             return
         if active in ("move", "resize"):
-            self._start_drag(active, points)
+            if self.seen >= START_FRAMES:
+                self._start_drag(active, points)
             return
         # büyüt / küçült: tutup bekle
         if not self.armed or now < self.cool_until:
@@ -112,7 +125,7 @@ class HandGestures:
         if self.hold != active:
             self.hold, self.hold_since = active, now
             self._say(LABELS[active] + "… tut")
-        elif now - self.hold_since >= HOLD:
+        elif now - self.hold_since >= (CLOSE_HOLD if active == "close" else HOLD):
             self._fire(active)
             self.cool_until, self.hold, self.armed = now + COOLDOWN, "", False
 
@@ -124,7 +137,9 @@ class HandGestures:
         hwnd = self._target()
         if not hwnd:
             return
-        if name == "minimize":
+        if name == "close":
+            self.win.close(hwnd)
+        elif name == "minimize":
             self.win.show(hwnd, 6)
         else:
             self.win.show(hwnd, 9 if self.win.maximized(hwnd) else 3)
@@ -144,9 +159,12 @@ class HandGestures:
         self._say(LABELS[name])
 
     def _drag(self, points, found: dict[str, float], now: float) -> None:
-        if found[self.mode] > RELEASE_ABOVE:
+        self.opened = self.opened + 1 if found[self.mode] > RELEASE_ABOVE else 0
+        if self.opened >= RELEASE_FRAMES:
             self.release()
             return
+        if self.opened:
+            return  # tek karelik açılma: pencereyi olduğu yerde tut
         screen_w, screen_h = self.win.screen()
         speed = GAIN * float(self.options().get("speed", 1.0) or 1.0)
         dx = (points[THUMB_TIP].x - self.start_hand[0]) * screen_w * speed
@@ -157,6 +175,8 @@ class HandGestures:
             goal = (min(max(left + dx, 100 - width), screen_w - 100), min(max(top + dy, 0), screen_h - 40))  # başlık çubuğu ekranda kalsın
         else:
             goal = (min(max(width + dx, MIN_SIZE[0]), screen_w), min(max(height + dy, MIN_SIZE[1]), screen_h))
+        if abs(goal[0] - self.pos[0]) < DEADZONE and abs(goal[1] - self.pos[1]) < DEADZONE:
+            return
         self.pos = (self.pos[0] + (goal[0] - self.pos[0]) * SMOOTH, self.pos[1] + (goal[1] - self.pos[1]) * SMOOTH)
         if self.mode == "move":
             self.win.move(self.hwnd, round(self.pos[0]), round(self.pos[1]))
