@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.34",
+      "tarih": "2026-11-23",
+      "baslik": "Alkışla uyanma: konuşma ve küçük sesler uyandırmaz",
+      "maddeler": [
+        "Alkış taban ses eşiği yükseltildi: normal konuşma, öksürük ve klavye gibi sesler FRIDAY'i kendiliğinden açmaz.",
+        "Hassasiyet kaydırıcısı aynen çalışır; yumuşak alkışlar için artırılabilir."
+      ]
+    },
+    {
       "surum": "4.13.33",
       "tarih": "2026-11-23",
       "baslik": "Mikrofon tanı kaydı",
