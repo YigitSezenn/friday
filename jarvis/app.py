@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import ctypes
+import os
 import sys
 import threading
 import traceback
@@ -110,14 +111,46 @@ def _watch_show(ui) -> None:
     threading.Thread(target=watch, name="friday-show", daemon=True).start()
 
 
-def _acquire_single_instance() -> bool:
+def _try_mutex() -> bool:
     kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateMutexW.restype = ctypes.c_void_p
+    kernel.CloseHandle.argtypes = [ctypes.c_void_p]
     handle = kernel.CreateMutexW(None, False, "Local\\JarvisRebuildSingleInstance")
     if ctypes.get_last_error() == 183:
-        _signal_show()
+        kernel.CloseHandle(handle)  # tutarsak sahibi ölse bile nesne yaşar; yeniden almak için bırak
         return False
     globals()["_mutex"] = handle
     return True
+
+
+def _show_answered(wait_seconds: float = 4.0) -> bool:
+    """Çalışan örnek 'göster' isteğini işleyince olayı sıfırlar; sıfırlanmazsa o örnek takılmıştır."""
+    import time
+
+    kernel, handle = globals().get("_kernel"), globals().get("_show_event")
+    if kernel is None or not handle:
+        return True
+    deadline = time.monotonic() + wait_seconds
+    while time.monotonic() < deadline:
+        if kernel.WaitForSingleObject(handle, 0) != 0:  # 0: hâlâ işaretli
+            return True
+        time.sleep(0.2)
+    return False
+
+
+def _kill_other_instances() -> None:
+    import os
+    import subprocess
+
+    if getattr(sys, "frozen", False):  # geliştirmede python.exe'ye dokunma
+        subprocess.run(["taskkill", "/F", "/IM", "FRIDAY.exe", "/FI", f"PID ne {os.getpid()}"], capture_output=True,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+def _acquire_single_instance() -> bool:
+    from jarvis.instance import take_over
+
+    return take_over(_try_mutex, _signal_show, _show_answered, _kill_other_instances)
 
 
 def _proactive_loop(ui, live_box: dict) -> None:
@@ -240,6 +273,11 @@ def main(argv: list[str] | None = None) -> int:
     from jarvis.clap_launcher import spawn_listener
 
     spawn_listener()  # alkışla uyanma açıksa, kapalıyken de alkışı dinleyen küçük dinleyici başlasın
+    if getattr(sys, "frozen", False):
+        # Kamera, el takibi ya da tepsi iş parçacıkları süreci canlı tutup tek örnek kilidini tutmasın:
+        # sonraki kısayol tıklaması "zaten çalışıyor" sanıp hiçbir şey açmazdı.
+        sys.stdout.flush()
+        os._exit(0)
     return 0
 
 

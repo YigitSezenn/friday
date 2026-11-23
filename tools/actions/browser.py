@@ -29,6 +29,24 @@ _PENDING: dict[str, "threading.Timer"] = {}
 WEAK_DELAY = 2.5
 
 
+def _front_marker(url: str) -> str:
+    host = urllib.parse.urlparse(url).hostname or ""
+    parts = [part for part in host.split(".") if part not in {"www", "m", "music"}]
+    name = parts[-2] if len(parts) >= 2 else (parts[0] if parts else "")
+    return "YouTube" if name in {"youtube", "youtu"} else name
+
+
+def _open_front(url: str) -> None:
+    """Sayfayı açar ve tarayıcı arka planda kalmasın diye penceresini öne getirir (en iyi çaba)."""
+    webbrowser.open(url)
+    try:
+        from tools.actions.apps import front_soon
+
+        front_soon(_front_marker(url))
+    except Exception:
+        pass
+
+
 def open_url(url: str) -> None:
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
@@ -38,7 +56,7 @@ def open_url(url: str) -> None:
         pending.cancel()
     if recently_opened(url):
         return
-    webbrowser.open(url)
+    _open_front(url)
 
 
 def open_home_soon(url: str) -> None:
@@ -51,7 +69,7 @@ def open_home_soon(url: str) -> None:
     def fire() -> None:
         _PENDING.pop(key, None)
         _RECENT[key] = time.monotonic()
-        webbrowser.open(url)
+        _open_front(url)
 
     timer = threading.Timer(WEAK_DELAY, fire)
     timer.daemon = True

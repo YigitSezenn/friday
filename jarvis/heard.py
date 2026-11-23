@@ -196,6 +196,57 @@ class MicGate:
         return False
 
 
+class GatedMic:
+    """MicGate'in önüne ses başı payı koyar: kapı konuşmanın ilk kısık sesinde (ş, f, t gibi) geç açılırsa
+    sözcüğün başı kesilmesin diye kapı açılırken son birkaç parça da (~0,2 sn) önce gönderilir.
+    Kapalıyken sunucuya sessizlik gider (cümlenin bittiğini görsün)."""
+
+    PREROLL = 3
+
+    def __init__(self, gate: "MicGate | None" = None) -> None:
+        self.gate = gate or MicGate()
+        self.recent: list[bytes] = []
+        self.open = False
+
+    def process(self, data: bytes, level: float) -> list[bytes]:
+        if self.gate.passes(level):
+            out = ([*self.recent] if not self.open else []) + [data]
+            self.recent, self.open = [], True
+            return out
+        self.open = False
+        self.recent = (self.recent + [data])[-self.PREROLL:]
+        return [bytes(len(data))]
+
+
+class Leveler:
+    """Kısık mikrofonu yumuşakça yükseltir (en çok 4 kat); sesli konuşmayı bozmaz. Tanıma kısık sesle daha çok yanılır."""
+
+    TARGET = 0.25
+    MAX_GAIN = 4.0
+    QUIET = 0.02  # bunun altı sessizlik/ortam sayılır, yükseltilmez
+
+    def __init__(self) -> None:
+        self.gain = 1.0
+
+    def apply(self, pcm: bytes) -> bytes:
+        import array
+
+        usable = pcm[: len(pcm) // 2 * 2]
+        if not usable:
+            return pcm
+        samples = array.array("h")
+        samples.frombytes(usable)
+        level = max(abs(s) for s in samples) / 32768.0
+        if level > self.QUIET:
+            want = min(self.MAX_GAIN, max(1.0, self.TARGET / level))
+            self.gain = want if want < self.gain else self.gain + (want - self.gain) * 0.2  # sesli ise hemen düş, kısıksa yavaş çık
+        if self.gain <= 1.001:
+            return pcm
+        gain = self.gain
+        out = array.array("h", (max(-32768, min(32767, int(s * gain))) for s in samples))
+        return out.tobytes()
+
+
 REPEAT_NOTE = (
     "Kullanıcının son sözünü anlayamadın (ses belirsizdi ya da kesikti). Tahmin yürütme, bir şey uydurma ve başka bir dile çevirme; "
     "kullanıcının dilinde tek kısa cümleyle tekrar etmesini rica et."
