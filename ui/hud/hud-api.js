@@ -283,6 +283,7 @@ window.hud = {
 function paintHand(text) {
   const on = text && !["kapalı", "model indirilemedi", "başlatılamadı", "kamera açılamadı"].includes(text);
   $("cam-pip-note").textContent = text || "kamera";
+  $("cam-pip").dataset.hand = !on ? "" : text === "el görünmüyor" ? "yok" : text === "el kadrajın kenarında" ? "kenar" : "var";  // kadrajda mı?
   $("hand-out").textContent = "El kontrolü: " + (text || "kapalı");
   $("hand-toggle").dataset.on = on ? "1" : "0";
   $("hand-toggle").textContent = on ? "DURDUR" : "BAŞLAT";
