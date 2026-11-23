@@ -172,6 +172,12 @@ class JarvisLive:
             self.ui.set_webcam_active(status in {"ok", "already_active"})
             if status == "missing":
                 self.ui.write_log("ERR: Kamera açılamadı.")
+            elif status == "ok":
+                from tools.actions.handmove import offer_hand
+
+                offer = offer_hand(self.webcam)
+                if offer:
+                    self.nudge(f"Kamera açıldı. {offer}")
         else:
             self.webcam.stop()
             self.ui.set_webcam_active(False)

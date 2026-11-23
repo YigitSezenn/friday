@@ -350,7 +350,7 @@ $("hand-toggle").addEventListener("click", () => {
 });
 const sendHandOptions = () => {
   const values = {hand_speed: Number($("set-hand-speed").value)};
-  for (const name of ["move", "resize", "maximize", "minimize", "close", "tab"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
+  for (const name of ["move", "resize", "maximize", "minimize", "close", "tab", "switch"]) values["hand_" + name] = $("set-hand-" + name).getAttribute("aria-checked") !== "false";
   $("hand-speed-label").textContent = `%${values.hand_speed}`;
   send("hand_options", {values});
 };

@@ -23,6 +23,20 @@ def _allowed() -> bool:
     return bool(get_app_config_value("hand_allowed", False))
 
 
+OFFER = (
+    "Kullanıcıya sesli sor: 'El hareketiyle pencere denetimini de açayım mı?' Evet derse hand_control action=start confirm=true çağır. "
+    "Hayır derse hiçbir şey yapma, el kontrolünü açma."
+)
+
+
+def offer_hand(webcam) -> str:
+    """Kamera açılınca el hareketlerini açmayı önerir (kendiliğinden açmaz). Soru kaydedilir; 'evet' onayı sayılır. Zaten açıksa ''."""
+    if webcam is None or webcam.frame_hook is not None:
+        return ""
+    confirm.ask(KIND, (), "")  # sorunun sorulduğunu kaydeder: sonraki 'evet' hand_control'ü onaylar
+    return OFFER
+
+
 def start_hand(webcam, ui=None, *, make_mover=None, ensure_model=None) -> str:
     """Kullanıcı onayı verildikten sonra çağrılır: modeli hazırlar, kamerayı açar, el takibini başlatır."""
     from jarvis import handtrack

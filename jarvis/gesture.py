@@ -4,7 +4,8 @@
   orta parmak     → pencereyi boyutlandır (kıstırıp sürükle, aç: bırak)
   yüzük parmağı   → büyüt / eski boyuta getir (0,3 sn kıstırıp tut)
   serçe parmağı   → küçült (0,3 sn kıstırıp tut)
-  işaret+orta birlikte → sekmeyi kapat (1 sn tut; Ctrl+W)
+  tam yumruk (parmaklar avuca kıvrık) → sekmeyi kapat (1 sn tut; Ctrl+W tuşunu senin yerine basar)
+  yalnızca işaret parmağı açıkken sağa/sola salla → sonraki/önceki sekme (Ctrl+Tab)
   açık elle soldan sağa hızlı salla → pencereyi kapat (kaydedilmemiş işi uygulama sorar)
 
 Saf mantık: el noktaları (0-1 aralığında x, y) ve pencere işlemleri dışarıdan verilir, kamera/Windows gerekmez.
@@ -17,6 +18,8 @@ import math
 from jarvis.oneeuro import OneEuro
 
 WRIST, THUMB_TIP, MIDDLE_MCP = 0, 4, 9
+FOLDED_BELOW = 1.3  # parmak ucu bileğe el boyunun 1,3 katından yakın: kıvrık
+EXTENDED_ABOVE = 1.45  # 1,45 katından uzak: açık
 EDGE = 0.03  # el noktası kadraj kenarına bu kadar yakınsa uyar
 TIPS = {"move": 8, "resize": 12, "maximize": 16, "minimize": 20}
 GRAB_BELOW = 0.30  # parmak uçları el boyunun %30'undan yakınsa tut
@@ -36,14 +39,18 @@ SWIPE_DX = 0.35  # avuç merkezi bu kadar (kare genişliği oranı) sağa gitmel
 SWIPE_DY = 0.20  # ve en fazla bu kadar yukarı/aşağı kaymalı
 SWIPE_WINDOW = 0.8  # saniye içinde
 SWIPE_COOLDOWN = 2.0
+POINT_DX = 0.12  # işaret parmağı ucu bu kadar (kare genişliği oranı) yana gitmeli
+POINT_DY = 0.20
+POINT_WINDOW = 0.5
+POINT_COOLDOWN = 0.7
 TAB_HOLD = 1.0
 START_FRAMES = 2  # algılama tek karelik yanlışla başlamasın
 RELEASE_FRAMES = 2  # tek karelik kayıp bırakmasın
 DEADZONE = 1  # piksel
 COOLDOWN = 1.0
 MIN_SIZE = (320, 200)
-DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "tab": True, "speed": 1.0}
-LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor", "close": "kapatıyor", "tab": "sekmeyi kapatıyor"}
+DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "tab": True, "switch": True, "speed": 1.0}
+LABELS = {"move": "taşıyor", "resize": "boyutlandırıyor", "maximize": "büyütüyor", "minimize": "küçültüyor", "close": "kapatıyor", "tab": "sekmeyi kapatıyor", "switch": "sekme değiştiriyor"}
 
 
 def _dist(a, b) -> float:
@@ -52,6 +59,12 @@ def _dist(a, b) -> float:
 
 def _at_edge(points) -> bool:
     return any(p.x < EDGE or p.x > 1 - EDGE or p.y < EDGE or p.y > 1 - EDGE for p in points)
+
+
+def extended(points) -> int:
+    """Açık (bilekten uzağa uzanmış) parmak sayısı."""
+    size = _dist(points[WRIST], points[MIDDLE_MCP]) or 1e-6
+    return sum(_dist(points[WRIST], points[tip]) / size > EXTENDED_ABOVE for tip in (8, 12, 16, 20))
 
 
 def ratios(points) -> dict[str, float]:
@@ -87,6 +100,8 @@ class HandGestures:
         self.hold_last = 0.0
         self.trail = []  # açık elin (zaman, x, y) izi: sallama algılamak için
         self.swipe_cool = 0.0
+        self.point_trail = []
+        self.point_cool = 0.0
         self._status = ""
 
     @property
@@ -105,14 +120,20 @@ class HandGestures:
     def _enabled(self, name: str) -> bool:
         return bool(self.options().get(name, True))
 
+    @staticmethod
+    def _fist(points) -> bool:
+        """Dört parmak da başparmağa değmekle kalmaz, avuca kıvrılmıştır (tam yumruk)."""
+        if points is None:
+            return False
+        size = _dist(points[WRIST], points[MIDDLE_MCP]) or 1e-6
+        return all(_dist(points[WRIST], points[tip]) / size < FOLDED_BELOW for tip in (8, 12, 16, 20))
+
     def _pick(self, found: dict[str, float], points=None) -> str:
         close = [name for name, value in found.items() if value < GRAB[name]]
         if len(close) == len(found):
-            return ""
+            return "tab" if self._fist(points) else ""
         if not close:
             return ""
-        if sorted(close) == ["move", "resize"] and all(found[n] > max(found["move"], found["resize"]) + MARGIN for n in ("maximize", "minimize")):
-            return "tab"
         best = min(close, key=lambda name: found[name])
         # Diğer parmaklar açık ya da kıvrık olabilir; yeter ki seçilen parmak belirgin biçimde daha yakın olsun.
         clear = all(value > found[best] + MARGIN for name, value in found.items() if name != best)
@@ -133,6 +154,7 @@ class HandGestures:
             self._drag(points, found, now)
             return
         self._swipe(points, found, now)
+        self._point(points, found, now)
         active = self._pick(found, points)
         self.seen = self.seen + 1 if active and active == self.candidate else 1
         self.candidate = active
@@ -166,13 +188,34 @@ class HandGestures:
         if not self._enabled("close") or now < self.swipe_cool or any(value < GRAB[name] for name, value in found.items()):
             self.trail = []  # kapalı ya da kıstırma var (taşıma/yumruk): sallama sayılmaz
             return
-        if sum(value > OTHERS_ABOVE for value in found.values()) < 2:
+        if extended(points) < 3:
             return  # hızlı harekette bulanık/kıvrık kare: izi silme, bu kareyi atla
         center = points[MIDDLE_MCP]
         self.trail = [t for t in self.trail if now - t[0] <= SWIPE_WINDOW] + [(now, center.x, center.y)]
         if center.x - min(t[1] for t in self.trail) >= SWIPE_DX and max(t[2] for t in self.trail) - min(t[2] for t in self.trail) <= SWIPE_DY:
             self.trail, self.swipe_cool = [], now + SWIPE_COOLDOWN
             self._fire("close")
+
+    def _point(self, points, found: dict[str, float], now: float) -> None:
+        """Yalnızca işaret parmağı açıkken (öteki üçü kıvrık, kıstırma yok) sağa/sola kısa sallama → sekme değiştir."""
+        size = _dist(points[WRIST], points[MIDDLE_MCP]) or 1e-6
+        reach = lambda tip: _dist(points[WRIST], points[tip]) / size
+        pointing = reach(TIPS["move"]) > EXTENDED_ABOVE and all(reach(TIPS[n]) < FOLDED_BELOW for n in ("resize", "maximize", "minimize"))
+        if not self._enabled("switch") or now < self.point_cool or not pointing or any(v < GRAB[n] for n, v in found.items()):
+            self.point_trail = []
+            return
+        tip = points[TIPS["move"]]
+        self.point_trail = [t for t in self.point_trail if now - t[0] <= POINT_WINDOW] + [(now, tip.x, tip.y)]
+        xs, ys = [t[1] for t in self.point_trail], [t[2] for t in self.point_trail]
+        if max(ys) - min(ys) > POINT_DY:
+            return
+        moved = xs[-1] - xs[0]
+        if abs(moved) >= POINT_DX:
+            self.point_trail, self.point_cool = [], now + POINT_COOLDOWN
+            hwnd = self._target()
+            if hwnd:
+                self.win.switch_tab(hwnd, moved > 0)
+                self._say(LABELS["switch"])
 
     def _target(self):
         hwnd = self.win.foreground()
