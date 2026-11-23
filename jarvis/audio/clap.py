@@ -5,34 +5,66 @@ from __future__ import annotations
 import array
 
 WINDOWS = 8  # 1024 örneklik parça (~64 ms) 8 küçük pencereye bölünür (~8 ms)
-SHARP = 3.0  # en güçlü pencere, ortanca pencerenin en az bu kadar katı (kısa, belirgin patlama)
-DECAY = 0.5  # patlamadan sonra enerji bu orana düşmeli (alkış hızla söner; konuşma/müzik sürer)
-BRIGHT = 0.4  # ardışık örnek farkı enerjisi / enerji: yüksek frekans payı (alkış geniş bantlı; vurma/uğultu/ünlüler düşük)
+SHARP = 1.5  # en güçlü pencerenin RMS'i, ortanca pencerenin en az bu kadar katı (kısa, belirgin patlama)
+DECAY = 0.8  # patlama ilk yarıdaysa, parça sonunda RMS bu orana düşmüş olmalı (alkış söner; konuşma/müzik sürer)
+BRIGHT = 0.3  # ardışık örnek farkı enerjisi / enerji: yüksek frekans payı (alkış geniş bantlı; vurma/uğultu/ünlüler düşük)
+DEBUG_MIN_PEAK = 0.25  # bu seviyenin üstündeki ama alkış sayılmayan sesler tanı günlüğüne yazılır
+_last_debug = 0.0
 
 
-def clap_level(pcm: bytes) -> float:
-    """Parça alkış gibi (kısa, keskin, geniş bantlı bir patlama) ise tepe seviyesini, değilse 0 döner.
-    Konuşma, müzik, uğultu, kapı gümlemesi gibi sesler yeterince yüksek olsa da alkış sayılmaz."""
+def features(pcm: bytes) -> dict | None:
+    """Parçanın alkışla ilgili ölçüleri; ses yoksa None."""
     usable = pcm[: len(pcm) // 2 * 2]
     samples = array.array("h")
     samples.frombytes(usable)
     size = len(samples) // WINDOWS
     if size < 16:
-        return 0.0
+        return None
     energy = [sum(s * s for s in samples[i * size:(i + 1) * size]) / size for i in range(WINDOWS)]
     top = max(range(WINDOWS), key=energy.__getitem__)
+    if energy[top] <= 0:
+        return None
     median = sorted(energy)[WINDOWS // 2]
-    if energy[top] <= 0 or energy[top] < SHARP * SHARP * max(median, 1.0):  # enerji RMS'in karesi
-        return 0.0
-    if top < WINDOWS - 2 and energy[-1] > energy[top] * DECAY * DECAY:
-        return 0.0  # patlama sönmedi: sürekli ses
     lo, hi = max(top - 1, 0) * size, (min(top + 1, WINDOWS - 1) + 1) * size
     burst = samples[lo:hi]
     total = sum(s * s for s in burst)
     rough = sum((burst[i] - burst[i - 1]) ** 2 for i in range(1, len(burst)))
-    if total <= 0 or rough / total < BRIGHT:
+    return {
+        "sharp": (energy[top] / max(median, 1.0)) ** 0.5,
+        "decay": (energy[-1] / energy[top]) ** 0.5 if top < WINDOWS - 2 else 0.0,  # sonda patlama: sönüş görülemez
+        "bright": rough / total if total > 0 else 0.0,
+        "peak": max(abs(s) for s in samples) / 32768.0,
+    }
+
+
+def clap_level(pcm: bytes) -> float:
+    """Parça alkış gibi (kısa, keskin, geniş bantlı bir patlama) ise tepe seviyesini, değilse 0 döner.
+    Konuşma, müzik, uğultu, kapı gümlemesi gibi sesler yeterince yüksek olsa da alkış sayılmaz."""
+    f = features(pcm)
+    if f is None or f["sharp"] < SHARP or f["decay"] > DECAY or f["bright"] < BRIGHT:
         return 0.0
-    return max(abs(s) for s in samples) / 32768.0
+    return f["peak"]
+
+
+def debug_rejected(pcm: bytes, now: float, write=None) -> None:
+    """Yeterince yüksek ama alkış sayılmayan sesin ölçülerini bir dosyaya yazar (en çok saniyede bir, dosya küçük kalır)."""
+    global _last_debug
+    f = features(pcm)
+    if f is None or f["peak"] < DEBUG_MIN_PEAK or now - _last_debug < 1.0 or clap_level(pcm) > 0:
+        return
+    _last_debug = now
+    line = "ret sharp={sharp:.2f} decay={decay:.2f} bright={bright:.2f} peak={peak:.2f}".format(**f)
+    try:
+        if write is not None:
+            write(line)
+            return
+        from jarvis.paths import data_path
+
+        path = data_path("clap_debug.log")
+        old = path.read_text(encoding="utf-8")[-8000:] if path.exists() else ""
+        path.write_text(old + line + "\n", encoding="utf-8")
+    except Exception:
+        pass
 
 
 class ClapDetector:

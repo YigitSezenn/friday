@@ -130,3 +130,23 @@ class ClapShapeTests(unittest.TestCase):
             if count:
                 hits.append(count)
         self.assertEqual(hits, [2])
+
+
+class ClapRobustnessTests(ClapShapeTests):
+    def test_reverberant_clap_with_a_long_tail_counts(self):
+        from jarvis.audio.clap import clap_level
+
+        self.assertGreater(clap_level(self.clap(tau=0.025)), 0.3)
+
+    def test_rejected_loud_sound_is_written_to_the_debug_log_once_per_second(self):
+        import math
+
+        from jarvis.audio.clap import debug_rejected
+
+        hum, _ = self.pcm(lambda t, rng: rng.uniform(-1, 1) * 0.6)
+        lines = []
+        debug_rejected(hum, 100.0, lines.append); debug_rejected(hum, 100.3, lines.append); debug_rejected(hum, 101.5, lines.append)
+        self.assertEqual(len(lines), 2)
+        self.assertIn("sharp=", lines[0])
+        debug_rejected(self.clap(), 200.0, lines.append)  # kabul edilen alkış günlüğe yazılmaz
+        self.assertEqual(len(lines), 2)
