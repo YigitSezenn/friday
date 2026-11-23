@@ -166,6 +166,22 @@ class StabilityTests(unittest.TestCase):
         self.assertEqual(win.moves, [])
 
 
+class CurledFingersTests(unittest.TestCase):
+    def test_pinky_pinch_works_while_other_fingers_are_curled(self):
+        win = FakeWin(); g = HandGestures(win)
+        pts = hand("minimize")
+        for tip in (8, 12, 16):
+            pts[tip] = P(x=0.5 + 0.2, y=0.5)  # kıvrık: başparmağa orta yakınlıkta (oran 0,5)
+        drive(g, [pts] * 12)
+        self.assertEqual(win.shown, [6])
+
+    def test_two_equally_close_fingers_are_ambiguous(self):
+        win = FakeWin(); g = HandGestures(win)
+        pts = hand("maximize"); pts[20] = P(x=0.5 + 0.01, y=0.5)  # yüzük ve serçe aynı yakınlıkta
+        drive(g, [pts] * 20)
+        self.assertEqual(win.shown, [])
+
+
 class TabGestureTests(unittest.TestCase):
     def two(self):
         pts = hand("move")

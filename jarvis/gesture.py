@@ -21,7 +21,8 @@ TIPS = {"move": 8, "resize": 12, "maximize": 16, "minimize": 20}
 GRAB_BELOW = 0.30  # parmak uçları el boyunun %30'undan yakınsa tut
 # yüzük ve serçe daha kısa/zor: eşikleri gevşek
 GRAB = {"move": 0.30, "resize": 0.30, "maximize": 0.38, "minimize": 0.55}
-OTHERS_ABOVE = 0.45  # diğer parmaklar açık olmalı (yumruk hareket sayılmaz)
+OTHERS_ABOVE = 0.45
+MARGIN = 0.12  # seçilen parmak diğerlerinden en az bu kadar (el boyu oranı) daha yakın olmalı; diğerleri kıvrık olabilir  # diğer parmaklar açık olmalı (yumruk hareket sayılmaz)
 RELEASE_ABOVE = 0.50  # %50'den açılınca bırak (titremeyi önler)
 GAIN = 1.6  # küçük el hareketi ekranın büyük kısmını gezsin
 SMOOTH = 0.5
@@ -107,12 +108,14 @@ class HandGestures:
         close = [name for name, value in found.items() if value < GRAB[name]]
         if len(close) == len(found):
             return "close" if self._fist(points) else ""
-        if sorted(close) == ["move", "resize"] and found["maximize"] > OTHERS_ABOVE and found["minimize"] > OTHERS_ABOVE:
-            return "tab"
-        if len(close) != 1:
+        if not close:
             return ""
-        others = [value for name, value in found.items() if name != close[0]]
-        return close[0] if all(value > OTHERS_ABOVE for value in others) else ""
+        if sorted(close) == ["move", "resize"] and all(found[n] > max(found["move"], found["resize"]) + MARGIN for n in ("maximize", "minimize")):
+            return "tab"
+        best = min(close, key=lambda name: found[name])
+        # Diğer parmaklar açık ya da kıvrık olabilir; yeter ki seçilen parmak belirgin biçimde daha yakın olsun.
+        clear = all(value > found[best] + MARGIN for name, value in found.items() if name != best)
+        return best if clear else ""
 
     def update(self, points, now: float) -> None:
         if not points:
