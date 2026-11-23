@@ -9,6 +9,7 @@ class WebcamStreamer:
     CAPTURE_INTERVAL = 0.05
     OPEN_TIMEOUT = 12.0
     OPEN_TRIES = 3
+    HAND_FRAME = 1 / 30
     OPEN_RETRY_DELAY = 0.7
 
     def __init__(self):
@@ -89,6 +90,7 @@ class WebcamStreamer:
         self._opened.set()
         try:
             while not self._stop.is_set():
+                started = time.monotonic()
                 ok, frame = cap.read()
                 if not ok:
                     time.sleep(0.1)
@@ -105,7 +107,8 @@ class WebcamStreamer:
                 if encoded:
                     with self._lock:
                         self._latest = buf.tobytes()
-                time.sleep(0.005 if self.frame_hook else self.CAPTURE_INTERVAL)  # el takibinde hızlı hareketi kaçırmamak için tam hızda
+                # El takibi ~30 kare/sn; ama bir çekirdeği tüketmesin, ses iş parçacıklarına zaman kalsın.
+                time.sleep(max(0.005, self.HAND_FRAME - (time.monotonic() - started)) if self.frame_hook else self.CAPTURE_INTERVAL)
         finally:
             cap.release()
             with self._lock:

@@ -618,12 +618,16 @@ class JarvisLive:
             await asyncio.sleep(0.5)
 
     async def _preview_webcam(self) -> None:
+        """Önizlemeyi arayüze iş parçacığında iter: evaluate_js arayüz iş parçacığı meşgulken bekler; olay döngüsünü
+        bloklasaydı mikrofon okuma/gönderme gecikir, ses kopardı (el kontrolü açıkken sesin alınmaması buydu)."""
+        last = None
         while True:
             if self.webcam.is_active:
                 frame = self.webcam.get_latest_frame()
-                if frame:
-                    self.ui.update_webcam_preview(frame)
-            await asyncio.sleep(1 / 12)
+                if frame and frame is not last:
+                    last = frame
+                    await asyncio.to_thread(self.ui.update_webcam_preview, frame)  # bitmeden yenisi gönderilmez: kareler birikmez
+            await asyncio.sleep(1 / 10)
 
     async def run(self) -> None:
         from google import genai
