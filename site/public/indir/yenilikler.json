@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.29",
+      "tarih": "2026-11-23",
+      "baslik": "Kısayol ilk açılışta açılır, tarayıcı öne gelir, ses tanıma iyileşti",
+      "maddeler": [
+        "FRIDAY kısayoluna tıklayınca takılı kalmış eski süreç varsa otomatik kapatılır ve yenisi açılır; kapanırken süreç tamamen sonlanır.",
+        "“YouTube'u aç” gibi komutlarda tarayıcı penceresi öne gelir.",
+        "Ses tanıma: kısık sesle konuşulduğunda mikrofon seviyesi yumuşakça yükseltilir, sözcük başlarının kesilmesi önlendi (ses başı payı), konuşma duraklamalarında Gemini'ye akışın bittiği bildirilir."
+      ]
+    },
+    {
       "surum": "4.13.28",
       "tarih": "2026-11-23",
       "baslik": "Daha akıcı el takibi: 1€ filtresi, hızlı kamera, güvenilir sallama",

@@ -11,7 +11,7 @@ from tools.actions.webcam import WebcamStreamer
 from jarvis.audio.barge import peak
 from jarvis.config import get_app_config_value
 from jarvis.gemini_errors import RejectionBudget, classify, clean_api_key, without_proxy_for_google
-from jarvis.heard import REPEAT_NOTE, MicGate, RepeatPolicy, StallWatch, usable_transcript
+from jarvis.heard import REPEAT_NOTE, GatedMic, Leveler, MicGate, RepeatPolicy, StallWatch, usable_transcript
 from jarvis.intents import is_close, is_minimize, is_sleep
 from jarvis.language import current as current_language, live_speech_code, speech_codes
 from jarvis.memory_store import format_memory_for_prompt, load_memory
@@ -86,7 +86,7 @@ def listening_config(patient: bool) -> dict | None:
     return {
         "start_of_speech_sensitivity": "START_SENSITIVITY_HIGH",
         "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
-        "prefix_padding_ms": 200,
+        "prefix_padding_ms": 300,
         "silence_duration_ms": 700,
     }
 
@@ -304,6 +304,12 @@ class JarvisLive:
     async def _send_realtime(self) -> None:
         while True:
             message = await self.out_queue.get()
+            if message.get("end"):
+                try:
+                    await self.session.send_realtime_input(audio_stream_end=True)
+                except Exception:
+                    pass
+                continue
             mime = str(message.get("mime_type") or "")
             if mime.startswith("image/"):
                 await self._send_media(message["data"], mime)
@@ -361,7 +367,9 @@ class JarvisLive:
                 if frame:
                     await self.out_queue.put(frame)
         mic = SafeStream(audio, stream)
-        gate = MicGate()
+        gate = GatedMic()
+        leveler = Leveler()
+        quiet_since = None  # mikrofon sunucuya gitmeyeceği an (konuşurken/sessize alınca): akış duraklaması
         from jarvis.audio.clap import ClapDetector
 
         claps = ClapDetector(self._clap_sensitivity())
@@ -381,9 +389,11 @@ class JarvisLive:
                         self._clap_quit()
                 from jarvis.phone_server import take_phone_audio
 
-                if bool(get_app_config_value("mic_gate", True)) and not gate.passes(peak(data)):
-                    data = bytes(len(data))  # sessizlik: sunucu cümlenin bittiğini görsün
-                for pcm in (data, take_phone_audio() or b""):
+                chunks = [data]
+                if bool(get_app_config_value("mic_gate", True)):
+                    chunks = gate.process(data, peak(data))  # kapalıyken sessizlik; açılırken ses başı payı
+                chunks = [leveler.apply(chunk) for chunk in chunks]
+                for pcm in (*chunks, take_phone_audio() or b""):
                     frame = queue_mic_frame(
                         pcm,
                         speaking=speaking,
@@ -391,8 +401,14 @@ class JarvisLive:
                         paused=bool(self._paused),
                     )
                     if frame:
+                        quiet_since = None
                         self.stall.voice(time.monotonic(), peak(pcm))
                         await self.out_queue.put(frame)
+                if speaking or self.ui.muted or self._paused:
+                    quiet_since = quiet_since or time.monotonic()
+                    if quiet_since > 0 and time.monotonic() - quiet_since > 1.0:
+                        quiet_since = -1.0  # bir kez: önbellekteki sesi bitir (Gemini Live belgesi: 1 sn'den uzun duraklamada audio_stream_end)
+                        await self.out_queue.put({"end": True})
         finally:
             mic.close()
 
