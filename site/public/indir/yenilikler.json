@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.31",
+      "tarih": "2026-11-23",
+      "baslik": "Alkış algılama: yalnızca alkış sesine uyanır",
+      "maddeler": [
+        "Alkış artık yalnızca alkış gibi (kısa, keskin, geniş bantlı) seslere tepki verir; konuşma, müzik, kapı gümlemesi ve uğultu yüksek olsa da sayılmaz.",
+        "Aynı kontrol açık uygulamada, uyku durumunda ve uygulama kapalıyken çalışan arka plan dinleyicisinde geçerli."
+      ]
+    },
+    {
       "surum": "4.13.30",
       "tarih": "2026-11-23",
       "baslik": "Kamera açılınca el modu sorulur, yumrukla sekme kapatma, işaret parmağıyla sekme değiştirme",
