@@ -79,3 +79,54 @@ class ClapSettingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClapShapeTests(unittest.TestCase):
+    """Sentetik sesler (16 kHz, 1024 örnek): alkış kısa/keskin/geniş bantlı; öteki sesler yüksek olsa da sayılmaz."""
+
+    RATE = 16000
+
+    def pcm(self, fn, amp=0.6, n=1024, seed=3):
+        import array
+        import math
+        import random
+
+        rng = random.Random(seed)
+        return array.array("h", [int(max(-1, min(1, amp * fn(i / self.RATE, rng))) * 32767) for i in range(n)]).tobytes(), math
+
+    def clap(self, offset=0.012, tau=0.006, amp=0.7):
+        import math
+
+        data, _ = self.pcm(lambda t, rng: (rng.uniform(-1, 1) * math.exp(-(t - offset) / tau)) if t >= offset else rng.uniform(-1, 1) * 0.004, amp)
+        return data
+
+    def test_clap_counts_as_level_others_do_not(self):
+        import math
+
+        from jarvis.audio.clap import clap_level
+
+        self.assertGreater(clap_level(self.clap()), 0.3)
+        speech, _ = self.pcm(lambda t, rng: sum(math.sin(2 * math.pi * 130 * k * t) / k for k in range(1, 8)) * 0.2)
+        thump, _ = self.pcm(lambda t, rng: math.sin(2 * math.pi * 70 * t) * math.exp(-t / 0.03))
+        hum, _ = self.pcm(lambda t, rng: rng.uniform(-1, 1) * 0.6)  # sürekli geniş bantlı gürültü
+        tone, _ = self.pcm(lambda t, rng: math.sin(2 * math.pi * 1000 * t))
+        for name, data in (("konuşma", speech), ("gümleme", thump), ("uğultu", hum), ("ton", tone), ("sessizlik", bytes(2048))):
+            self.assertEqual(clap_level(data), 0.0, name)
+
+    def test_clap_at_chunk_edges_still_counts(self):
+        from jarvis.audio.clap import clap_level
+
+        self.assertGreater(clap_level(self.clap(offset=0.002)), 0.3)  # başta
+        self.assertGreater(clap_level(self.clap(offset=0.055)), 0.3)  # sonda: sönüş görülmez ama keskinlik yeter
+
+    def test_two_claps_through_the_detector_count_as_two(self):
+        from jarvis.audio.clap import clap_level
+
+        quiet = bytes(2048)
+        chunks = [quiet] * 5 + [self.clap(), quiet, quiet, self.clap(offset=0.014)] + [quiet] * 14
+        detector, hits = ClapDetector(), []
+        for i, chunk in enumerate(chunks):
+            count = detector.feed(clap_level(chunk), i * 0.064)
+            if count:
+                hits.append(count)
+        self.assertEqual(hits, [2])
