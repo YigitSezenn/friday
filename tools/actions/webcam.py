@@ -83,7 +83,7 @@ class WebcamStreamer:
                 if encoded:
                     with self._lock:
                         self._latest = buf.tobytes()
-                time.sleep(self.CAPTURE_INTERVAL)
+                time.sleep(0.005 if self.frame_hook else self.CAPTURE_INTERVAL)  # el takibinde hızlı hareketi kaçırmamak için tam hızda
         finally:
             cap.release()
             with self._lock:

@@ -28,7 +28,7 @@ SMOOTH = 0.5
 LOST_GRACE = 0.5  # el kısa süre kaybolursa bırakma
 HOLD = 0.3
 HOLD_GRACE = 0.2  # tutma sırasında tek-iki karelik algı kaybı sayacı sıfırlamasın
-SWIPE_DX = 0.40  # avuç merkezi bu kadar (kare genişliği oranı) sağa gitmeli
+SWIPE_DX = 0.35  # avuç merkezi bu kadar (kare genişliği oranı) sağa gitmeli
 SWIPE_DY = 0.20  # ve en fazla bu kadar yukarı/aşağı kaymalı
 SWIPE_WINDOW = 0.8  # saniye içinde
 SWIPE_COOLDOWN = 2.0
@@ -158,9 +158,11 @@ class HandGestures:
 
     def _swipe(self, points, found: dict[str, float], now: float) -> None:
         """Açık el (hiçbir parmak kıstırılmamış) soldan sağa hızlıca gidince pencereyi kapatır."""
-        if not self._enabled("close") or now < self.swipe_cool or not all(value > OTHERS_ABOVE for value in found.values()):
-            self.trail = []
+        if not self._enabled("close") or now < self.swipe_cool or any(value < GRAB[name] for name, value in found.items()):
+            self.trail = []  # kapalı ya da kıstırma var (taşıma/yumruk): sallama sayılmaz
             return
+        if sum(value > OTHERS_ABOVE for value in found.values()) < 2:
+            return  # hızlı harekette bulanık/kıvrık kare: izi silme, bu kareyi atla
         center = points[MIDDLE_MCP]
         self.trail = [t for t in self.trail if now - t[0] <= SWIPE_WINDOW] + [(now, center.x, center.y)]
         if center.x - min(t[1] for t in self.trail) >= SWIPE_DX and max(t[2] for t in self.trail) - min(t[2] for t in self.trail) <= SWIPE_DY:
