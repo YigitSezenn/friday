@@ -322,7 +322,19 @@ body[data-shutdown="1"] #tiles,body[data-shutdown="1"] #dock,body[data-shutdown=
 .home-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:rgba(var(--rgb),.14);color:var(--c);font-size:12px}
 .home-chip-x{cursor:pointer;background:none;border:0;color:var(--dim);font-size:14px;line-height:1;padding:0 4px;border-radius:50%}
 .home-chip-x:hover{color:#ff8a8a}
-.campip{position:fixed;right:18px;bottom:78px;width:240px;border:1px solid var(--c);border-radius:10px;overflow:hidden;background:#000;z-index:30;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.campip{position:fixed;right:18px;bottom:78px;width:420px;cursor:pointer;border:1px solid var(--c);border-radius:10px;overflow:hidden;background:#000;z-index:30;box-shadow:0 6px 24px rgba(0,0,0,.5)}
 .campip[hidden]{display:none}
+.campip[data-size="0"]{width:240px}
+.campip[data-size="2"]{inset:56px 18px 78px 18px;width:auto;display:flex}
+.campip[data-size="2"] img{height:100%;aspect-ratio:auto;object-fit:contain}
 .campip img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
 .campip span{position:absolute;left:8px;bottom:6px;font-size:11px;letter-spacing:.08em;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.6);color:var(--c)}
+.camhelp{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;border:1px solid var(--c);background:rgba(0,0,0,.6);color:var(--c);cursor:pointer;font-size:13px}
+.handguide{position:fixed;right:18px;bottom:78px;z-index:31;width:300px;padding:14px 16px;border:1px solid var(--c);border-radius:10px;background:rgba(5,12,20,.94);font-size:12px;line-height:1.5}
+.handguide[hidden]{display:none}
+.handguide b{display:block;letter-spacing:.12em;color:var(--c);margin:6px 0 2px}
+.handguide ul{margin:0 0 6px;padding-left:16px}
+.handguide em{color:var(--c);font-style:normal}
+.campip[data-size="1"]~.handguide{bottom:calc(78px + 330px)}
+.campip[data-size="0"]~.handguide{bottom:calc(78px + 200px)}
+.campip[data-size="2"]~.handguide{bottom:88px;right:34px}

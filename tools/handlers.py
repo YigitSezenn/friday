@@ -473,6 +473,13 @@ def send_discord_message(args, ctx):
     return run(text(args, "message"), text(args, "recipient_name"), text(args, "username"), bool(args.get("confirm", False)))
 
 
+@tool("window_control")
+def window_control(args, ctx):
+    from tools.actions.windowctl import window_control as run
+
+    return run(text(args, "action").strip().lower(), text(args, "target", "window").strip().lower(), ctx.ui)
+
+
 @tool("hand_control")
 def hand_control(args, ctx):
     from tools.actions.handmove import hand_control as run

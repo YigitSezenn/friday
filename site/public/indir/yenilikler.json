@@ -1,6 +1,17 @@
 {
   "surumler": [
     {
+      "surum": "4.13.25",
+      "tarih": "2026-11-23",
+      "baslik": "El kontrolü: pencere/sekme kapatma, kararlı algılama, sesli pencere denetimi, rehber",
+      "maddeler": [
+        "Yumruğu 1,5 sn tutunca öndeki pencere kapanır; işaret + orta parmağı 1 sn tutunca sekme kapanır (Ctrl+W). Ayarlardan ayrı ayrı kapatılabilir.",
+        "El takibi daha kararlı: kareler arası izleme, art arda doğrulama ve titreme payı.",
+        "Kamera önizlemesi büyük açılır; tıklayınca küçük / büyük / tam ekran arasında geçer. “Kamerayı tam ekran yap” demen yeter.",
+        "“Pencereyi küçült / büyüt / kapat” ve “sekmeyi kapat” sesli komutları; önizlemedeki ? düğmesiyle hareket rehberi."
+      ]
+    },
+    {
       "surum": "4.13.24",
       "tarih": "2026-11-23",
       "baslik": "2 alkışla aç, 3 alkışla kapat, cmd açık kalır, güvenli toplu silme",

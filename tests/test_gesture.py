@@ -19,7 +19,7 @@ def hand(close=None, at=(0.5, 0.5)):
 
 class FakeWin:
     def __init__(self, controllable=True, maximized=False):
-        self.moves, self.sizes, self.shown = [], [], []
+        self.moves, self.sizes, self.shown, self.closed, self.tabs = [], [], [], [], []
         self._controllable, self._maximized = controllable, maximized
 
     def foreground(self): return 7
@@ -30,6 +30,12 @@ class FakeWin:
     def move(self, hwnd, x, y): self.moves.append((hwnd, x, y))
     def resize(self, hwnd, w, h): self.sizes.append((hwnd, w, h))
     def show(self, hwnd, cmd): self.shown.append(cmd)
+    def close(self, hwnd): self.closed.append(hwnd)
+    def close_tab(self, hwnd): self.tabs.append(hwnd)
+
+
+def grab(g, name, at=(0.5, 0.5)):
+    g.update(hand(name, at), -0.1); g.update(hand(name, at), 0.0)  # başlamak için art arda iki kare gerekir
 
 
 def drive(g, frames, step=0.05, start=0.0):
@@ -52,20 +58,22 @@ class MoveResizeTests(unittest.TestCase):
 
     def test_index_pinch_moves_then_release_stops(self):
         win = FakeWin(); g = HandGestures(win)
-        g.update(hand("move", (0.5, 0.5)), 0.0)
+        grab(g, "move", (0.5, 0.5))
         self.assertTrue(g.grabbing)
         drive(g, [hand("move", (0.5 + i * 0.02, 0.5)) for i in range(1, 12)], start=0.05)
         self.assertGreater(win.moves[-1][1], 100)
         self.assertAlmostEqual(win.moves[-1][2], 100, delta=2)
         self.assertEqual(win.sizes, [])
         g.update(hand(None, (0.7, 0.5)), 1.0)
+        self.assertTrue(g.grabbing)  # tek karelik açılma bırakmaz
+        g.update(hand(None, (0.7, 0.5)), 1.05)
         self.assertFalse(g.grabbing)
         count = len(win.moves); g.update(hand(None, (0.9, 0.5)), 1.1)
         self.assertEqual(len(win.moves), count)
 
     def test_middle_pinch_resizes_not_moves(self):
         win = FakeWin(); g = HandGestures(win)
-        g.update(hand("resize", (0.5, 0.5)), 0.0)
+        grab(g, "resize", (0.5, 0.5))
         drive(g, [hand("resize", (0.5 + i * 0.02, 0.5 + i * 0.02)) for i in range(1, 12)], start=0.05)
         self.assertEqual(win.moves, [])
         _h, w, h = win.sizes[-1]
@@ -73,14 +81,14 @@ class MoveResizeTests(unittest.TestCase):
 
     def test_resize_has_minimum_size(self):
         win = FakeWin(); g = HandGestures(win)
-        g.update(hand("resize", (0.9, 0.9)), 0.0)
+        grab(g, "resize", (0.9, 0.9))
         drive(g, [hand("resize", (0.9 - i * 0.05, 0.9 - i * 0.05)) for i in range(1, 15)], start=0.05)
         _h, w, h = win.sizes[-1]
         self.assertGreaterEqual(w, 320); self.assertGreaterEqual(h, 200)
 
     def test_window_stays_on_screen(self):
         win = FakeWin(); g = HandGestures(win)
-        g.update(hand("move", (0.1, 0.5)), 0.0)
+        grab(g, "move", (0.1, 0.5))
         drive(g, [hand("move", (0.1 + i * 0.1, 0.5 + i * 0.1)) for i in range(1, 40)], start=0.05)
         _h, x, y = win.moves[-1]
         self.assertLessEqual(x, 1820); self.assertLessEqual(y, 1040)
@@ -88,12 +96,12 @@ class MoveResizeTests(unittest.TestCase):
     def test_uncontrollable_or_maximized_window_is_not_grabbed(self):
         for win in (FakeWin(controllable=False), FakeWin(maximized=True)):
             g = HandGestures(win)
-            g.update(hand("move"), 0.0); g.update(hand("move", (0.9, 0.5)), 0.1)
+            grab(g, "move"); g.update(hand("move", (0.9, 0.5)), 0.1)
             self.assertFalse(g.grabbing); self.assertEqual(win.moves, [])
 
     def test_hand_lost_briefly_keeps_grab_then_releases(self):
         win = FakeWin(); g = HandGestures(win)
-        g.update(hand("move"), 0.0)
+        grab(g, "move")
         g.update(None, 0.2); self.assertTrue(g.grabbing)
         g.update(None, 0.9); self.assertFalse(g.grabbing)
 
@@ -135,14 +143,69 @@ class HoldGestureTests(unittest.TestCase):
         slow, fast = FakeWin(), FakeWin()
         for win, speed in ((slow, 0.5), (fast, 2.0)):
             g = HandGestures(win, lambda s=speed: {"speed": s})
-            g.update(hand("move", (0.3, 0.5)), 0.0)
+            grab(g, "move", (0.3, 0.5))
             drive(g, [hand("move", (0.35, 0.5))] * 8, start=0.05)
         self.assertGreater(fast.moves[-1][1], slow.moves[-1][1])
 
     def test_status_callback_reports_changes_only(self):
         said = []; win = FakeWin(); g = HandGestures(win, None, said.append)
-        g.update(hand("move"), 0.0); g.update(hand("move", (0.6, 0.5)), 0.05); g.update(hand(None), 0.1)
+        grab(g, "move"); g.update(hand("move", (0.6, 0.5)), 0.05); g.update(hand(None), 0.1); g.update(hand(None), 0.15)
         self.assertEqual(said, ["taşıyor", "hazır"])
+
+
+class StabilityTests(unittest.TestCase):
+    def test_single_frame_pinch_does_not_start_drag(self):
+        win = FakeWin(); g = HandGestures(win)
+        g.update(hand("move"), 0.0); g.update(hand(None), 0.05)
+        self.assertFalse(g.grabbing)
+
+    def test_tiny_jitter_does_not_move_window(self):
+        win = FakeWin(); g = HandGestures(win)
+        grab(g, "move")
+        drive(g, [hand("move", (0.5 + (i % 2) * 0.0005, 0.5)) for i in range(10)], start=0.05)
+        self.assertEqual(win.moves, [])
+
+
+class TabGestureTests(unittest.TestCase):
+    def two(self):
+        pts = hand("move")
+        pts[12] = P(x=0.51, y=0.5)  # orta parmak da başparmakta
+        return pts
+
+    def test_index_plus_middle_held_closes_tab_once(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [self.two()] * 60)
+        self.assertEqual((win.tabs, win.closed, win.moves), ([7], [], []))
+
+    def test_short_touch_and_disabled_do_nothing(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [self.two()] * 10)
+        self.assertEqual(win.tabs, [])
+        g = HandGestures(win, lambda: {"tab": False}); drive(g, [self.two()] * 60)
+        self.assertEqual(win.tabs, [])
+
+
+class CloseGestureTests(unittest.TestCase):
+    def fist(self):
+        pts = hand("move")
+        for tip in (12, 16, 20):
+            pts[tip] = P(x=0.5, y=0.5)
+        return pts
+
+    def test_fist_held_closes_window_once(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [self.fist()] * 80)  # 4 sn
+        self.assertEqual(win.closed, [7])
+
+    def test_short_fist_does_not_close(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [self.fist()] * 20)  # 1 sn
+        self.assertEqual(win.closed, [])
+
+    def test_close_can_be_disabled(self):
+        win = FakeWin(); g = HandGestures(win, lambda: {"close": False})
+        drive(g, [self.fist()] * 80)
+        self.assertEqual(win.closed, [])
 
 
 if __name__ == "__main__":

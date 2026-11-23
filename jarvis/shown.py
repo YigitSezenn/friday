@@ -29,7 +29,7 @@ TOOL_LABELS = {
     "send_whatsapp_message": "WhatsApp", "send_discord_message": "Discord", "send_email": "E-posta", "open_mail": "Gelen kutusu", "open_app": "Uygulama açma",
     "list_files": "Dosya listesi", "set_location": "Konum", "timer_set": "Zamanlayıcı", "stopwatch": "Kronometre",
     "note_add": "Not ekleme", "note_delete": "Not silme", "notes_list": "Notlar", "save_memory": "Hafıza", "desktop_action": "Masaüstü komutu",
-    "app_window": "Pencere komutu", "connect_gmail": "Gmail bağlantısı", "sys_info": "Sistem bilgisi",
+    "app_window": "Pencere komutu", "window_control": "Pencere denetimi", "connect_gmail": "Gmail bağlantısı", "sys_info": "Sistem bilgisi",
 }
 
 

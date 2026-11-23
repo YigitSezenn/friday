@@ -48,6 +48,8 @@ DEFAULT_CONFIG = {
     "hand_resize": True,
     "hand_maximize": True,
     "hand_minimize": True,
+    "hand_close": True,
+    "hand_tab": True,
     "hand_speed": 100,
     "mail_web_autosend": True,
     "panels_off": [],
@@ -119,7 +121,7 @@ def load_app_config() -> dict:
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
     config["clap_sensitivity"] = _clean_clap_sensitivity(config.get("clap_sensitivity"))
-    for name in ("move", "resize", "maximize", "minimize"):
+    for name in ("move", "resize", "maximize", "minimize", "close", "tab"):
         config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
     config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)
@@ -290,7 +292,7 @@ def _save_app_config(updates: dict) -> dict:
     config["mic_gate"] = _clean_bool(config.get("mic_gate"), True)
     config["clap_wake"] = _clean_bool(config.get("clap_wake"), False)
     config["clap_sensitivity"] = _clean_clap_sensitivity(config.get("clap_sensitivity"))
-    for name in ("move", "resize", "maximize", "minimize"):
+    for name in ("move", "resize", "maximize", "minimize", "close", "tab"):
         config[f"hand_{name}"] = _clean_bool(config.get(f"hand_{name}"), True)
     config["hand_speed"] = _clean_hand_speed(config.get("hand_speed"))
     config["mail_web_autosend"] = _clean_bool(config.get("mail_web_autosend"), True)

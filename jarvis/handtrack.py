@@ -59,16 +59,21 @@ class HandTracker:
         self._mp = mp
         options = vision.HandLandmarkerOptions(
             base_options=tasks.BaseOptions(model_asset_path=str(model_path())),
-            running_mode=vision.RunningMode.IMAGE,
+            running_mode=vision.RunningMode.VIDEO,  # kareler arası izleme: IMAGE modundan daha kararlı
             num_hands=1,
+            min_hand_detection_confidence=0.5,
+            min_hand_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
         )
         self._landmarker = vision.HandLandmarker.create_from_options(options)
+        self._last_ms = 0
 
     def points(self, bgr_frame):
         """İlk elin 21 noktası (x, y: 0-1) ya da None. Kare, ayna çevrilmiş BGR olmalı."""
         rgb = bgr_frame[:, :, ::-1].copy()
         image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb)
-        found = self._landmarker.detect(image).hand_landmarks
+        self._last_ms = max(self._last_ms + 1, int(time.monotonic() * 1000))  # VIDEO modu artan zaman damgası ister
+        found = self._landmarker.detect_for_video(image, self._last_ms).hand_landmarks
         return found[0] if found else None
 
     def close(self) -> None:
@@ -83,7 +88,7 @@ def gesture_options() -> dict:
     from jarvis.config import load_app_config
 
     config = load_app_config()
-    options = {name: bool(config.get(f"hand_{name}", True)) for name in ("move", "resize", "maximize", "minimize")}
+    options = {name: bool(config.get(f"hand_{name}", True)) for name in ("move", "resize", "maximize", "minimize", "close", "tab")}
     options["speed"] = max(0.5, min(2.0, float(config.get("hand_speed", 100) or 100) / 100))
     return options
 
@@ -103,6 +108,8 @@ class HandMover:
             "move": staticmethod(win32.move_window),
             "resize": staticmethod(win32.resize_window),
             "show": staticmethod(win32.show_window),
+            "close": staticmethod(win32.close_window),
+            "close_tab": staticmethod(win32.close_tab),
             "screen": staticmethod(win32.screen_size),
         })
         self._options, self._options_at = None, 0.0

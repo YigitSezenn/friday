@@ -241,3 +241,63 @@ def screen_size() -> tuple[int, int]:
         return 1920, 1080
     _ctypes, user32, _kernel32 = _lib()
     return int(user32.GetSystemMetrics(0)), int(user32.GetSystemMetrics(1))
+
+
+def close_window(hwnd: int) -> bool:
+    """Pencereye kapanma isteği gönderir (uygulama kaydedilmemiş işi sorabilir). FRIDAY'in kendi penceresi kapatılmaz."""
+    if not available() or not hwnd:
+        return False
+    ctypes, user32, _kernel32 = _lib()
+    import os
+    from ctypes import wintypes
+
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    if pid.value == os.getpid():
+        return False
+    return bool(user32.PostMessageW(hwnd, 0x0010, 0, 0))  # WM_CLOSE
+
+
+def _own(hwnd: int) -> bool:
+    ctypes, user32, _kernel32 = _lib()
+    import os
+    from ctypes import wintypes
+
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    return pid.value == os.getpid()
+
+
+def target_window() -> int:
+    """Denetlenecek pencere: öndeki pencere FRIDAY değilse o, değilse Z sırasında altındaki ilk görünür pencere."""
+    if not available():
+        return 0
+    ctypes, user32, _kernel32 = _lib()
+    front = foreground_window()
+    if front and not _own(front) and controllable(front):
+        return front
+    found = []
+    from ctypes import wintypes
+
+    proc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+
+    def visit(hwnd, _lparam):
+        if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd) and user32.GetWindowTextLengthW(hwnd) and not _own(hwnd) and controllable(hwnd):
+            ex_style = user32.GetWindowLongW(hwnd, -20)
+            if not ex_style & 0x80:  # WS_EX_TOOLWINDOW
+                found.append(int(hwnd))
+                return False
+        return True
+
+    user32.EnumWindows(proc(visit), 0)
+    return found[0] if found else 0
+
+
+def close_tab(hwnd: int) -> bool:
+    """Pencereyi öne getirip Ctrl+W gönderir (tarayıcı/Gezgin/editör sekmesini kapatır). FRIDAY'in kendi penceresine dokunmaz."""
+    if not available() or not hwnd or _own(hwnd):
+        return False
+    if not bring_to_front(hwnd):
+        return False
+    press_keys(0x11, 0x57)  # Ctrl+W
+    return True

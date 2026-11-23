@@ -28,10 +28,15 @@ window.hud = {
     $("t-cam").dataset.on = on ? "1" : "0";
     $("t-cam-state").textContent = on ? uiPack.camOn : uiPack.camOff;
     $("cam-pip").hidden = !on;  // kendi görüntünü küçük pencerede göster
+    if (!on) $("hand-guide").hidden = true;
+    else {
+      try { if (!localStorage.getItem("handGuideSeen")) { $("hand-guide").hidden = false; localStorage.setItem("handGuideSeen", "1"); } } catch (e) {}
+    }
     if (!on) $("cam-pip-img").removeAttribute("src");
     if (!on) paintHand("kapalı");
   },
   handStatus(text) { paintHand(text); },
+  cameraSize(size) { $("cam-pip").dataset.size = String(size); },
   log(text) {
     text = String(text == null ? "" : text);
     if (text.startsWith("JARVIS:")) addLine(text.slice(7).trim(), "");
@@ -245,7 +250,7 @@ window.hud = {
     setSwitch("set-clap", data.config.clap_wake);
     $("set-clap-sens").value = data.config.clap_sensitivity || 100;
     $("clap-sens-label").textContent = `%${data.config.clap_sensitivity || 100}`;
-    for (const name of ["move", "resize", "maximize", "minimize"]) setSwitch("set-hand-" + name, data.config["hand_" + name] !== false);
+    for (const name of ["move", "resize", "maximize", "minimize", "close", "tab"]) setSwitch("set-hand-" + name, data.config["hand_" + name] !== false);
     $("set-hand-speed").value = data.config.hand_speed || 100;
     $("hand-speed-label").textContent = `%${data.config.hand_speed || 100}`;
     setSwitch("set-files", data.config.file_access);
