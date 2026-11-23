@@ -189,7 +189,10 @@ def toggle_webcam(args, ctx):
         if ctx.ui:
             ctx.ui.set_webcam_active(status in {"ok", "already_active"})
         if status == "ok":
-            return "Kamera açıldı. Artık görüntünü görebiliyorum."
+            from tools.actions.handmove import offer_hand
+
+            offer = offer_hand(ctx.webcam)
+            return "Kamera açıldı. Artık görüntünü görebiliyorum." + (f" {offer}" if offer else "")
         if status == "already_active":
             return "Kamera zaten açık, görüntü alıyorum."
         return "Kamera açılamadı."

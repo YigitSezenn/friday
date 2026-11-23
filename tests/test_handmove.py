@@ -131,3 +131,22 @@ class StandingPermissionTests(unittest.TestCase):
         from jarvis import config
 
         self.assertIs(config.DEFAULT_CONFIG["hand_allowed"], False)
+
+
+class OfferTests(unittest.TestCase):
+    def test_offer_asks_instead_of_starting_and_yes_then_starts(self):
+        from unittest import mock
+
+        cam = FakeCam()
+        cam.start()
+        self.assertIn("açayım mı", handmove.offer_hand(cam))
+        self.assertIsNone(cam.frame_hook)  # kendiliğinden açılmadı
+        confirm.note_user_said("evet aç")
+        with mock.patch.object(confirm, "MIN_WAIT", 0), mock.patch.object(handmove, "_allowed", return_value=False):
+            self.assertIn("açık", run(cam, "start", yes=True))
+        self.assertIsNotNone(cam.frame_hook)
+
+    def test_no_offer_when_hand_control_already_on_or_no_camera(self):
+        cam = FakeCam(); cam.frame_hook = lambda frame: None
+        self.assertEqual(handmove.offer_hand(cam), "")
+        self.assertEqual(handmove.offer_hand(None), "")

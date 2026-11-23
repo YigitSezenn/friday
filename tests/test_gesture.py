@@ -19,7 +19,7 @@ def hand(close=None, at=(0.5, 0.5)):
 
 class FakeWin:
     def __init__(self, controllable=True, maximized=False):
-        self.moves, self.sizes, self.shown, self.closed, self.tabs = [], [], [], [], []
+        self.moves, self.sizes, self.shown, self.closed, self.tabs, self.switched = [], [], [], [], [], []
         self._controllable, self._maximized = controllable, maximized
 
     def foreground(self): return 7
@@ -32,6 +32,27 @@ class FakeWin:
     def show(self, hwnd, cmd): self.shown.append(cmd)
     def close(self, hwnd): self.closed.append(hwnd)
     def close_tab(self, hwnd): self.tabs.append(hwnd)
+    def switch_tab(self, hwnd, forward): self.switched.append(forward)
+
+
+def open_hand(x, y=0.5, curl=()):
+    """Gerçekçi açık el: avuç merkezi (x, y); bilek aşağıda, dört parmak ucu yukarıda; başparmak yanda."""
+    pts = [P(x=x, y=y + 0.4) for _ in range(21)]
+    pts[9] = P(x=x, y=y)  # el boyu 0,4
+    pts[4] = P(x=x - 0.25, y=y + 0.2)
+    for i, tip in enumerate((8, 12, 16, 20)):
+        pts[tip] = P(x=x - 0.12 + i * 0.08, y=y - 0.4)  # bilekten ~2,2 kat uzak
+    for tip in curl:  # hareket bulanıklığı: bu parmak yarı kıvrık görünür (kıstırma değil)
+        pts[tip] = P(x=x + 0.1, y=y + 0.1)
+    return pts
+
+
+def point_hand(x, y=0.5):
+    """Yalnızca işaret parmağı açık; öteki üçü avuca kıvrık, başparmak yanda."""
+    pts = open_hand(x, y)
+    for i, tip in enumerate((12, 16, 20)):
+        pts[tip] = P(x=x + i * 0.05, y=y + 0.1)
+    return pts
 
 
 def grab(g, name, at=(0.5, 0.5)):
@@ -182,49 +203,66 @@ class CurledFingersTests(unittest.TestCase):
         self.assertEqual(win.shown, [])
 
 
-class TabGestureTests(unittest.TestCase):
-    def two(self):
+class FistTabTests(unittest.TestCase):
+    def fist(self):
         pts = hand("move")
-        pts[12] = P(x=0.51, y=0.5)  # orta parmak da başparmakta
+        for tip in (12, 16, 20):
+            pts[tip] = P(x=0.5, y=0.5)  # dört parmak ucu başparmakta ve avuçta
         return pts
 
-    def test_index_plus_middle_held_closes_tab_once(self):
+    def test_fist_held_closes_tab_once(self):
         win = FakeWin(); g = HandGestures(win)
-        drive(g, [self.two()] * 60)
+        drive(g, [self.fist()] * 60)
         self.assertEqual((win.tabs, win.closed, win.moves), ([7], [], []))
 
-    def test_short_touch_and_disabled_do_nothing(self):
+    def test_short_fist_and_disabled_do_nothing(self):
         win = FakeWin(); g = HandGestures(win)
-        drive(g, [self.two()] * 10)
+        drive(g, [self.fist()] * 10)
         self.assertEqual(win.tabs, [])
-        g = HandGestures(win, lambda: {"tab": False}); drive(g, [self.two()] * 60)
+        g = HandGestures(win, lambda: {"tab": False}); drive(g, [self.fist()] * 60)
+        self.assertEqual(win.tabs, [])
+
+    def test_extended_fingers_touching_are_not_a_fist(self):
+        win = FakeWin(); g = HandGestures(win)
+        pts = hand("move")
+        for tip in (4, 8, 12, 16, 20):
+            pts[tip] = P(x=0.5, y=0.1)  # birbirine değiyor ama bilekten uzakta
+        drive(g, [pts] * 60)
         self.assertEqual(win.tabs, [])
 
 
-class FingerAndFistTests(unittest.TestCase):
-    def test_pinky_and_ring_trigger_with_looser_pinch(self):
-        for name, shown in (("minimize", 6), ("maximize", 3)):
-            win = FakeWin(); g = HandGestures(win)
-            pts = hand(name)
-            tip = {"minimize": 20, "maximize": 16}[name]
-            pts[tip] = P(x=0.5 + {"minimize": 0.17, "maximize": 0.14}[name], y=0.5)  # el boyunun %35-43'ü: eskiden tetiklenmezdi
-            drive(g, [pts] * 12)
-            self.assertEqual(win.shown, [shown])
+class PointSwitchTests(unittest.TestCase):
+    def flick(self, start, end, frames=5, y=0.5):
+        return [point_hand(start + (end - start) * i / (frames - 1), y) for i in range(frames)]
 
-    def test_open_hand_edge_status(self):
-        said = []; g = HandGestures(FakeWin(), None, said.append)
-        pts = hand(None); pts[0] = P(x=0.01, y=0.9)
-        g.update(pts, 0.0); g.update(hand(None), 0.1)
-        self.assertEqual(said, ["el kadrajın kenarında", "hazır"])
+    def test_index_flick_right_goes_forward_left_goes_back(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, self.flick(0.3, 0.6)); drive(g, self.flick(0.6, 0.3), start=2.0)
+        self.assertEqual(win.switched, [True, False])
 
+    def test_cooldown_prevents_double_switch(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, self.flick(0.2, 0.9, frames=12), step=0.02)
+        self.assertEqual(len(win.switched), 1)
+
+    def test_small_jitter_open_hand_and_disabled_do_not_switch(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, self.flick(0.5, 0.52))
+        drive(g, [open_hand(0.3 + i * 0.06) for i in range(5)], start=3.0)
+        g2 = HandGestures(win, lambda: {"switch": False}); drive(g2, self.flick(0.3, 0.6))
+        self.assertEqual(win.switched, [])
+
+    def test_pointing_hand_moving_right_does_not_close_window(self):
+        win = FakeWin(); g = HandGestures(win)
+        drive(g, [point_hand(0.2 + i * 0.1) for i in range(8)])
+        self.assertEqual(win.closed, [])
 
 
 class SwipeCloseTests(unittest.TestCase):
     def sweep(self, start=0.2, end=0.8, frames=8, y=0.5, step=0.05):
         out = []
         for i in range(frames):
-            pts = hand(None, (0.5, y)); pts[9] = P(x=start + (end - start) * i / (frames - 1), y=y)
-            out.append(pts)
+            out.append(open_hand(start + (end - start) * i / (frames - 1), y))
         return out
 
     def test_open_hand_sweep_left_to_right_closes_window_once(self):
@@ -240,10 +278,7 @@ class SwipeCloseTests(unittest.TestCase):
         self.assertEqual(win.closed, [])
 
     def at(self, x, y=0.5, curl=()):
-        pts = hand(None, (0.5, y)); pts[9] = P(x=x, y=y)
-        for tip in curl:  # hareket bulanıklığı: bu parmak uçları kıvrık görünür (kıstırma sayılmaz)
-            pts[tip] = P(x=0.5 + 0.16, y=y)
-        return pts
+        return open_hand(x, y, curl)
 
     def test_fast_sparse_swipe_with_a_blurred_frame_and_a_dropout_still_closes(self):
         win = FakeWin(); g = HandGestures(win)
@@ -260,10 +295,7 @@ class SwipeCloseTests(unittest.TestCase):
 
     def test_diagonal_motion_does_not_close(self):
         win = FakeWin(); g = HandGestures(win)
-        frames = self.sweep()
-        for i, pts in enumerate(frames):
-            pts[9] = P(x=pts[9].x, y=0.2 + i * 0.08)
-        drive(g, frames)
+        drive(g, [open_hand(0.2 + i * 0.08, 0.2 + i * 0.08) for i in range(8)])
         self.assertEqual(win.closed, [])
 
     def test_pinched_hand_moving_right_drags_instead_of_closing(self):

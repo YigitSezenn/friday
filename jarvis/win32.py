@@ -298,11 +298,26 @@ def target_window() -> int:
     return found[0] if found else 0
 
 
+def _tab_target(hwnd: int) -> int:
+    """Sekme tuşları öndeki pencereye gider; öndeki FRIDAY ise altındaki ilk gerçek pencere seçilir."""
+    if not available() or not hwnd:
+        return 0
+    return target_window() if _own(hwnd) else hwnd
+
+
 def close_tab(hwnd: int) -> bool:
-    """Pencereyi öne getirip Ctrl+W gönderir (tarayıcı/Gezgin/editör sekmesini kapatır). FRIDAY'in kendi penceresine dokunmaz."""
-    if not available() or not hwnd or _own(hwnd):
-        return False
-    if not bring_to_front(hwnd):
+    """Pencereyi öne getirip Ctrl+W gönderir (tarayıcı/Gezgin/editör sekmesini kapatır)."""
+    hwnd = _tab_target(hwnd)
+    if not hwnd or not bring_to_front(hwnd):
         return False
     press_keys(0x11, 0x57)  # Ctrl+W
+    return True
+
+
+def switch_tab(hwnd: int, forward: bool = True) -> bool:
+    """Sonraki (Ctrl+Tab) ya da önceki (Ctrl+Shift+Tab) sekmeye geçer."""
+    hwnd = _tab_target(hwnd)
+    if not hwnd or not bring_to_front(hwnd):
+        return False
+    press_keys(0x11, 0x09) if forward else press_keys(0x11, 0x10, 0x09)
     return True
