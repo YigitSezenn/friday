@@ -239,6 +239,25 @@ class SwipeCloseTests(unittest.TestCase):
         win = FakeWin(); g = HandGestures(win); drive(g, self.sweep(frames=8), step=0.3)  # 2,1 sn: yavaş
         self.assertEqual(win.closed, [])
 
+    def at(self, x, y=0.5, curl=()):
+        pts = hand(None, (0.5, y)); pts[9] = P(x=x, y=y)
+        for tip in curl:  # hareket bulanıklığı: bu parmak uçları kıvrık görünür (kıstırma sayılmaz)
+            pts[tip] = P(x=0.5 + 0.16, y=y)
+        return pts
+
+    def test_fast_sparse_swipe_with_a_blurred_frame_and_a_dropout_still_closes(self):
+        win = FakeWin(); g = HandGestures(win)
+        g.update(self.at(0.25), 0.00)
+        g.update(None, 0.08)  # hızlı harekette el kaybolur
+        g.update(self.at(0.50, curl=(12, 16)), 0.16)  # bulanık, yarı kıvrık kare
+        g.update(self.at(0.80), 0.28)
+        self.assertEqual(win.closed, [7])
+
+    def test_two_sample_jump_closes(self):
+        win = FakeWin(); g = HandGestures(win)
+        g.update(self.at(0.2), 0.0); g.update(self.at(0.62), 0.25)
+        self.assertEqual(win.closed, [7])
+
     def test_diagonal_motion_does_not_close(self):
         win = FakeWin(); g = HandGestures(win)
         frames = self.sweep()

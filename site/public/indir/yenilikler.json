@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.28",
+      "tarih": "2026-11-23",
+      "baslik": "Daha akıcı el takibi: 1€ filtresi, hızlı kamera, güvenilir sallama",
+      "maddeler": [
+        "Pencere taşıma ve boyutlandırma 1€ filtresiyle: yavaş harekette titremez, hızlı harekette geride kalmaz.",
+        "Kamera MJPG ve 30 kare/sn ile açılır; hareket bulanıklığı ve gecikme azalır.",
+        "Soldan sağa sallayarak pencere kapatma hızlı harekette de çalışır (bulanık ya da kaybolan kareler izi bozmaz)."
+      ]
+    },
+    {
       "surum": "4.13.27",
       "tarih": "2026-11-23",
       "baslik": "Kurulum kilidi, İzinler sekmesi, daha iyi parmak ayrımı, sallayarak kapatma",

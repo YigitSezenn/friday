@@ -63,6 +63,12 @@ class WebcamStreamer:
         if not cap.isOpened():
             self._stop.set()
             return
+        for prop, value in ((cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG")), (cv2.CAP_PROP_FRAME_WIDTH, 640),
+                            (cv2.CAP_PROP_FRAME_HEIGHT, 480), (cv2.CAP_PROP_FPS, 30), (cv2.CAP_PROP_BUFFERSIZE, 1)):
+            try:  # MJPG + 30 kare/sn: kısa pozlama (daha az hareket bulanıklığı) ve düşük gecikme; kamera desteklemezse yok sayılır
+                cap.set(prop, value)
+            except Exception:
+                pass
         with self._lock:
             self._active = True
         try:
@@ -83,7 +89,7 @@ class WebcamStreamer:
                 if encoded:
                     with self._lock:
                         self._latest = buf.tobytes()
-                time.sleep(self.CAPTURE_INTERVAL)
+                time.sleep(0.005 if self.frame_hook else self.CAPTURE_INTERVAL)  # el takibinde hızlı hareketi kaçırmamak için tam hızda
         finally:
             cap.release()
             with self._lock:

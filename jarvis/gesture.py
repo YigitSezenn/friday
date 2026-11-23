@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import math
 
+from jarvis.oneeuro import OneEuro
+
 WRIST, THUMB_TIP, MIDDLE_MCP = 0, 4, 9
 EDGE = 0.03  # el noktası kadraj kenarına bu kadar yakınsa uyar
 TIPS = {"move": 8, "resize": 12, "maximize": 16, "minimize": 20}
@@ -24,18 +26,20 @@ OTHERS_ABOVE = 0.45
 MARGIN = 0.12  # seçilen parmak diğerlerinden en az bu kadar (el boyu oranı) daha yakın olmalı; diğerleri kıvrık olabilir  # diğer parmaklar açık olmalı (yumruk hareket sayılmaz)
 RELEASE_ABOVE = 0.50  # %50'den açılınca bırak (titremeyi önler)
 GAIN = 1.6  # küçük el hareketi ekranın büyük kısmını gezsin
-SMOOTH = 0.5
+# 1€ filtresi (bkz. oneeuro.py): yavaş harekette titreme bastırılır, hızlı harekette gecikme azalır. Birim: kare oranı/sn.
+MINCUTOFF = 1.0
+BETA = 8.0
 LOST_GRACE = 0.5  # el kısa süre kaybolursa bırakma
 HOLD = 0.3
 HOLD_GRACE = 0.2  # tutma sırasında tek-iki karelik algı kaybı sayacı sıfırlamasın
-SWIPE_DX = 0.40  # avuç merkezi bu kadar (kare genişliği oranı) sağa gitmeli
+SWIPE_DX = 0.35  # avuç merkezi bu kadar (kare genişliği oranı) sağa gitmeli
 SWIPE_DY = 0.20  # ve en fazla bu kadar yukarı/aşağı kaymalı
 SWIPE_WINDOW = 0.8  # saniye içinde
 SWIPE_COOLDOWN = 2.0
 TAB_HOLD = 1.0
 START_FRAMES = 2  # algılama tek karelik yanlışla başlamasın
 RELEASE_FRAMES = 2  # tek karelik kayıp bırakmasın
-DEADZONE = 3  # piksel; titreme pencereyi oynatmasın
+DEADZONE = 1  # piksel
 COOLDOWN = 1.0
 MIN_SIZE = (320, 200)
 DEFAULTS = {"move": True, "resize": True, "maximize": True, "minimize": True, "close": True, "tab": True, "speed": 1.0}
@@ -69,6 +73,7 @@ class HandGestures:
         self.mode = ""  # taşıma / boyutlandırma sürerken
         self.hwnd = 0
         self.start_hand = (0.0, 0.0)
+        self.filter_x, self.filter_y = OneEuro(MINCUTOFF, BETA), OneEuro(MINCUTOFF, BETA)
         self.start_rect = (0, 0, 0, 0)
         self.pos = (0.0, 0.0)
         self.hold = ""
@@ -144,7 +149,7 @@ class HandGestures:
             return
         if active in ("move", "resize"):
             if self.seen >= START_FRAMES:
-                self._start_drag(active, points)
+                self._start_drag(active, points, now)
             return
         # büyüt / küçült: tutup bekle
         if not self.armed or now < self.cool_until:
@@ -158,9 +163,11 @@ class HandGestures:
 
     def _swipe(self, points, found: dict[str, float], now: float) -> None:
         """Açık el (hiçbir parmak kıstırılmamış) soldan sağa hızlıca gidince pencereyi kapatır."""
-        if not self._enabled("close") or now < self.swipe_cool or not all(value > OTHERS_ABOVE for value in found.values()):
-            self.trail = []
+        if not self._enabled("close") or now < self.swipe_cool or any(value < GRAB[name] for name, value in found.items()):
+            self.trail = []  # kapalı ya da kıstırma var (taşıma/yumruk): sallama sayılmaz
             return
+        if sum(value > OTHERS_ABOVE for value in found.values()) < 2:
+            return  # hızlı harekette bulanık/kıvrık kare: izi silme, bu kareyi atla
         center = points[MIDDLE_MCP]
         self.trail = [t for t in self.trail if now - t[0] <= SWIPE_WINDOW] + [(now, center.x, center.y)]
         if center.x - min(t[1] for t in self.trail) >= SWIPE_DX and max(t[2] for t in self.trail) - min(t[2] for t in self.trail) <= SWIPE_DY:
@@ -185,7 +192,7 @@ class HandGestures:
             self.win.show(hwnd, 9 if self.win.maximized(hwnd) else 3)
         self._say(LABELS[name])
 
-    def _start_drag(self, name: str, points) -> None:
+    def _start_drag(self, name: str, points, now: float) -> None:
         hwnd = self._target()
         if not hwnd or self.win.maximized(hwnd):
             return  # tam ekran pencere taşınmaz/boyutlanmaz; önce eski boyuta getir
@@ -193,7 +200,8 @@ class HandGestures:
         if not rect:
             return
         self.mode, self.hwnd = name, hwnd
-        self.start_hand = (points[THUMB_TIP].x, points[THUMB_TIP].y)
+        self.filter_x.reset(); self.filter_y.reset()
+        self.start_hand = (self.filter_x(points[THUMB_TIP].x, now), self.filter_y(points[THUMB_TIP].y, now))
         self.start_rect = rect
         self.pos = (float(rect[0]), float(rect[1])) if name == "move" else (float(rect[2] - rect[0]), float(rect[3] - rect[1]))
         self._say(LABELS[name])
@@ -207,8 +215,9 @@ class HandGestures:
             return  # tek karelik açılma: pencereyi olduğu yerde tut
         screen_w, screen_h = self.win.screen()
         speed = GAIN * float(self.options().get("speed", 1.0) or 1.0)
-        dx = (points[THUMB_TIP].x - self.start_hand[0]) * screen_w * speed
-        dy = (points[THUMB_TIP].y - self.start_hand[1]) * screen_h * speed
+        hand_x, hand_y = self.filter_x(points[THUMB_TIP].x, now), self.filter_y(points[THUMB_TIP].y, now)
+        dx = (hand_x - self.start_hand[0]) * screen_w * speed
+        dy = (hand_y - self.start_hand[1]) * screen_h * speed
         left, top, right, bottom = self.start_rect
         width, height = right - left, bottom - top
         if self.mode == "move":
@@ -217,7 +226,7 @@ class HandGestures:
             goal = (min(max(width + dx, MIN_SIZE[0]), screen_w), min(max(height + dy, MIN_SIZE[1]), screen_h))
         if abs(goal[0] - self.pos[0]) < DEADZONE and abs(goal[1] - self.pos[1]) < DEADZONE:
             return
-        self.pos = (self.pos[0] + (goal[0] - self.pos[0]) * SMOOTH, self.pos[1] + (goal[1] - self.pos[1]) * SMOOTH)
+        self.pos = goal
         if self.mode == "move":
             self.win.move(self.hwnd, round(self.pos[0]), round(self.pos[1]))
         else:
