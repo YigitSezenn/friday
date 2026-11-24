@@ -142,6 +142,7 @@ def _kill_other_instances() -> None:
     import os
     import subprocess
 
+    _trace("takılı eski örnek sonlandırılıyor")
     if getattr(sys, "frozen", False):  # geliştirmede python.exe'ye dokunma
         subprocess.run(["taskkill", "/F", "/IM", "FRIDAY.exe", "/FI", f"PID ne {os.getpid()}"], capture_output=True,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
@@ -184,6 +185,21 @@ def _proactive_loop(ui, live_box: dict) -> None:
                 live.nudge(note)
 
 
+def _trace(text: str) -> None:
+    """Açılış adımlarını data/logs/start.log'a yazar (güncellemeden sonra açılmama gibi durumları görmek için; ~32 KB'de döner)."""
+    try:
+        import datetime
+        import os
+
+        path = data_path("logs", "start.log")
+        if path.exists() and path.stat().st_size > 32 * 1024:
+            path.replace(path.with_suffix(".log.1"))
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(f"{datetime.datetime.now().isoformat(timespec='seconds')} pid={os.getpid()} {text}\n")
+    except Exception:
+        pass
+
+
 def _note_launch() -> None:
     try:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("FRIDAY.Rebuild")
@@ -212,10 +228,13 @@ def main(argv: list[str] | None = None) -> int:
 
         return run_listener()
     _note_launch()
+    _trace(f"başladı argv={argv}")
     _show_event()
     if not _acquire_single_instance():
+        _trace("başka örnek çalışıyor, çıkıldı")
         print("JARVIS zaten çalışıyor.")
         return 0
+    _trace("tek örnek alındı")
 
     from jarvis.live import JarvisLive
     from jarvis.phone_server import start_phone_server
