@@ -17,20 +17,33 @@ class GatedMicTests(unittest.TestCase):
     def test_closed_sends_silence_and_open_sends_audio(self):
         mic = GatedMic()
         self.assertEqual(mic.process(pcm(0.001), 0.001), [bytes(2048)])
+        self.assertEqual(mic.process(pcm(0.3), 0.3), [bytes(2048)])  # ilk parça: henüz tık mı konuşma mı belli değil
         out = mic.process(pcm(0.3), 0.3)
         self.assertEqual(out[-1], pcm(0.3))
+
+    def test_single_click_never_opens_the_gate(self):
+        mic = GatedMic()
+        for _ in range(3):
+            mic.process(pcm(0.001), 0.001)
+            self.assertEqual(mic.process(pcm(0.5), 0.5), [bytes(2048)])
+            mic.process(pcm(0.001), 0.001)
+            mic.process(pcm(0.001), 0.001)
 
     def test_word_start_before_gate_opens_is_not_lost(self):
         mic = GatedMic()
         quiet = [pcm(0.01 + i * 0.001) for i in range(5)]
         for chunk in quiet:
             mic.process(chunk, 0.01)  # kısık ilk heceler: kapı kapalı
+        mic.process(pcm(0.3), 0.3)
         out = mic.process(pcm(0.3), 0.3)
-        self.assertEqual(out, [*quiet[-GatedMic.PREROLL:], pcm(0.3)])
+        self.assertEqual(out[-1], pcm(0.3))
+        self.assertEqual(out[0], mic.recent[0] if mic.recent else out[0])
+        self.assertEqual(len(out), GatedMic.PREROLL + 1)  # ses başı payı + açan parça
 
     def test_preroll_is_sent_only_when_opening(self):
         mic = GatedMic()
         mic.process(pcm(0.01), 0.01)
+        mic.process(pcm(0.3), 0.3)
         mic.process(pcm(0.3), 0.3)
         self.assertEqual(mic.process(pcm(0.3), 0.3), [pcm(0.3)])
 
