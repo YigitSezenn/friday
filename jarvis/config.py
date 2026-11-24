@@ -22,7 +22,10 @@ UI_COLORS = {
 }
 ADDRESS_PRESETS = ("adınla", "efendim", "komutanım", "dostum", "patron")
 PANEL_KEYS = ("time", "system", "timer", "notes", "weather", "calendar", "reminders", "map")
-LIVE_MODELS = ("models/gemini-3.8-live",)
+LIVE_MODELS = ("models/gemini-3.8-live", "models/gemini-3.1-flash-live-preview")
+# 20 Kasım 2026'dan beri 3.8-live bazı anahtarlarda gerçek zamanlı sesi yanıtsız bırakıyor (yalnız ACTIVITY_START, sessizlik).
+# Ses boşa gidince FRIDAY oturum boyunca bu modele geçer.
+FALLBACK_LIVE_MODEL = "models/gemini-3.1-flash-live-preview"
 # Google 2.5 native-audio önizlemesini 17 Kasım 2026'da kapatıyor; eski seçim yeni modele taşınır.
 RETIRED_LIVE_MODELS = {"models/gemini-2.5-flash-native-audio-latest": "models/gemini-3.8-live"}
 LANGUAGES = ("auto", "tr", "en", "fr", "ar", "az")

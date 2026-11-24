@@ -64,3 +64,32 @@ class PreviewDoesNotBlockTheEventLoop(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ModelFallbackTests(unittest.TestCase):
+    def setUp(self):
+        import jarvis.live as live
+        self.live = live
+        live._model_override = None
+
+    def tearDown(self):
+        self.live._model_override = None
+
+    def stub(self, silent):
+        logs = []
+        return types.SimpleNamespace(_silent_stalls=silent, ui=types.SimpleNamespace(write_log=logs.append)), logs
+
+    def test_one_silent_round_keeps_the_model_two_switch_to_the_fallback(self):
+        from jarvis.config import FALLBACK_LIVE_MODEL
+        first, _ = self.stub(1)
+        Live._maybe_fallback_model(first)
+        self.assertNotEqual(self.live.current_live_model(), FALLBACK_LIVE_MODEL)
+        second, logs = self.stub(2)
+        Live._maybe_fallback_model(second)
+        self.assertEqual(self.live.current_live_model(), FALLBACK_LIVE_MODEL)
+        self.assertEqual(len(logs), 1)
+
+    def test_fallback_model_gets_no_language_codes(self):
+        from jarvis.language import live_speech_code
+        self.assertIsNone(live_speech_code("models/gemini-3.1-flash-live-preview"))
+        self.assertIsNotNone(live_speech_code("models/gemini-3.8-live"))

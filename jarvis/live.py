@@ -19,7 +19,12 @@ from jarvis.prompt import load_system_prompt
 from jarvis.textfix import repair_text
 from tools.dispatch import TOOL_DECLARATIONS, execute_tool, looks_like_error
 
+_model_override: str | None = None  # yanıtsız kalan modelden oturum boyunca geçilen yedek model
+
+
 def current_live_model() -> str:
+    if _model_override:
+        return _model_override
     from jarvis.config import LIVE_MODELS
 
     from jarvis.config import RETIRED_LIVE_MODELS
@@ -496,6 +501,8 @@ class JarvisLive:
                     sc = response.server_content
                     rx["heard"] += bool(sc and sc.input_transcription and sc.input_transcription.text)
                     rx["turns"] += bool(sc and sc.turn_complete)
+                    if response.data or (sc and (sc.input_transcription or sc.output_transcription or sc.turn_complete)):
+                        self._silent_stalls = 0  # gerçek yanıt geldi; bağlantı kurulum olayları sayılmaz
                 if response.data:
                     got_audio = True
                     self.audio_in_queue.put_nowait(response.data)
@@ -572,9 +579,21 @@ class JarvisLive:
             idle = bool(self._is_speaking or self.ui.muted or self._paused)
             if self.stall.stalled(time.monotonic(), idle=idle):
                 self.stall.reset()
+                self._silent_stalls = getattr(self, "_silent_stalls", 0) + 1
+                self._maybe_fallback_model()
                 self.ui.write_log("SYS: Yanıt gelmedi, bağlantı yenileniyor.")
                 if self._reconnect is not None:
                     self._reconnect.set()
+
+    def _maybe_fallback_model(self) -> None:
+        """İki kez üst üste yanıtsız kalındıysa (model sesi duymuyor) oturum boyunca yedek canlı modele geç."""
+        global _model_override
+        from jarvis.config import FALLBACK_LIVE_MODEL
+
+        if getattr(self, "_silent_stalls", 0) >= 2 and current_live_model() != FALLBACK_LIVE_MODEL:
+            _model_override = FALLBACK_LIVE_MODEL
+            self.ui.write_log("SYS: Model sesinizi yanıtlamıyor, yedek canlı modele geçiliyor.")
+            _log_mic(f"yedek modele gecildi {FALLBACK_LIVE_MODEL}")
 
     async def _play_audio(self) -> None:
         import pyaudio
