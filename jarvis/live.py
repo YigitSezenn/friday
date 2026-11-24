@@ -419,7 +419,7 @@ class JarvisLive:
                 stats.add(peak(data), gate.open, sent_any)
                 note = stats.line(
                     time.monotonic(), speaking=speaking, muted=bool(self.ui.muted), paused=bool(self._paused),
-                    cam=self.webcam.is_active, gate_floor=round(gate.gate.floor, 3), queue=self.out_queue.qsize(),
+                    cam=self.webcam.is_active, rx=getattr(self, "_rx", None), gate_floor=round(gate.gate.floor, 3), queue=self.out_queue.qsize(),
                 )
                 if note:
                     _log_mic(note)
@@ -488,6 +488,14 @@ class JarvisLive:
             async for response in self.session.receive():
                 produced = True
                 self.stall.server_event()
+                rx = getattr(self, "_rx", None)
+                if rx is not None:
+                    rx["events"] += 1
+                    rx["audio"] += bool(response.data)
+                    rx["tools"] += bool(response.tool_call)
+                    sc = response.server_content
+                    rx["heard"] += bool(sc and sc.input_transcription and sc.input_transcription.text)
+                    rx["turns"] += bool(sc and sc.turn_complete)
                 if response.data:
                     got_audio = True
                     self.audio_in_queue.put_nowait(response.data)
@@ -678,6 +686,8 @@ class JarvisLive:
                     _confirm.require_user_yes = True
                     self._loop = asyncio.get_running_loop()
                     self.audio_in_queue = asyncio.Queue()
+                    self._rx = {"events": 0, "audio": 0, "heard": 0, "turns": 0, "tools": 0}  # sunucudan gelenler (tanı)
+                    _log_mic(f"baglandi model={current_live_model()}")
                     self.out_queue = asyncio.Queue(maxsize=8)
                     attempts = 0
                     quiet_streak = 0
