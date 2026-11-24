@@ -64,3 +64,45 @@ class PreviewDoesNotBlockTheEventLoop(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ModelFallbackTests(unittest.TestCase):
+    def setUp(self):
+        import jarvis.live as live
+        self.live = live
+        live._model_override = None
+
+    def tearDown(self):
+        self.live._model_override = None
+
+    def stub(self, silent):
+        logs = []
+        return types.SimpleNamespace(_silent_stalls=silent, ui=types.SimpleNamespace(write_log=logs.append)), logs
+
+    def test_one_silent_round_keeps_the_model_two_switch_down_the_chain(self):
+        from jarvis.config import FALLBACK_LIVE_MODELS
+        first, _ = self.stub(1)
+        Live._maybe_fallback_model(first)
+        self.assertEqual(self.live.current_live_model(), "models/gemini-3.8-live")
+        second, logs = self.stub(2)
+        Live._maybe_fallback_model(second)
+        self.assertEqual(self.live.current_live_model(), FALLBACK_LIVE_MODELS[0])
+        self.assertEqual((len(logs), second._silent_stalls), (1, 0))
+        third, _ = self.stub(2)
+        Live._maybe_fallback_model(third)
+        self.assertEqual(self.live.current_live_model(), FALLBACK_LIVE_MODELS[1])
+        last, _ = self.stub(2)
+        Live._maybe_fallback_model(last)
+        self.assertEqual(self.live.current_live_model(), FALLBACK_LIVE_MODELS[1])  # zincirin sonu: kalır
+
+    def test_next_fallback_walks_the_chain_and_ends(self):
+        from jarvis.config import FALLBACK_LIVE_MODELS
+        self.assertEqual(self.live.next_fallback("models/gemini-3.8-live"), FALLBACK_LIVE_MODELS[0])
+        self.assertEqual(self.live.next_fallback(FALLBACK_LIVE_MODELS[0]), FALLBACK_LIVE_MODELS[1])
+        self.assertIsNone(self.live.next_fallback(FALLBACK_LIVE_MODELS[1]))
+
+    def test_fallback_model_gets_no_language_codes(self):
+        from jarvis.language import live_speech_code
+        self.assertIsNone(live_speech_code("models/gemini-3.1-flash-live-preview"))
+        self.assertIsNone(live_speech_code("models/gemini-2.5-flash-native-audio-preview-12-2025"))
+        self.assertIsNotNone(live_speech_code("models/gemini-3.8-live"))

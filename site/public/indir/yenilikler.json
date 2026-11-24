@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.38",
+      "tarih": "2026-11-24",
+      "baslik": "Ses yanıtsız kalınca yedek canlı model",
+      "maddeler": [
+        "Google'ın gemini-3.8-live modeli bazı anahtarlarda gerçek zamanlı sesi yanıtsız bırakıyor (20 Kasım'dan beri). Ses iki kez boşa gidince FRIDAY oturum boyunca yedek canlı modele geçer; açılamayan yedek atlanır.",
+        "Yedek modeller (gemini-3.1-flash-live-preview, gemini-2.5-flash-native-audio-preview-12-2025) Ayarlar'daki model seçiminde de görünür.",
+        "mic.log: yedek model geçişleri kaydedilir."
+      ]
+    },
+    {
       "surum": "4.13.37",
       "tarih": "2026-11-24",
       "baslik": "Alkış ayarı dengelendi, açılış izi",

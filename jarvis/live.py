@@ -19,7 +19,12 @@ from jarvis.prompt import load_system_prompt
 from jarvis.textfix import repair_text
 from tools.dispatch import TOOL_DECLARATIONS, execute_tool, looks_like_error
 
+_model_override: str | None = None  # yanıtsız kalan modelden oturum boyunca geçilen yedek model
+
+
 def current_live_model() -> str:
+    if _model_override:
+        return _model_override
     from jarvis.config import LIVE_MODELS
 
     from jarvis.config import RETIRED_LIVE_MODELS
@@ -27,6 +32,16 @@ def current_live_model() -> str:
     chosen = str(get_app_config_value("live_model", LIVE_MODELS[0]) or LIVE_MODELS[0]).strip()
     chosen = RETIRED_LIVE_MODELS.get(chosen, chosen)
     return chosen if chosen in LIVE_MODELS else LIVE_MODELS[0]
+
+
+def next_fallback(model: str) -> str | None:
+    """`model`den sonra denenecek yedek canlı model (yoksa None). Ana modelden sonra ilk yedek gelir."""
+    from jarvis.config import FALLBACK_LIVE_MODELS
+
+    if model in FALLBACK_LIVE_MODELS:
+        index = FALLBACK_LIVE_MODELS.index(model) + 1
+        return FALLBACK_LIVE_MODELS[index] if index < len(FALLBACK_LIVE_MODELS) else None
+    return FALLBACK_LIVE_MODELS[0]
 
 
 class Reconnect(Exception):
@@ -496,6 +511,8 @@ class JarvisLive:
                     sc = response.server_content
                     rx["heard"] += bool(sc and sc.input_transcription and sc.input_transcription.text)
                     rx["turns"] += bool(sc and sc.turn_complete)
+                    if response.data or (sc and (sc.input_transcription or sc.output_transcription or sc.turn_complete)):
+                        self._silent_stalls = 0  # gerçek yanıt geldi; bağlantı kurulum olayları sayılmaz
                 if response.data:
                     got_audio = True
                     self.audio_in_queue.put_nowait(response.data)
@@ -572,9 +589,23 @@ class JarvisLive:
             idle = bool(self._is_speaking or self.ui.muted or self._paused)
             if self.stall.stalled(time.monotonic(), idle=idle):
                 self.stall.reset()
+                self._silent_stalls = getattr(self, "_silent_stalls", 0) + 1
+                self._maybe_fallback_model()
                 self.ui.write_log("SYS: Yanıt gelmedi, bağlantı yenileniyor.")
                 if self._reconnect is not None:
                     self._reconnect.set()
+
+    def _maybe_fallback_model(self) -> None:
+        """İki kez üst üste yanıtsız kalındıysa (model sesi duymuyor) oturum boyunca yedek canlı modele geç."""
+        global _model_override
+        if getattr(self, "_silent_stalls", 0) < 2:
+            return
+        following = next_fallback(current_live_model())
+        if following:
+            _model_override = following
+            self._silent_stalls = 0
+            self.ui.write_log("SYS: Model sesinizi yanıtlamıyor, yedek canlı modele geçiliyor.")
+            _log_mic(f"yedek modele gecildi {following}")
 
     async def _play_audio(self) -> None:
         import pyaudio
@@ -732,6 +763,10 @@ class JarvisLive:
                     continue
                 traceback.print_exc()
                 _log_error(exc, key)
+                global _model_override
+                if _model_override:  # yedek model açılamadı (kapatılmış/erişim yok): sıradakine, yoksa ana modele dön
+                    _log_mic(f"yedek model acilamadi {_model_override}")
+                    _model_override = next_fallback(_model_override)
                 self.set_speaking(False)
                 if self.webcam.is_active:
                     self.webcam.stop()

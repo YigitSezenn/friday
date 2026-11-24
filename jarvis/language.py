@@ -33,7 +33,7 @@ def speech_language(config: dict | None = None) -> str:
 
 def live_speech_code(model: str, config: dict | None = None) -> str | None:
     """Yerel ses modeli 'tr' kodunu reddedip oturumu düşürüyor. O modele kod gönderilmez."""
-    if "native-audio" in str(model or ""):
+    if "native-audio" in str(model or "") or "3.1-flash-live" in str(model or ""):
         return None
     return speech_language(config)
 
