@@ -5,9 +5,9 @@ from __future__ import annotations
 import array
 
 WINDOWS = 8  # 1024 örneklik parça (~64 ms) 8 küçük pencereye bölünür (~8 ms)
-SHARP = 1.5  # en güçlü pencerenin RMS'i, ortanca pencerenin en az bu kadar katı (kısa, belirgin patlama)
-DECAY = 0.8  # patlama ilk yarıdaysa, parça sonunda RMS bu orana düşmüş olmalı (alkış söner; konuşma/müzik sürer)
-BRIGHT = 0.3  # ardışık örnek farkı enerjisi / enerji: yüksek frekans payı (alkış geniş bantlı; vurma/uğultu/ünlüler düşük)
+SHARP = 1.7  # en güçlü pencerenin RMS'i, ortanca pencerenin en az bu kadar katı (kısa, belirgin patlama)
+DECAY = 0.7  # patlama ilk yarıdaysa, parça sonunda RMS bu orana düşmüş olmalı (alkış söner; konuşma/müzik sürer)
+BRIGHT = 0.05  # ardışık örnek farkı enerjisi / enerji: yüksek frekans payı (alkış geniş bantlı; vurma/uğultu/ünlüler düşük)
 DEBUG_MIN_PEAK = 0.25  # bu seviyenin üstündeki ama alkış sayılmayan sesler tanı günlüğüne yazılır
 _last_debug = 0.0
 
@@ -68,7 +68,7 @@ def debug_rejected(pcm: bytes, now: float, write=None) -> None:
 
 
 class ClapDetector:
-    BASE_LOUD = 0.35  # %100 hassasiyette bir alkışın ulaşması gereken seviye (0-1); normal konuşma tepe ~0,2 yapabilir
+    BASE_LOUD = 0.28  # %100 hassasiyette bir alkışın ulaşması gereken seviye (0-1); normal konuşma tepe ~0,2 yapabilir
     RATIO = 5.0  # ortam gürültüsünün en az bu kadar katı olmalı
     MIN_GAP = 0.12  # aynı alkışın kuyruğu ikinci alkış sayılmaz
     SETTLE = 0.7  # son alkıştan sonra bu kadar sessizlik: sayı kesinleşir

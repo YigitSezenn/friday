@@ -1,6 +1,15 @@
 {
   "surumler": [
     {
+      "surum": "4.13.37",
+      "tarih": "2026-11-24",
+      "baslik": "Alkış ayarı dengelendi, açılış izi",
+      "maddeler": [
+        "Alkış algılama: gerçek alkışı yakalayan keskinlik ölçütü öne alındı, konuşma ve küçük sesler yine uyandırmaz.",
+        "Güncellemeden sonra açılmama gibi durumları görmek için açılış adımları data\\logs\\start.log dosyasına yazılır."
+      ]
+    },
+    {
       "surum": "4.13.36",
       "tarih": "2026-11-24",
       "baslik": "Gürültüye cevap vermeme, daha büyük sohbet alanı",

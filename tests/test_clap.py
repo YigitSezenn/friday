@@ -67,7 +67,7 @@ class SensitivityTests(unittest.TestCase):
         self.assertEqual(run(medium, sensitivity=0.5), [])
 
     def test_set_sensitivity_is_clamped(self):
-        d = ClapDetector(); d.set_sensitivity(99); self.assertAlmostEqual(d.loud, 0.175)
+        d = ClapDetector(); d.set_sensitivity(99); self.assertAlmostEqual(d.loud, 0.14)
         d.set_sensitivity(0); self.assertGreater(d.loud, 0.0)
 
 
