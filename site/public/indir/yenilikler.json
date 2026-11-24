@@ -1,6 +1,14 @@
 {
   "surumler": [
     {
+      "surum": "4.13.35",
+      "tarih": "2026-11-24",
+      "baslik": "Ses tanı kaydı genişletildi",
+      "maddeler": [
+        "data\\logs\\mic.log artık sunucudan gelen olay sayılarını (ses, döküm, tur sonu, araç çağrısı) ve bağlanılan modeli de yazar; \"Dinliyor\"da takılma nedenini bulmak için."
+      ]
+    },
+    {
       "surum": "4.13.34",
       "tarih": "2026-11-23",
       "baslik": "Alkışla uyanma: konuşma ve küçük sesler uyandırmaz",
