@@ -34,6 +34,16 @@ def current_live_model() -> str:
     return chosen if chosen in LIVE_MODELS else LIVE_MODELS[0]
 
 
+def next_fallback(model: str) -> str | None:
+    """`model`den sonra denenecek yedek canlı model (yoksa None). Ana modelden sonra ilk yedek gelir."""
+    from jarvis.config import FALLBACK_LIVE_MODELS
+
+    if model in FALLBACK_LIVE_MODELS:
+        index = FALLBACK_LIVE_MODELS.index(model) + 1
+        return FALLBACK_LIVE_MODELS[index] if index < len(FALLBACK_LIVE_MODELS) else None
+    return FALLBACK_LIVE_MODELS[0]
+
+
 class Reconnect(Exception):
     """Ses veya uyku değişince aynı modele yeniden bağlan."""
 SEND_RATE = 16000
@@ -588,12 +598,14 @@ class JarvisLive:
     def _maybe_fallback_model(self) -> None:
         """İki kez üst üste yanıtsız kalındıysa (model sesi duymuyor) oturum boyunca yedek canlı modele geç."""
         global _model_override
-        from jarvis.config import FALLBACK_LIVE_MODEL
-
-        if getattr(self, "_silent_stalls", 0) >= 2 and current_live_model() != FALLBACK_LIVE_MODEL:
-            _model_override = FALLBACK_LIVE_MODEL
+        if getattr(self, "_silent_stalls", 0) < 2:
+            return
+        following = next_fallback(current_live_model())
+        if following:
+            _model_override = following
+            self._silent_stalls = 0
             self.ui.write_log("SYS: Model sesinizi yanıtlamıyor, yedek canlı modele geçiliyor.")
-            _log_mic(f"yedek modele gecildi {FALLBACK_LIVE_MODEL}")
+            _log_mic(f"yedek modele gecildi {following}")
 
     async def _play_audio(self) -> None:
         import pyaudio
@@ -751,6 +763,10 @@ class JarvisLive:
                     continue
                 traceback.print_exc()
                 _log_error(exc, key)
+                global _model_override
+                if _model_override:  # yedek model açılamadı (kapatılmış/erişim yok): sıradakine, yoksa ana modele dön
+                    _log_mic(f"yedek model acilamadi {_model_override}")
+                    _model_override = next_fallback(_model_override)
                 self.set_speaking(False)
                 if self.webcam.is_active:
                     self.webcam.stop()

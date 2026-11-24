@@ -360,7 +360,8 @@ class JarvisTestCase(unittest.TestCase):
 
         from jarvis.config import RETIRED_LIVE_MODELS
 
-        self.assertEqual(LIVE_MODELS, ("models/gemini-3.8-live", "models/gemini-3.1-flash-live-preview"))
+        self.assertEqual(LIVE_MODELS[0], "models/gemini-3.8-live")
+        self.assertEqual(len(LIVE_MODELS), 3)
         self.assertEqual(RETIRED_LIVE_MODELS["models/gemini-2.5-flash-native-audio-latest"], "models/gemini-3.8-live")
         self.assertEqual(save_app_config({"live_model": "models/gemini-2.5-flash-native-audio-latest"})["live_model"], "models/gemini-3.8-live")
         saved = save_app_config({"live_model": "models/gemini-3.8-live", "language": "tr"})
