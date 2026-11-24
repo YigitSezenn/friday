@@ -57,7 +57,9 @@ def _fragmented(text: str) -> bool:
     """'Spo tif y 'dan E vergün'i' gibi tek harfli parçalara bölünmüş döküm: gerçek konuşma değil."""
     words = _WORD_RE.findall(text)
     singles = [w for w in words if len(w) == 1 and w.lower() != "o"]
-    return len(words) >= 5 and len(singles) >= 2 and len(singles) / len(words) >= FRAGMENT_RATIO
+    if len(words) >= 5:
+        return len(singles) >= 2 and len(singles) / len(words) >= FRAGMENT_RATIO
+    return len(words) >= 2 and len(singles) >= 2 and len(singles) / len(words) >= 0.6  # "A A ses": kısa ama harf parçaları
 
 
 def usable_transcript(text: str, language: str = "tr") -> tuple[str, bool]:
@@ -177,6 +179,7 @@ class MicGate:
     def __init__(self) -> None:
         self.floor = 0.0
         self.hold = 0
+        self.loud = False  # son parça gerçekten eşiğin üstünde miydi (bekleme süresi değil)
 
     def threshold(self) -> float:
         return max(self.MIN_OPEN, self.floor * self.RATIO + 0.008)
@@ -187,7 +190,8 @@ class MicGate:
         else:
             # Yavaş yükselir: kısa konuşma ortamı oynatmaz, sürekli ses (müzik) birkaç saniyede ortam olur.
             self.floor += (level - self.floor) * self.RISE
-        if level > self.threshold():
+        self.loud = level > self.threshold()
+        if self.loud:
             self.hold = self.HANGOVER
             return True
         if self.hold > 0:
@@ -202,18 +206,25 @@ class GatedMic:
     Kapalıyken sunucuya sessizlik gider (cümlenin bittiğini görsün)."""
 
     PREROLL = 3
+    NEED = 2  # kapı açılmak için üst üste bu kadar parça (~0,13 sn) geçmeli: tek tık/pat sesi sunucuya gitmesin
 
     def __init__(self, gate: "MicGate | None" = None) -> None:
         self.gate = gate or MicGate()
         self.recent: list[bytes] = []
         self.open = False
+        self.streak = 0
 
     def process(self, data: bytes, level: float) -> list[bytes]:
         if self.gate.passes(level):
-            out = ([*self.recent] if not self.open else []) + [data]
-            self.recent, self.open = [], True
-            return out
+            self.streak = self.streak + 1 if self.gate.loud else 0  # bekleme süresi parçaları tık sesini konuşmaya çevirmesin
+            if self.open or self.streak >= self.NEED:
+                out = ([*self.recent, data] if not self.open else [data])
+                self.recent, self.open = [], True
+                return out
+            self.recent = (self.recent + [data])[-self.PREROLL:]  # ilk parça: konuşma mı, tık mı henüz belli değil
+            return [bytes(len(data))]
         self.open = False
+        self.streak = 0
         self.recent = (self.recent + [data])[-self.PREROLL:]
         return [bytes(len(data))]
 

@@ -274,3 +274,12 @@ class SilentSessionTests(unittest.TestCase):
         with self.assertRaises(Reconnect):
             asyncio.run(run())
         self.assertLess(live.session.calls, 20)
+
+
+class ShortFragmentTests(unittest.TestCase):
+    def test_short_letter_fragments_are_rejected_but_real_short_phrases_pass(self):
+        from jarvis.heard import usable_transcript
+
+        self.assertEqual(usable_transcript("A A ses")[0], "")
+        for text in ("naber", "o ne", "kaç saat", "saat kaç"):
+            self.assertEqual(usable_transcript(text), (text, False))

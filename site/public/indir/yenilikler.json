@@ -1,6 +1,16 @@
 {
   "surumler": [
     {
+      "surum": "4.13.36",
+      "tarih": "2026-11-24",
+      "baslik": "Gürültüye cevap vermeme, daha büyük sohbet alanı",
+      "maddeler": [
+        "Mikrofon kapısı tek bir yüksek sesle açılmaz (tık, pat, kapı sesi sunucuya gitmez); konuşmanın ilk hecesi yine korunur.",
+        "\"A A ses\" gibi harf parçalarından oluşan bozuk dökümler reddedilir.",
+        "Kaydırılabilir sohbet alanı büyütüldü (ekranın %44'üne kadar)."
+      ]
+    },
+    {
       "surum": "4.13.35",
       "tarih": "2026-11-24",
       "baslik": "Ses tanı kaydı genişletildi",
